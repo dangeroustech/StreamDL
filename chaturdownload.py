@@ -5,7 +5,9 @@ import argparse
 import sys
 import re
 from bs4 import BeautifulSoup as bs
+from datetime import datetime
 import requests
+import ffmpeg
 import time
 import os
 
@@ -40,7 +42,7 @@ def main(argv):
     logging.debug("Stream URL Received: {}".format(stream))
     logging.debug("Stream Title Received: {}".format(title))
 
-    download_video(stream, outDir, title)
+    download_video(stream, outDir, user + "_" + str(datetime.now()) + "_" + title)
 
 
 def get_stream(user):
@@ -57,7 +59,15 @@ def get_stream(user):
         if "default_subject" in string:
             room_title = re.search('default_subject: \"(.+)\"', string).group().lstrip("default_subject: \"").rstrip("\"")
 
-    room_title = room_title.replace("%20", "_").replace("%23", "#")
+    room_title = room_title.replace("%20", "_")\
+        .replace("%23", "#")\
+        .replace("%27", "")\
+        .replace("%3A", "")\
+        .replace("%21", "!")\
+        .replace("%5B", "[")\
+        .replace("%5D", "]")\
+        .replace("/", "")\
+        .replace(" ", "")
 
     return stream_url, room_title
 
@@ -65,5 +75,8 @@ def get_stream(user):
 def download_video(stream, outpath, filename):
     logging.debug("FUNCTION: Downloading Video...")
 
+    dl = ffmpeg.input(stream)
+    dl = ffmpeg.output(dl, outpath + "/" + filename + ".mp4")
+    ffmpeg.run(dl)
 
 main(sys.argv)
