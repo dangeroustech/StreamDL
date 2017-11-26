@@ -76,7 +76,7 @@ def download_video(stream, outpath, filename):
     logging.debug("FUNCTION: Downloading Video...")
 
     dl = ffmpeg.input(stream)
-    dl = ffmpeg.output(dl, outpath + "/" + filename + ".mp4")
+    dl = ffmpeg.output(dl, outpath + "/" + filename[:200] + ".mp4")
     ffmpeg.run(dl)
 
 main(sys.argv)
