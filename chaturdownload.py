@@ -7,6 +7,7 @@ import re
 from bs4 import BeautifulSoup as bs
 import requests
 import time
+import os
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -16,6 +17,7 @@ def main(argv):
     parser = argparse.ArgumentParser(usage='Download the Current Stream by a Chaturbate User')
     parser.add_argument('-u', '--user', help='Chaturbate Username', required=True)
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
+    parser.add_argument('-o', '--outdir', help='Output file location (defaults to working dir)')
 
     args = parser.parse_args()
 
@@ -23,6 +25,11 @@ def main(argv):
         logfile = 'chaturdownload.log'
     else:
         logfile = args.logpath
+    if not args.outdir:
+        os.chdir(os.path.dirname(__file__))
+        outDir = os.getcwd()
+    else:
+        outDir = args.outdir
     user = args.user
 
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
@@ -32,6 +39,8 @@ def main(argv):
     stream, title = get_stream(user)
     logging.debug("Stream URL Received: {}".format(stream))
     logging.debug("Stream Title Received: {}".format(title))
+
+    download_video(stream, outDir, title)
 
 
 def get_stream(user):
@@ -53,7 +62,7 @@ def get_stream(user):
     return stream_url, room_title
 
 
-def download_video(stream, filename):
+def download_video(stream, outpath, filename):
     logging.debug("FUNCTION: Downloading Video...")
 
 
