@@ -6,6 +6,7 @@ import sys
 import re
 from bs4 import BeautifulSoup as bs
 import requests
+import time
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -29,8 +30,8 @@ def main(argv):
     logging.debug("Using User: {}".format(user))
 
     stream, title = get_stream(user)
-    logging.debug("Stream URL Received: {}", stream)
-    logging.debug("Stream Title Received: {}", title)
+    logging.debug("Stream URL Received: {}".format(stream))
+    logging.debug("Stream Title Received: {}".format(title))
 
 
 def get_stream(user):
@@ -47,7 +48,9 @@ def get_stream(user):
         if "default_subject" in string:
             room_title = re.search('default_subject: \"(.+)\"', string).group().lstrip("default_subject: \"").rstrip("\"")
 
-    return stream_url, room_title.replace("%20", "_").replace("%23", "#")
+    room_title = room_title.replace("%20", "_").replace("%23", "#")
+
+    return stream_url, room_title
 
 
 def download_video(stream, filename):
