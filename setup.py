@@ -8,6 +8,5 @@ setup(
     version="1.0",
     description="Good shits",
     author="Pat Riarchy",
-    packages=["ChaturDownload"],
     install_requires=['bs4', 'requests', 'ffmpeg-python'],
 )
