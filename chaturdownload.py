@@ -7,6 +7,7 @@ import os
 import youtube_dl
 from datetime import datetime
 import yaml
+import threading
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -33,11 +34,20 @@ def main(argv):
 
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
     logging.debug("Starting ChaturDownload...")
-    logging.debug("Downloading From User: {}".format(user))
     logging.debug("Downloading to: {}".format(outDir))
 
     if args.config:
         users = config_reader(args.config)
+        logging.debug("Users in Config: {}".format(users))
+
+        for user in users:
+            x = len(users)
+            logging.debug("Downloading From User: {}".format(user))
+            t = threading.Thread(name="{}".format(user), target=download_video(user, outDir), daemon=True)
+            t.run()
+    else:
+        logging.debug("Downloading From User: {}".format(user))
+        download_video(user, outDir)
 
     sys.exit(0)
 
@@ -59,8 +69,10 @@ def download_video(user, outpath):
         'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
     }
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(["https://www.chaturbate.com/{}/".format(user)])
-
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(["https://www.chaturbate.com/{}/".format(user)])
+    except youtube_dl.utils.DownloadError:
+        print("Room Offline")
 
 main(sys.argv)
