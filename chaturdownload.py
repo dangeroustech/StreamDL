@@ -7,7 +7,7 @@ import os
 import youtube_dl
 from datetime import datetime
 import yaml
-import threading
+from multiprocessing import Process
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -41,15 +41,12 @@ def main(argv):
         logging.debug("Users in Config: {}".format(users))
 
         for user in users:
-            x = len(users)
             logging.debug("Downloading From User: {}".format(user))
-            t = threading.Thread(name="{}".format(user), target=download_video(user, outDir), daemon=True)
-            t.run()
+            p = Process(name="{}".format(user), target=download_video, args=(user, outDir))
+            p.start()
     else:
         logging.debug("Downloading From User: {}".format(user))
         download_video(user, outDir)
-
-    sys.exit(0)
 
 
 def config_reader(config_file):
@@ -58,8 +55,6 @@ def config_reader(config_file):
         data_loaded = yaml.load(stream)
 
     return data_loaded['users']
-
-    #download_video(user, outpath)
 
 
 def download_video(user, outpath):
@@ -73,6 +68,8 @@ def download_video(user, outpath):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(["https://www.chaturbate.com/{}/".format(user)])
     except youtube_dl.utils.DownloadError:
-        print("Room Offline")
+        return
 
-main(sys.argv)
+
+if __name__ == '__main__':
+    main(sys.argv)
