@@ -42,11 +42,11 @@ def download_video(user, outpath):
     logging.debug("EXTRA: youtube-dl string: https://www.chaturbate.com/{}/ -o {}/{} - {}.%(ext)s".format(user, outpath, user, datetime.now()))
 
     ydl_opts = {
-        'outtmpl': '{}/{} - {}.%(ext)s'.format(user, outpath, user, datetime.now())
+        'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
     }
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(["https://www.chaturbate.com/{}/"])
+        ydl.download(["https://www.chaturbate.com/{}/".format(user)])
 
 
 main(sys.argv)
