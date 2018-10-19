@@ -24,7 +24,6 @@ def main(argv):
     else:
         logfile = args.logpath
     if not args.outdir:
-        os.chdir(os.path.dirname(__file__))
         outDir = os.getcwd()
     else:
         outDir = args.outdir
