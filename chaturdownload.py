@@ -6,6 +6,7 @@ import sys
 import os
 import youtube_dl
 from datetime import datetime
+import yaml
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -13,9 +14,10 @@ FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 
 def main(argv):
     parser = argparse.ArgumentParser(usage='Download the Current Stream by a Chaturbate User')
-    parser.add_argument('-u', '--user', help='Chaturbate User', required=True)
+    parser.add_argument('-u', '--user', help='Chaturbate User')
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
+    parser.add_argument('-c', '--config', help='Config file to use')
 
     args = parser.parse_args()
 
@@ -34,12 +36,24 @@ def main(argv):
     logging.debug("Downloading From User: {}".format(user))
     logging.debug("Downloading to: {}".format(outDir))
 
-    download_video(user, outDir)
+    if args.config:
+        users = config_reader(args.config)
+
+    sys.exit(0)
+
+
+def config_reader(config_file):
+
+    with open(config_file, 'r') as stream:
+        data_loaded = yaml.load(stream)
+
+    return data_loaded['users']
+
+    #download_video(user, outpath)
 
 
 def download_video(user, outpath):
     logging.debug("FUNCTION: Downloading Video...")
-    logging.debug("EXTRA: youtube-dl string: https://www.chaturbate.com/{}/ -o {}/{} - {}.%(ext)s".format(user, outpath, user, datetime.now()))
 
     ydl_opts = {
         'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
