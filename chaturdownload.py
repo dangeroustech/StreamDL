@@ -39,6 +39,7 @@ def main(argv):
 
 def download_video(user, outpath):
     logging.debug("FUNCTION: Downloading Video...")
+    logging.debug("EXTRA: youtube-dl string: https://www.chaturbate.com/{}/ -o {}/{} - {}.%(ext)s".format(user, outpath, user, datetime.now()))
 
     ydl_opts = {}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
