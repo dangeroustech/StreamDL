@@ -15,7 +15,7 @@ def main(argv):
     parser = argparse.ArgumentParser(usage='Download the Current Stream by a Chaturbate User')
     parser.add_argument('-u', '--user', help='Chaturbate User', required=True)
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
-    parser.add_argument('-o', '--outdir', help='Output file location with trailing slash (defaults to working dir)')
+    parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
 
     args = parser.parse_args()
 
@@ -43,7 +43,7 @@ def download_video(user, outpath):
 
     ydl_opts = {}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(["https://www.chaturbate.com/{}/ -o {}{} - {}".format(user, outpath, user, datetime.now())])
+        ydl.download(["https://www.chaturbate.com/{}/ -o {}/{} - {}.%(ext)s".format(user, outpath, user, datetime.now())])
 
 
 main(sys.argv)
