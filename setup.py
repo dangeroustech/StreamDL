@@ -8,5 +8,5 @@ setup(
     version="1.0",
     description="Good shits",
     author="Pat Riarchy",
-    install_requires=['bs4', 'requests', 'ffmpeg-python'],
+    install_requires=['youtube_dl'],
 )
