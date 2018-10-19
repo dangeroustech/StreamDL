@@ -8,5 +8,5 @@ setup(
     version="1.0",
     description="Good shits",
     author="Pat Riarchy",
-    install_requires=['youtube_dl'],
+    install_requires=['youtube_dl', 'pyYAML'],
 )
