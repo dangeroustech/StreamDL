@@ -42,12 +42,10 @@ def main(argv):
         logging.debug("Users in Config: {}".format(users))
 
         for user in users:
-            logging.debug("Downloading From User: {}".format(user))
             p = Process(name="{}".format(user), target=download_video, args=(user, outDir))
             p.daemon = True
             p.start()
     else:
-        logging.debug("Downloading From User: {}".format(user))
         download_video(user, outDir)
 
 
