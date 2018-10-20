@@ -19,6 +19,7 @@ def main(argv):
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
     parser.add_argument('-c', '--config', help='Config file to use')
+    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes (default: 5)')
 
     args = parser.parse_args()
 
@@ -43,6 +44,7 @@ def main(argv):
         for user in users:
             logging.debug("Downloading From User: {}".format(user))
             p = Process(name="{}".format(user), target=download_video, args=(user, outDir))
+            p.daemon = True
             p.start()
     else:
         logging.debug("Downloading From User: {}".format(user))
@@ -58,7 +60,7 @@ def config_reader(config_file):
 
 
 def download_video(user, outpath):
-    logging.debug("FUNCTION: Downloading Video...")
+    logging.debug("FUNCTION: Downloading Video from {}...".format(user))
 
     ydl_opts = {
         'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
@@ -68,6 +70,7 @@ def download_video(user, outpath):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(["https://www.chaturbate.com/{}/".format(user)])
     except youtube_dl.utils.DownloadError:
+        logging.debug("ERROR: DownloadError")
         return
 
 
