@@ -2,7 +2,6 @@
 
 from setuptools import setup
 
-
 setup(
     name="ChaturDownload",
     version="1.0",
