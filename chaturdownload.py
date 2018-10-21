@@ -18,7 +18,7 @@ pids = mgr.dict()
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(usage='Download the Current Stream by a Chaturbate User')
+    parser = argparse.ArgumentParser(usage='Download Streams From Your Favourite Nefarious Website')
     parser.add_argument('-u', '--user', help='Chaturbate User')
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
@@ -38,7 +38,7 @@ def main(argv):
     user = args.user
 
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
-    logging.debug("Starting ChaturDownload...")
+    logging.debug("Starting CBDL...")
     logging.debug("Downloading to: {}".format(outdir))
 
     if args.config:
