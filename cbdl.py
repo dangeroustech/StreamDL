@@ -48,11 +48,6 @@ def main(argv):
     else:
         download_video(user, outdir)
 
-    # REMOVE BEFORE COMMIT
-    time.sleep(5)
-    logging.debug("PIDS List After Downloader Run: {}".format(str(pids)))
-    # REMOVE BEFORE COMMIT
-
     if args.repeat:
         logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(args.repeat, int(args.repeat)*60))
         time.sleep(int(args.repeat)*60)
