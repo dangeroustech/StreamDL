@@ -48,6 +48,8 @@ def main(argv):
     else:
         download_video(user, outdir)
 
+    time.sleep(5)
+
     if args.repeat:
         logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(args.repeat, int(args.repeat)*60))
         time.sleep(int(args.repeat)*60)
