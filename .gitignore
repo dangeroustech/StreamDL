@@ -1,3 +1,6 @@
 # Pycharm settings
 .idea/
+# Logfile
 chaturdownload.log
+# Live Config File
+config.yml
