@@ -7,10 +7,14 @@ import os
 import youtube_dl
 from datetime import datetime
 import yaml
+from multiprocessing import Manager
 from multiprocessing import Process
+import time
 
 LOG_LEVEL = logging.DEBUG
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
+mgr = Manager()
+pids = mgr.dict()
 
 
 def main(argv):
@@ -19,6 +23,7 @@ def main(argv):
     parser.add_argument('-l', '--logpath', help='Logfile to use (defaults to working dir)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
     parser.add_argument('-c', '--config', help='Config file to use')
+    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
 
     args = parser.parse_args()
 
@@ -27,26 +32,43 @@ def main(argv):
     else:
         logfile = args.logpath
     if not args.outdir:
-        outDir = os.getcwd()
+        outdir = os.getcwd()
     else:
-        outDir = args.outdir
+        outdir = args.outdir
     user = args.user
 
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
     logging.debug("Starting ChaturDownload...")
-    logging.debug("Downloading to: {}".format(outDir))
+    logging.debug("Downloading to: {}".format(outdir))
 
     if args.config:
         users = config_reader(args.config)
         logging.debug("Users in Config: {}".format(users))
-
-        for user in users:
-            logging.debug("Downloading From User: {}".format(user))
-            p = Process(name="{}".format(user), target=download_video, args=(user, outDir))
-            p.start()
+        mass_downloader(users, outdir, pids)
     else:
-        logging.debug("Downloading From User: {}".format(user))
-        download_video(user, outDir)
+        download_video(user, outdir)
+
+    # REMOVE BEFORE COMMIT
+    time.sleep(5)
+    logging.debug("PIDS List After Downloader Run: {}".format(str(pids)))
+    # REMOVE BEFORE COMMIT
+
+    if args.repeat:
+        logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(args.repeat, int(args.repeat)*60))
+        time.sleep(int(args.repeat)*60)
+        logging.debug("Restarting Main Function")
+        main(sys.argv)
+
+
+def mass_downloader(users, outdir, pids):
+    for user in users:
+        p = Process(name="{}".format(user), target=download_video, args=(user, outdir, pids))
+        if user in pids:
+            logging.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
+        else:
+            p.start()
+            pids[user] = p.pid
+            logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
 
 
 def config_reader(config_file):
@@ -57,9 +79,7 @@ def config_reader(config_file):
     return data_loaded['users']
 
 
-def download_video(user, outpath):
-    logging.debug("FUNCTION: Downloading Video...")
-
+def download_video(user, outpath, pids):
     ydl_opts = {
         'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
     }
@@ -68,7 +88,13 @@ def download_video(user, outpath):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(["https://www.chaturbate.com/{}/".format(user)])
     except youtube_dl.utils.DownloadError:
-        return
+        logging.debug("{} is Offline".format(user))
+
+    try:
+        pids.pop(user)
+    except KeyError:
+        logging.debug("KeyError When Popping {} From PIDS List".format(user))
+    return
 
 
 if __name__ == '__main__':
