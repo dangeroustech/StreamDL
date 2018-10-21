@@ -28,7 +28,7 @@ def main(argv):
     args = parser.parse_args()
 
     if not args.logpath:
-        logfile = 'chaturdownload.log'
+        logfile = 'cbdl.log'
     else:
         logfile = args.logpath
     if not args.outdir:
