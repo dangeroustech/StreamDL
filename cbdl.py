@@ -49,6 +49,7 @@ def main(argv):
         download_video(user, outdir)
 
     time.sleep(5)
+    logging.debug("Live Users: ".format(users))
 
     if args.repeat:
         logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(args.repeat, int(args.repeat)*60))
