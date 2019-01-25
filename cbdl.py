@@ -31,7 +31,7 @@ def main(argv):
     args = parser.parse_args()
 
     # check if log path is specified
-    if not args.logpath:
+    if not args.logfile:
         logfile = 'cbdl.log'
     else:
         logfile = args.logfile
