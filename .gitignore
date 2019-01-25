@@ -4,3 +4,5 @@
 chaturdownload.log
 # Live Config File
 config.yml
+# venv
+venv/
