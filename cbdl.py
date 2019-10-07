@@ -9,7 +9,6 @@ from datetime import datetime
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
-from multiprocessing.connection import wait
 import time
 
 # global vars to control logging level and format
