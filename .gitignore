@@ -8,3 +8,4 @@ config.yml
 venv/
 # media files
 *.mp4
+*.part
