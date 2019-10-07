@@ -7,7 +7,7 @@ RUN mkdir /app/in
 RUN mkdir /app/out
 # Install necessary software
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install git python3 python3-pip ffmpeg -y
+RUN apt-get install git python3.7 python3-pip ffmpeg -y
 RUN pip3 install pipenv
 # Copy in app files
 ADD cbdl.py /app
