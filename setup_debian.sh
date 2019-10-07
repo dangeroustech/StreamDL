@@ -1,4 +1,7 @@
 #!/bin/bash
 
-sudo apt update -y
-sudo apt install ffmpeg -y
+sudo apt-get update -y
+sudo apt-get install ffmpeg -y
+sudo pip install pipenv
+pipenv install -e .
+pipenv shell
