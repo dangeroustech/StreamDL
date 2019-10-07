@@ -60,7 +60,6 @@ def main(argv):
         download_video(user, outdir)
 
     time.sleep(5)
-    logging.debug("Live Users: {}".format(users))
 
     # check if repeat is specified
     if args.repeat:
@@ -68,6 +67,8 @@ def main(argv):
         time.sleep(int(args.repeat)*60)
         logging.debug("Restarting Main Function")
         main(sys.argv)
+
+    logging.debug("Live Users: {}".format(users))
 
 
 # parse through users and launch downloader if necessary
