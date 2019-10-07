@@ -1,5 +1,7 @@
 FROM ubuntu:latest
 WORKDIR /app
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 # Create in and out Directories
 RUN mkdir /app/in
 RUN mkdir /app/out
@@ -14,8 +16,6 @@ ADD setup.py /app
 ADD Pipfile /app
 ADD Pipfile.lock /app
 # Random Build Tests
-RUN export LC_ALL=C.UTF-8
-RUN export LANG=C.UTF-8
 RUN mv /app/config.yml.example /app/config.yml
 RUN pipenv install -e .
 RUN pipenv shell
