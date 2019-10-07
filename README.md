@@ -1,4 +1,4 @@
-https://travis-ci.com/biodrone/cbdl.svg?token=DzqqkQgeYUd7E2jN5SRf&branch=master
+[![Build Status](https://travis-ci.com/biodrone/cbdl.svg?token=DzqqkQgeYUd7E2jN5SRf&branch=master)](https://travis-ci.com/biodrone/cbdl)
 
 # CBDL
 
