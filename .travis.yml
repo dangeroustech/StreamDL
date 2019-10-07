@@ -4,4 +4,4 @@ python:
 install:
   - pip install pipenv
   - pipenv install -e .
-  - pipenv run python cbdl.py --help
+script: pytest
