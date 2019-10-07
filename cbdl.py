@@ -9,8 +9,7 @@ from datetime import datetime
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
-from multiprocessing import Pool
-import signal
+from multiprocessing.connection import wait
 import time
 
 # global vars to control logging level and format
@@ -20,6 +19,7 @@ FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 # set up manager functions
 mgr = Manager()
 pids = mgr.dict()
+processes = []
 
 
 def main(argv):
@@ -45,6 +45,7 @@ def main(argv):
         outdir = args.outdir
 
     user = args.user
+    users = []
 
     # set up logging
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
@@ -55,11 +56,9 @@ def main(argv):
     if args.config:
         users = config_reader(args.config)
         logging.debug("Users in Config: {}".format(users))
-        mass_downloader(users, outdir, pids)
+        mass_downloader(users, outdir)
     else:
         download_video(user, outdir)
-
-    time.sleep(5)
 
     # check if repeat is specified
     if args.repeat:
@@ -72,17 +71,49 @@ def main(argv):
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(users, outdir, pids):
+def mass_downloader(users, outdir):
+    global pids
+    global processes
+
     for user in users:
         # set up process for given user
-        p = Process(name="{}".format(user), target=download_video, args=(user, outdir, pids))
+        p = Process(name="{}".format(user), target=download_video, args=(user, outdir))
         # check for existing download
         if user in pids:
             logging.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
         else:
             p.start()
             pids[user] = p.pid
+            processes.append(p)
             logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
+    time.sleep(5)
+    process_cleanup()
+
+
+def process_cleanup():
+    global processes
+
+    i = 0
+    if len(processes) == 0:
+        return
+
+    # remove old zombie threads
+    logging.debug("Cleaning Up Zombies...")
+    logging.debug("Processes: {}".format(processes))
+    while i < len(processes):
+        if processes[i].is_alive():
+            logging.debug("Process {}:{} is alive!".format(processes[i].name, processes[i].pid))
+            i += 1
+        else:
+            logging.debug("Process {}:{} is dead!".format(processes[i].name, processes[i].pid))
+            try:
+                processes[i].close()
+                # don't increment iterator
+            except AssertionError:
+                logging.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
+                i += 1
+            processes.remove(processes[i])
+    logging.debug("Processes after cleaning: {}".format(processes))
 
 
 # read config and return users
@@ -96,10 +127,13 @@ def config_reader(config_file):
 
 
 # do the video downloading
-def download_video(user, outpath, pids):
+def download_video(user, outpath):
+    global pids
+
     # pass opts to YTDL
     ydl_opts = {
-        'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now())
+        'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now()),
+        'quiet': True
     }
 
     # try to pull video from the given user
@@ -111,13 +145,11 @@ def download_video(user, outpath, pids):
 
     # pop pid from dict
     try:
-        logging.debug("Popped user {} from PIDs. PIDs: {}".format(user, pids))
-        logging.debug("Killing PID {}".format(pids[user]))
-        os.kill(pids[user], signal.SIGKILL)
         pids.pop(user)
-
+        logging.debug("Popped user {} from PIDs".format(user))
+        logging.debug("PIDs: {}".format(pids))
     except KeyError:
-        logging.debug("KeyError When Popping {} From PIDS List".format(user))
+        logging.debug("KeyError When Popping {} From PIDs List".format(user))
     
     return
 
