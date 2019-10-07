@@ -19,7 +19,7 @@
 ```
 
 ## Requirements
-- Python 3.6+
+- Python 3.7
 - ffmpeg
 - pipenv (`pip install pipenv`)
 
@@ -28,9 +28,7 @@
 
 `pipenv install -e .`
 
-`pipenv shell`
-
-`python cbdl.py -c config.yml -r 5`
+`pipenv run python cbdl.py -c config.yml -r 5`
 
 Alternatively, use the shell scripts provided depending on your environment:
 
