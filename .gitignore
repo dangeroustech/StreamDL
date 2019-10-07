@@ -6,6 +6,7 @@ cbdl.log
 config.yml
 # venv
 venv/
+CBDL.egg-info/
 # media files
 *.mp4
 *.part
