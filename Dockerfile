@@ -18,5 +18,4 @@ ADD Pipfile.lock /app
 # Random Build Tests
 RUN mv /app/config.yml.example /app/config.yml
 RUN pipenv install -e .
-RUN pipenv shell
-RUN python3 cbdl.py --help
+RUN pipenv run python3 cbdl.py --help
