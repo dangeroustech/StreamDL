@@ -1,8 +1,11 @@
 # Pycharm settings
 .idea/
 # Logfile
-chaturdownload.log
+cbdl.log
 # Live Config File
 config.yml
 # venv
 venv/
+# media files
+*.mp4
+*.part
