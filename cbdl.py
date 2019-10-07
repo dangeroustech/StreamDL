@@ -13,7 +13,7 @@ from multiprocessing.connection import wait
 import time
 
 # global vars to control logging level and format
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 
 # set up manager functions
@@ -49,8 +49,8 @@ def main(argv):
 
     # set up logging
     logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
-    logging.debug("Starting CBDL...")
-    logging.debug("Downloading to: {}".format(outdir))
+    logging.info("Starting CBDL...")
+    logging.info("Downloading to: {}".format(outdir))
 
     # check if config file is specified
     if args.config:
@@ -67,7 +67,7 @@ def main(argv):
         logging.debug("Restarting Main Function")
         main(sys.argv)
 
-    logging.debug("Live Users: {}".format(users))
+    logging.info("Live Users: {}".format(users))
 
 
 # parse through users and launch downloader if necessary
@@ -85,7 +85,7 @@ def mass_downloader(users, outdir):
             p.start()
             pids[user] = p.pid
             processes.append(p)
-            logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
+            # logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
     time.sleep(5)
     process_cleanup()
 
@@ -113,7 +113,7 @@ def process_cleanup():
                 logging.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             processes.remove(processes[i])
-    logging.debug("Processes after cleaning: {}".format(processes))
+    # logging.debug("Processes after cleaning: {}".format(processes))
 
 
 # read config and return users
