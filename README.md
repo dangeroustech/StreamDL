@@ -1,3 +1,5 @@
+https://travis-ci.com/biodrone/cbdl.svg?token=DzqqkQgeYUd7E2jN5SRf&branch=master
+
 # CBDL
 
 ```
