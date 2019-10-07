@@ -11,6 +11,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
+      - uses: actions/checkout@v1
       - name: Run Docker build
-      uses: actions/checkout@v1
-      run: docker build .
+        run: docker build .
