@@ -1,5 +1,3 @@
-name: StagingWorkflow
-
 on:
   push:
     branches: 
