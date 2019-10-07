@@ -1,0 +1,16 @@
+name: MasterBuildWorkflow
+
+on:
+  pull_request:
+    branches: 
+      - master
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Run Docker build
+      uses: actions/checkout@v1
+      run: docker build .
