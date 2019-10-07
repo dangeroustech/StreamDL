@@ -58,7 +58,7 @@ def main(argv):
         download_video(user, outdir)
 
     time.sleep(5)
-    logging.debug("Live Users: ".format(users))
+    logging.debug("Live Users: {}".format(users))
 
     # check if repeat is specified
     if args.repeat:
