@@ -9,6 +9,8 @@ from datetime import datetime
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
+from multiprocessing import Pool
+import signal
 import time
 
 # global vars to control logging level and format
@@ -108,7 +110,11 @@ def download_video(user, outpath, pids):
 
     # pop pid from dict
     try:
+        logging.debug("Popped user {} from PIDs. PIDs: {}".format(user, pids))
+        logging.debug("Killing PID {}".format(pids[user]))
+        os.kill(pids[user], signal.SIGKILL)
         pids.pop(user)
+
     except KeyError:
         logging.debug("KeyError When Popping {} From PIDS List".format(user))
     
