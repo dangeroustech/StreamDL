@@ -6,3 +6,5 @@ cbdl.log
 config.yml
 # venv
 venv/
+# media files
+*.mp4
