@@ -88,7 +88,7 @@ def config_reader(config_file):
     with open(config_file, 'r') as stream:
         data_loaded = yaml.load(stream)
 
-    # return the data reead from config file
+    # return the data read from config file
     return data_loaded['users']
 
 
