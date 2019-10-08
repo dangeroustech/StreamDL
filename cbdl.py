@@ -12,8 +12,6 @@ from multiprocessing import Process
 import time
 
 # global vars to control logging level and format
-LOG_LEVEL = logging.INFO
-FORMAT = '%(asctime)s %(levelname)s: %(message)s'
 
 # set up manager functions
 mgr = Manager()
@@ -26,6 +24,7 @@ def main(argv):
     parser = argparse.ArgumentParser(usage='Download Streams From Your Favourite Nefarious Website')
     parser.add_argument('-u', '--user', help='Chaturbate User')
     parser.add_argument('-l', '--logfile', help='Logfile to use (defaults to working dir)')
+    parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
     parser.add_argument('-c', '--config', help='Config file to use')
     parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
@@ -37,36 +36,52 @@ def main(argv):
     else:
         logfile = args.logfile
 
+    if args.loglevel:
+        log_level = getattr(logging, args.loglevel.upper())
+    else:
+        log_level = logging.INFO
+
     # check if output dir is specified
     if not args.outdir:
         outdir = os.getcwd()
     else:
         outdir = args.outdir
 
-    user = args.user
-    users = []
-
     # set up logging
-    logging.basicConfig(filename=logfile, level=LOG_LEVEL, format=FORMAT)
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
+    logging.basicConfig(filename=logfile, level=log_level, format=log_format)
     logging.info("Starting CBDL...")
     logging.info("Downloading to: {}".format(outdir))
+
+    # assign user if it's set
+    # need to fix this with repeat at some point
+    if args.user:
+        user = args.user
+        download_video(user, outdir)
 
     # check if config file is specified
     if args.config:
         users = config_reader(args.config)
-        logging.debug("Users in Config: {}".format(users))
+        logging.info("Users in Config: {}".format(users))
         mass_downloader(users, outdir)
-    else:
-        download_video(user, outdir)
 
     # check if repeat is specified
     if args.repeat:
-        logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(args.repeat, int(args.repeat)*60))
-        time.sleep(int(args.repeat)*60)
-        logging.debug("Restarting Main Function")
-        main(sys.argv)
+        recurse(args.repeat, args.config, outdir)
 
-    logging.info("Live Users: {}".format(users))
+
+def recurse(repeat, config, outdir):
+    sleep_time = int(repeat) * 60
+    logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(repeat, sleep_time))
+    time.sleep(sleep_time)
+
+    logging.debug("Recursing...")
+
+    # always reload config in case local changes are made
+    users = config_reader(config)
+    mass_downloader(users, outdir)
+
+    recurse(repeat, config)
 
 
 # parse through users and launch downloader if necessary
