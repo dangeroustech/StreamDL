@@ -97,7 +97,7 @@ def mass_downloader(users, outdir):
             p.start()
             pids[user] = p.pid
             processes.append(p)
-            # logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
+            logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
     time.sleep(5)
     process_cleanup()
 
@@ -125,7 +125,7 @@ def process_cleanup():
                 logging.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             processes.remove(processes[i])
-    # logging.debug("Processes after cleaning: {}".format(processes))
+    logging.debug("Processes after cleaning: {}".format(processes))
 
 
 # read config and return users
