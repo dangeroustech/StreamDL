@@ -98,6 +98,13 @@ def mass_downloader(users, outdir):
             pids[user] = p.pid
             processes.append(p)
             logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
+            # pop pid from dict
+            try:
+                pids.pop(user)
+                logging.debug("Popped user {} from PIDs".format(user))
+                logging.debug("PIDs: {}".format(pids))
+            except KeyError:
+                logging.debug("KeyError When Popping {} From PIDs List".format(user))
     time.sleep(5)
     process_cleanup()
 
@@ -155,14 +162,6 @@ def download_video(user, outpath):
     except youtube_dl.utils.DownloadError:
         logging.debug("{} is Offline".format(user))
 
-    # pop pid from dict
-    try:
-        pids.pop(user)
-        logging.debug("Popped user {} from PIDs".format(user))
-        logging.debug("PIDs: {}".format(pids))
-    except KeyError:
-        logging.debug("KeyError When Popping {} From PIDs List".format(user))
-    
     return
 
 
