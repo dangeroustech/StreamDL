@@ -11,8 +11,6 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import time
 
-# global vars to control logging level and format
-
 # set up manager functions
 mgr = Manager()
 pids = mgr.dict()
@@ -81,7 +79,7 @@ def recurse(repeat, config, outdir):
     users = config_reader(config)
     mass_downloader(users, outdir)
 
-    recurse(repeat, config)
+    recurse(repeat, config, outdir)
 
 
 # parse through users and launch downloader if necessary
