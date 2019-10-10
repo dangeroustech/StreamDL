@@ -19,12 +19,13 @@ processes = []
 
 def main(argv):
     # set up arg parser and arguments
-    parser = argparse.ArgumentParser(usage='Download Streams From Your Favourite Nefarious Website')
-    parser.add_argument('-u', '--user', help='Chaturbate User')
-    parser.add_argument('-l', '--logfile', help='Logfile to use (defaults to working dir)')
+    parser = argparse.ArgumentParser(prog='python cbdl.py', description='Download Streams From Your Favourite Nefarious Website')
+    userspec = parser.add_mutually_exclusive_group(required=True)
+    userspec.add_argument('-u', '--user', help='Chaturbate User')
+    userspec.add_argument('-c', '--config', help='Config file to use')
+    parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
-    parser.add_argument('-c', '--config', help='Config file to use')
     parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
     args = parser.parse_args()
 
@@ -55,6 +56,7 @@ def main(argv):
     # need to fix this with repeat at some point
     if args.user:
         user = args.user
+        logging.debug("User is: {}".format(user))
         download_video(user, outdir)
 
     # check if config file is specified
@@ -65,21 +67,29 @@ def main(argv):
 
     # check if repeat is specified
     if args.repeat:
-        recurse(args.repeat, args.config, outdir)
+        if args.user:
+            recurse(args.repeat, outdir, user=args.user)
+        if args.config:
+            recurse(args.repeat, outdir, config=args.config)
 
 
-def recurse(repeat, config, outdir):
+def recurse(repeat, outdir, **kwargs):
     sleep_time = int(repeat) * 60
     logging.debug("Repeat Set to {}, Sleeping for {} Seconds".format(repeat, sleep_time))
     time.sleep(sleep_time)
 
     logging.debug("Recursing...")
 
-    # always reload config in case local changes are made
-    users = config_reader(config)
-    mass_downloader(users, outdir)
+    if kwargs.get("user", False):
+        download_video(kwargs.get("user"), outdir)
+    elif kwargs.get("config", False):
+        # always reload config in case local changes are made
+        users = config_reader(kwargs.get("config"))
+        mass_downloader(users, outdir)
+    else:
+        logging.debug("Something went wrong, neither user or config were used but we're recursing....")
 
-    recurse(repeat, config, outdir)
+    recurse(repeat, outdir, **kwargs)
 
 
 # parse through users and launch downloader if necessary
