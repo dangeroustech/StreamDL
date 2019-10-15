@@ -93,28 +93,29 @@ def recurse(repeat, outdir, **kwargs):
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(users, outdir):
+def mass_downloader(config, outdir):
     global pids
     global processes
 
-    for user in users:
-        # set up process for given user
-        p = Process(name="{}".format(user), target=download_video, args=(user, outdir))
-        # check for existing download
-        if user in pids:
-            logging.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
-        else:
-            p.start()
-            pids[user] = p.pid
-            processes.append(p)
-            logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
-            # pop pid from dict
-            try:
-                pids.pop(user)
-                logging.debug("Popped user {} from PIDs".format(user))
-                logging.debug("PIDs: {}".format(pids))
-            except KeyError:
-                logging.debug("KeyError When Popping {} From PIDs List".format(user))
+    for url in config:
+        for user in config[url]:
+            # set up process for given user
+            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+            # check for existing download
+            if user in pids:
+                logging.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
+            else:
+                p.start()
+                pids[user] = p.pid
+                processes.append(p)
+                logging.debug("Process {} Started with PID {}".format(p.name, p.pid))
+                # pop pid from dict
+                try:
+                    pids.pop(user)
+                    logging.debug("Popped user {} from PIDs".format(user))
+                    logging.debug("PIDs: {}".format(pids))
+                except KeyError:
+                    logging.debug("KeyError When Popping {} From PIDs List".format(user))
     time.sleep(5)
     process_cleanup()
 
@@ -150,25 +151,25 @@ def config_reader(config_file):
     # read config
     with open(config_file, 'r') as stream:
         data_loaded = yaml.load(stream, Loader=yaml.BaseLoader)
-
+        logging.debug("Config: {}".format(data_loaded))
     # return the data read from config file
-    return data_loaded['users']
+    return data_loaded
 
 
 # do the video downloading
-def download_video(user, outpath):
+def download_video(url, user, outpath):
     global pids
 
     # pass opts to YTDL
     ydl_opts = {
-        'outtmpl': '{}/{} - {}.%(ext)s'.format(outpath, user, datetime.now()),
+        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
         'quiet': True
     }
 
     # try to pull video from the given user
     try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(["https://www.chaturbate.com/{}/".format(user)])
+            ydl.download(["https://{}/{}/".format(url, user)])
     except youtube_dl.utils.DownloadError:
         logging.debug("{} is Offline".format(user))
 
