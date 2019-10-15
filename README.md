@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.com/biodrone/cbdl.svg?token=DzqqkQgeYUd7E2jN5SRf&branch=master)](https://travis-ci.com/biodrone/cbdl)
 
-# CBDL
+# StreamDL
 
 ```
   usage: Monitor and Download Streams from a Variety of Websites
