@@ -16,7 +16,7 @@
         ]
     },
     "default": {
-        "cbdl": {
+        "streamdl": {
             "editable": true,
             "path": "."
         },

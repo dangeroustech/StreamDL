@@ -1,7 +1,7 @@
 # Pycharm settings
 .idea/
 # Logfile
-cbdl.log
+streamdl.log
 # Live Config File
 config.yml
 # venv

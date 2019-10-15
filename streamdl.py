@@ -19,7 +19,7 @@ processes = []
 
 def main(argv):
     # set up arg parser and arguments
-    parser = argparse.ArgumentParser(prog='python cbdl.py', description='Download Streams From Your Favourite Nefarious Website')
+    parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
     userspec = parser.add_mutually_exclusive_group(required=True)
     userspec.add_argument('-u', '--user', help='Chaturbate User')
     userspec.add_argument('-c', '--config', help='Config file to use')
@@ -31,7 +31,7 @@ def main(argv):
 
     # check if log path is specified
     if not args.logfile:
-        logfile = 'cbdl.log'
+        logfile = 'streamdl.log'
     else:
         logfile = args.logfile
 
@@ -49,7 +49,7 @@ def main(argv):
     # set up logging
     log_format = '%(asctime)s %(levelname)s: %(message)s'
     logging.basicConfig(filename=logfile, level=log_level, format=log_format)
-    logging.info("Starting CBDL...")
+    logging.info("Starting StreamDL...")
     logging.info("Downloading to: {}".format(outdir))
 
     # assign user if it's set
