@@ -3,9 +3,9 @@
 from setuptools import setup
 
 setup(
-    name="CBDL",
-    version="2.1",
-    description="Download Streams From Your Favourite Nefarious Website",
-    author="Pat Riarchy",
+    name="StreamDL",
+    version="2.3",
+    description="Monitor and Download Streams from a Variety of Websites",
+    author="biodrone",
     install_requires=['youtube_dl==2019.09.28', 'PyYAML==5.1.2'],
 )

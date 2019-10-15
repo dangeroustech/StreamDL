@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "24ffb6ab86ac29b86d560b779ce0497c3441fd7d8c8d1b65004e4ba2f0488657"
+            "sha256": "a4f27ce1319956f13ccc631ff0b4a701237d5f8f2a5c91beb542ceb28bd1474f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,10 +16,6 @@
         ]
     },
     "default": {
-        "cbdl": {
-            "editable": true,
-            "path": "."
-        },
         "pyyaml": {
             "hashes": [
                 "sha256:0113bc0ec2ad727182326b61326afa3d1d8280ae1122493553fd6f4397f33df9",
@@ -37,6 +33,10 @@
                 "sha256:f81025eddd0327c7d4cfe9b62cf33190e1e736cc6e97502b3ec425f574b3e7a8"
             ],
             "version": "==5.1.2"
+        },
+        "streamdl": {
+            "editable": true,
+            "path": "."
         },
         "youtube-dl": {
             "hashes": [

@@ -3,12 +3,12 @@
 # CBDL
 
 ```
-  usage: Download Streams From Your Favourite Nefarious Website
+  usage: Monitor and Download Streams from a Variety of Websites
 
   optional arguments:
   -h,               --help      show this help message and exit
   -u    USER,       --user      USER
-                                Chaturbate User
+                                Streaming Site User
   -l    LOGPATH,    --logpath   LOGPATH
                                 Logfile to use (defaults to working dir)
   -ll   LOGLEVEL,   --loglevel  Loglevel to use (supports DEBUG, INFO, etc)
@@ -31,7 +31,7 @@
 
 `pipenv install -e .`
 
-`pipenv run python cbdl.py -c config.yml -r 5`
+`pipenv run python streamdl.py -c config.yml -r 5`
 
 Alternatively, use the shell scripts provided depending on your environment:
 

@@ -1,12 +1,12 @@
 # Pycharm settings
 .idea/
 # Logfile
-cbdl.log
+streamdl.log
 # Live Config File
 config.yml
 # venv
 venv/
-CBDL.egg-info/
+StreamDL.egg-info/
 # media files
 *.mp4
 *.part
