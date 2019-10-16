@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/biodrone/StreamDL.svg?branch=master)](https://travis-ci.com/biodrone/StreamDL)
+[![Build Status](https://travis-ci.org/biodrone/StreamDL.svg?branch=master)](https://travis-ci.org/biodrone/StreamDL)
 
 # StreamDL
 
@@ -22,11 +22,13 @@
 ```
 
 ## Requirements
+
 - Python 3.7
 - ffmpeg
 - pipenv (`pip install pipenv`)
 
 ## Install
+
 *This example assumes `python --version` returns something above Python 3.6 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
 
 `pipenv install -e .`
