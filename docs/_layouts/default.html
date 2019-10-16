@@ -5,6 +5,27 @@
     <title>{{ page.title }}</title>
   </head>
   <body>
-    {{ content }}
+    <div id="header">
+        <nav>
+            <li class="fork">
+                <a href="https://github.com/biodrone/streamdl">View on GitHub</a>
+            </li>
+            <li class="downloads">
+                <a href="https://github.com/biodrone/StreamDL/archive/v2.3.1.zip">ZIP</a>
+            </li>
+            <li class="downloads">
+                <a href="https://github.com/biodrone/StreamDL/archive/v2.3.1.tar.gz">TAR</a>
+            </li>
+        </nav>
+    </div>
+    <div class="wrapper">
+        <section>
+            <div id="title">
+                <h1>{{ page.title }}</h1>
+                <p>{{ page.subtitle }}</p>
+            </div>
+            <p>{{ content }}</p>
+        </section>
+    </div>
   </body>
 </html>
