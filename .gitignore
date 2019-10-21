@@ -10,3 +10,6 @@ StreamDL.egg-info/
 # media files
 *.mp4
 *.part
+# testing files
+.pytest_cache/
+__pycache__/
