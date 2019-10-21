@@ -56,4 +56,4 @@ youtube
 ```
 
 *YouTube Caveat: make sure that youtube.com/channel/videos resolves to the right place.*
-*Channel renaming hide that on the main page.*
+*Channel renaming hides that on the main page.*
