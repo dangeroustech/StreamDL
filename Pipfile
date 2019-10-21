@@ -14,4 +14,4 @@ youtube-dl = "==2019.09.28"
 pyyaml = "==5.1.2"
 
 [requires]
-python_version = "3.7"
+python_version = "3.7.5"
