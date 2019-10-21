@@ -7,9 +7,11 @@ language: python
 python:
 - '3.7'
 install:
-- pip install pipenv
+- pip install pipenv bandit
 - pipenv install -e .
-script: pytest
+script:
+- pytest
+- bandit streamdl.pybiodrone-patch-1
 notifications:
   slack:
     secure: bQQS/eupev2ESGm8hBqgP6FEeOfQ2ifCpqsMvMuJkF6rQauEqBTdhQAwuQWJYdib5ILZDBbagF6ciPottjII4h88082nEb3qZFhnSM4jj2od5S6l1XugUfQhnFVcVV+Njpps82R2UfefuZKsQOWPimfRS9kFzkn2dByjJzupspC2nnPgtnw4NfMVo+JF3lAYcehvlC6e11PjcSVcqXEgTRTRqqk+Ve2dg/ID6JIbrAX8mOUwRnSnYi19X2NUgv8uaNS9GaWXgHa18/QqEWXacY0ca5jGfnHrSJpLOplcbr64MPuyQF5hKNUsndaCCcModhXYutnGTs4cX86+nIkEABhblOvOeB58tRt35UcwQP7Gkexbcvrd9Q09B2a64XiTyE7Hll2Hi1PBRYlCqu6l+SUJrkXMgifvsi2BrzEoy0f00otZeTrGhNyQzsWXO8hGxDbO6F+0JpPG4H3f4QbodoIFGaAPaIIXoiSUNKeCaWvKByRXIJi/U3viu+46KU2UmKkgwB7X7PUVfnxy4WnnApv+rD80mFkolLF3YFccys93eHxn2R2RDZqVBrd9aS6c7i8sMi1a6+IqqiZPf0aUqSPOsg5C8b3b1Mr16Vabm9Cml3fFYm6Y93Rbo9CI0bIhx4XAIiwNASToBVMMQlUiax4+PwaTzCQzGo0yG4zRqhk=
