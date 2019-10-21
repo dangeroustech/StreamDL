@@ -48,11 +48,12 @@ class TestDownloadVideo(unittest.TestCase):
 
     def test_non_video_url(self):
         """
-        Test that a non video site fails
+        Test that a non video site exits quietly
         """
         url = 'test.com'
         user = 'watch?v=QH2-TGUlwu4'
-        self.assertFalse(download_video(url, user, os.getcwd() + "/media/"))
+        result = str(download_video(url, user, os.getcwd() + "/media/"))
+        self.assertTrue(result)
 
 
 if __name__ == '__main__':
