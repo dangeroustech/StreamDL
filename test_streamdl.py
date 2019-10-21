@@ -52,8 +52,8 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = 'test.com'
         user = 'watch?v=QH2-TGUlwu4'
-        result = str(download_video(url, user, os.getcwd() + "/media/"))
-        self.assertTrue(result)
+        assert type == bytes
+        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
 
 if __name__ == '__main__':
