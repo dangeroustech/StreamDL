@@ -10,6 +10,7 @@ import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
+import requests
 
 # set up manager functions
 mgr = Manager()
@@ -160,6 +161,12 @@ def config_reader(config_file):
 def download_video(url, user, outpath):
     global pids
 
+    # check if URL is valid
+    request = requests.get("https://{}/{}".format(url, user))
+    if request.status_code >= 400:
+        logging.warning("Invalid URL: {}/{} | Please check your config!".format(url, user))
+        return False
+
     # pass opts to YTDL
     ydl_opts = {
         'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
@@ -173,7 +180,7 @@ def download_video(url, user, outpath):
     except youtube_dl.utils.DownloadError:
         logging.debug("{} is Offline".format(user))
 
-    return
+    return True
 
 
 if __name__ == '__main__':
