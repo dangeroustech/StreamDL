@@ -42,7 +42,7 @@ def main(argv):
 
     # check if output dir is specified
     if not args.outdir:
-        outdir = os.getcwd()
+        outdir = os.getcwd() + "media/"
     else:
         outdir = args.outdir
 
