@@ -2,7 +2,7 @@
 
 # StreamDL
 
-```
+```shell
   usage: Monitor and Download Streams from a Variety of Websites
 
   optional arguments:
@@ -31,14 +31,29 @@
 
 *This example assumes `python --version` returns something above Python 3.6 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
 
-`pipenv install -e .`
+- `pipenv install -e .`
 
-`pipenv run python streamdl.py -c config.yml -r 5`
+- `pipenv run python streamdl.py -c config.yml -r 5`
 
 Alternatively, use the shell scripts provided depending on your environment:
 
-`./setup_centos.sh`
+- `./setup_centos.sh`
 
 OR
 
-`./setup_debian.sh`
+- `./setup_debian.sh`
+
+## Config File
+
+Basic YAML format. See config.yaml.example for a couple of test sites.
+
+```yaml
+twitch.tv
+- kaypealol
+- day9tv
+youtube
+- UC4w1YQAJMWOz4qtxinq55LQ
+```
+
+*YouTube Caveat: make sure that youtube.com/channel/videos resolves to the right place.*
+*Channel renaming hide that on the main page.*
