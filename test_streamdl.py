@@ -26,7 +26,7 @@ class TestDownloadVideo(unittest.TestCase):
         """
         Test that a good URL succeeds by downloading nyan cat
         """
-        url = 'youtube.com'
+        url = 'www.youtube.com'
         user = 'watch?v=QH2-TGUlwu4'
         self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
@@ -36,7 +36,7 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = 'example.com'
         user = 'watch?v=QH2-TGUlwu4'
-        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
+        self.assertFalse(download_video(url, user, os.getcwd() + "/media/"))
 
     def test_moved_url(self):
         """

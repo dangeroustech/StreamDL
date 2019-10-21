@@ -43,7 +43,7 @@ def main(argv):
 
     # check if output dir is specified
     if not args.outdir:
-        outdir = os.getcwd() + "media/"
+        outdir = os.getcwd() + "/media/"
     else:
         outdir = args.outdir
 
@@ -163,9 +163,21 @@ def download_video(url, user, outpath):
     global pids
 
     # check if URL is valid
-    request = requests.get("https://{}/{}".format(url, user))
-    if request.status_code >= 400:
-        logging.warning("Invalid URL: {}/{} | Please check your config!".format(url, user))
+    try:
+        request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
+        # warn but don't fail on a redirect
+        if request.status_code == 301:
+            logging.debug("URL {}/{} Has Been Moved to: {}".format(url, user, request.headers['Location']))
+            logging.debug("Please check your config!")
+        # fail on a bad status code
+        if request.status_code >= 400:
+            logging.warning("URL Has a Bad Status Code: {}/{}".format(url, user))
+            logging.warning("Please check your config!")
+            return False
+    # fail on connection error
+    except ConnectionError:
+        logging.warning("Invalid URL: {}/{}".format(url, user))
+        logging.warning("Please file a bug report: https://github.com/biodrone/issues/new/choose")
         return False
 
     # pass opts to YTDL
