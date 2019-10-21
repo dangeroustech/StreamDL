@@ -179,9 +179,6 @@ def download_video(url, user, outpath):
         logging.warning("Invalid URL: {}/{}".format(url, user))
         logging.warning("Please file a bug report: https://github.com/biodrone/issues/new/choose")
         return False
-    except TypeError:
-        logging.warning("It Appears That This is Not a Vidya Website. Shame on You!")
-        return False
 
     # pass opts to YTDL
     ydl_opts = {
