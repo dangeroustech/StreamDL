@@ -54,7 +54,6 @@ def main(argv):
     logging.info("Downloading to: {}".format(outdir))
 
     # assign user if it's set
-    # need to fix this with repeat at some point
     if args.user:
         user = args.user
         logging.debug("User is: {}".format(user))
@@ -149,10 +148,12 @@ def process_cleanup():
 
 # read config and return users
 def config_reader(config_file):
+
     # read config
     with open(config_file, 'r') as stream:
         data_loaded = yaml.safe_load(stream)
         logging.debug("Config: {}".format(data_loaded))
+
     # return the data read from config file
     return data_loaded
 
