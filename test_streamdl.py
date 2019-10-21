@@ -40,7 +40,7 @@ class TestDownloadVideo(unittest.TestCase):
 
     def test_moved_url(self):
         """
-        Test that a 301 moved URL fails
+        Test that a 301 moved URL succeeds
         """
         url = 'test.com'
         user = 'watch?v=QH2-TGUlwu4'
