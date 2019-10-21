@@ -10,7 +10,7 @@ install:
 - pip install pipenv bandit
 - pipenv install -e .
 script:
-- pytest -v
+- pytest -sv
 - bandit streamdl.py
 notifications:
   slack:
