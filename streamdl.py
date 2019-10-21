@@ -150,7 +150,7 @@ def process_cleanup():
 def config_reader(config_file):
     # read config
     with open(config_file, 'r') as stream:
-        data_loaded = yaml.load(stream, Loader=yaml.BaseLoader)
+        data_loaded = yaml.safe_load(stream)
         logging.debug("Config: {}".format(data_loaded))
     # return the data read from config file
     return data_loaded
