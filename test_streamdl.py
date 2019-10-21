@@ -42,9 +42,17 @@ class TestDownloadVideo(unittest.TestCase):
         """
         Test that a 301 moved URL succeeds
         """
-        url = 'test.com'
+        url = 'youtube.com'
         user = 'watch?v=QH2-TGUlwu4'
         self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
+
+    def test_non_video_url(self):
+        """
+        Test that a non video site fails
+        """
+        url = 'test.com'
+        user = 'watch?v=QH2-TGUlwu4'
+        self.assertFalse(download_video(url, user, os.getcwd() + "/media/"))
 
 
 if __name__ == '__main__':
