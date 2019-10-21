@@ -18,6 +18,17 @@ pids = mgr.dict()
 processes = []
 
 
+class YTDLLogger(object):
+    def debug(self, msg):
+        return
+
+    def warning(self, msg):
+        return
+
+    def error(self, msg):
+        return
+
+
 def main(argv):
     # set up arg parser and arguments
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
@@ -183,7 +194,8 @@ def download_video(url, user, outpath):
     # pass opts to YTDL
     ydl_opts = {
         'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
-        'quiet': True
+        'quiet': True,
+        'logger': YTDLLogger(),
     }
 
     # try to pull video from the given user
