@@ -10,11 +10,23 @@ import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
+import requests
 
 # set up manager functions
 mgr = Manager()
 pids = mgr.dict()
 processes = []
+
+
+class YTDLLogger(object):
+    def debug(self, msg):
+        return
+
+    def warning(self, msg):
+        return
+
+    def error(self, msg):
+        return
 
 
 def main(argv):
@@ -42,7 +54,7 @@ def main(argv):
 
     # check if output dir is specified
     if not args.outdir:
-        outdir = os.getcwd()
+        outdir = os.getcwd() + "/media/"
     else:
         outdir = args.outdir
 
@@ -53,7 +65,6 @@ def main(argv):
     logging.info("Downloading to: {}".format(outdir))
 
     # assign user if it's set
-    # need to fix this with repeat at some point
     if args.user:
         user = args.user
         logging.debug("User is: {}".format(user))
@@ -148,10 +159,12 @@ def process_cleanup():
 
 # read config and return users
 def config_reader(config_file):
+
     # read config
     with open(config_file, 'r') as stream:
-        data_loaded = yaml.load(stream, Loader=yaml.BaseLoader)
+        data_loaded = yaml.safe_load(stream)
         logging.debug("Config: {}".format(data_loaded))
+
     # return the data read from config file
     return data_loaded
 
@@ -160,10 +173,29 @@ def config_reader(config_file):
 def download_video(url, user, outpath):
     global pids
 
+    # check if URL is valid
+    try:
+        request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
+        # warn but don't fail on a redirect
+        if request.status_code == 301:
+            logging.debug("URL {}/{} Has Been Moved to: {}".format(url, user, request.headers['Location']))
+            logging.debug("Please check your config!")
+        # fail on a bad status code
+        if request.status_code >= 400:
+            logging.warning("URL Has a Bad Status Code: {}/{}".format(url, user))
+            logging.warning("Please check your config!")
+            return False
+    # fail on connection error
+    except ConnectionError:
+        logging.warning("Invalid URL: {}/{}".format(url, user))
+        logging.warning("Please file a bug report: https://github.com/biodrone/issues/new/choose")
+        return False
+
     # pass opts to YTDL
     ydl_opts = {
         'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
-        'quiet': True
+        'quiet': True,
+        'logger': YTDLLogger(),
     }
 
     # try to pull video from the given user
@@ -173,7 +205,7 @@ def download_video(url, user, outpath):
     except youtube_dl.utils.DownloadError:
         logging.debug("{} is Offline".format(user))
 
-    return
+    return True
 
 
 if __name__ == '__main__':

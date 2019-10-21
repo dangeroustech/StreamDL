@@ -9,4 +9,8 @@ venv/
 StreamDL.egg-info/
 # media files
 *.mp4
+*.mkv
 *.part
+# testing files
+.pytest_cache/
+__pycache__/
