@@ -8,13 +8,11 @@ python:
 - '3.7.5'
 - '3.8'
 - 'nightly'
-# PyPy Version
-- 'pypy3'
 install:
 - pip install pipenv bandit
 - pipenv install -e .
 script:
-- pytest
+- pytest -v
 - bandit streamdl.py
 notifications:
   slack:
