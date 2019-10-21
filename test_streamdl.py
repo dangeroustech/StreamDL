@@ -28,15 +28,23 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = 'youtube.com'
         user = 'watch?v=QH2-TGUlwu4'
-        self.assertTrue(download_video(url, user, os.getcwd() + ".pytest_cache/media/"))
+        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
     def test_invalid_url(self):
         """
         Test that a bad URL fails because test.com doesn't have nyan cat :(
         """
+        url = 'example.com'
+        user = 'watch?v=QH2-TGUlwu4'
+        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
+
+    def test_moved_url(self):
+        """
+        Test that a 301 moved URL fails
+        """
         url = 'test.com'
         user = 'watch?v=QH2-TGUlwu4'
-        self.assertTrue(download_video(url, user, os.getcwd() + ".pytest_cache/media/"))
+        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
 
 if __name__ == '__main__':
