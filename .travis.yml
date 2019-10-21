@@ -6,8 +6,6 @@ branches:
 language: python
 python:
 - '3.7.5'
-- '3.8'
-- 'nightly'
 install:
 - pip install pipenv bandit
 - pipenv install -e .
