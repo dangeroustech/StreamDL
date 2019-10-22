@@ -1,1 +1,1 @@
-pipenv run python3 streamdl.py -c config.yml -r 5 -ll DEBUG
+pipenv run python3 streamdl.py -o /app/out -c $CONFIG -r $REPEAT_TIME -l stdout -ll $LOG_LEVEL
