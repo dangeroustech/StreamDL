@@ -1,3 +1,6 @@
+services:
+  - docker
+
 branches:
   only:
   - staging
