@@ -1,0 +1,1 @@
+pipenv run python3 streamdl.py -c config.yml -r 5 -ll DEBUG
