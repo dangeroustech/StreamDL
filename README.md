@@ -48,9 +48,9 @@ OR
 Basic YAML format. See config.yaml.example for a couple of test sites.
 
 ```yaml
-twitch.tv
+twitch.tv:
 - kaypealol
 - day9tv
-mixer.com
+mixer.com:
 - ninja
 ```
