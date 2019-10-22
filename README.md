@@ -51,9 +51,6 @@ Basic YAML format. See config.yaml.example for a couple of test sites.
 twitch.tv
 - kaypealol
 - day9tv
-youtube
-- UC4w1YQAJMWOz4qtxinq55LQ
+mixer.com
+- ninja
 ```
-
-*YouTube Caveat: make sure that youtube.com/channel/videos resolves to the right place.*
-*Channel renaming hides that on the main page.*
