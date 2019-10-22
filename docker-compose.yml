@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  streamdl:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - data:/app/out # data volume
+    environment:
+      - REPEAT_TIME=5
+volumes:
+  data:
