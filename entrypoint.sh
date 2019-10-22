@@ -1,0 +1,1 @@
+pipenv run python3 streamdl.py -o /app/out -c $CONFIG -r $REPEAT_TIME -l stdout -ll $LOG_LEVEL
