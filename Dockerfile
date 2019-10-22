@@ -3,7 +3,6 @@ WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 # Create out directory
-RUN mkdir /app/in
 RUN mkdir /app/out
 # Install necessary software
 RUN apt-get update && apt-get upgrade -y
