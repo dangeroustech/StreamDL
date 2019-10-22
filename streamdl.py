@@ -60,7 +60,10 @@ def main(argv):
 
     # set up logging
     log_format = '%(asctime)s %(levelname)s: %(message)s'
-    logging.basicConfig(filename=logfile, level=log_level, format=log_format)
+    if logfile == 'stdout':
+        logging.basicConfig(stream=sys.stdout, level=log_level, format=log_format)
+    else:
+        logging.basicConfig(filename=logfile, level=log_level, format=log_format)
     logging.info("Starting StreamDL...")
     logging.info("Downloading to: {}".format(outdir))
 
