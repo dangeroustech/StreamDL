@@ -17,7 +17,7 @@ class TestConfigReader(unittest.TestCase):
         Test that the config reader returns the correct YAML
         """
         data_loaded = config_reader('config.yml.example')
-        example_yaml = {'twitch.tv': ['kaypealol', 'day9tv'], 'youtube': ['UC4w1YQAJMWOz4qtxinq55LQ']}
+        example_yaml = {'twitch.tv': ['kaypealol', 'day9tv'], 'mixer.com': ['ninja']}
         self.assertEqual(data_loaded, example_yaml)
 
 
