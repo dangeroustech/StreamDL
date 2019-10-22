@@ -6,7 +6,11 @@ services:
     restart: unless-stopped
     volumes:
       - data:/app/out # data volume
+      - ./config.yml:/app/config.yml # config file
     environment:
-      - REPEAT_TIME=5
+      - REPEAT_TIME=5 # time to repeat, in minutes
+      - LOG_LEVEL=DEBUG # log level
+      - CONFIG=config.yml # config file name
+
 volumes:
   data:
