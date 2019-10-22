@@ -2,6 +2,12 @@
 
 # StreamDL
 
+## Why Does This Exist?
+
+Because there are certain streaming websites that don't store historic VODs of their livestreams. This is sad. As a nerd, you probably have terabytes of storage somewhere, right? Why not get some use out of it? Archivists everywhere, rejoice!
+
+## Usage
+
 ```shell
   usage: Monitor and Download Streams from a Variety of Websites
 
