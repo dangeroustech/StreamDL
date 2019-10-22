@@ -1,19 +1,16 @@
-FROM ubuntu:latest
+FROM python:3.7-alpine
 WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-# Create out directory
-RUN mkdir /app/out
 # Install necessary software
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install git python3.7 python3-pip ffmpeg -y
+RUN apk update && apk upgrade
+RUN apk add --no-cache git ffmpeg
 RUN pip3 install pipenv
 # Copy in app files
-ADD streamdl.py /app
-ADD config.yml.example /app
-ADD setup.py /app
-ADD Pipfile /app
-ADD Pipfile.lock /app
+RUN git clone https://github.com/biodrone/StreamDL /app
+RUN git checkout dockerise
+# Create out directory
+RUN mkdir /app/out
 # Create pipenv
 RUN pipenv install -e .
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT [ "/bin/ash", "/app/entrypoint.sh" ]
