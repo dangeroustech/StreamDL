@@ -36,9 +36,7 @@ def main(argv):
 
     # set up arg parser and arguments
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
-    userspec = parser.add_mutually_exclusive_group(required=True)
-    userspec.add_argument('-u', '--user', help='Streaming Site User')
-    userspec.add_argument('-c', '--config', help='Config file to use')
+    parser.add_argument('-c', '--config', help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
@@ -72,12 +70,6 @@ def main(argv):
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
 
-    # assign user if it's set
-    if args.user:
-        user = args.user
-        logger.debug("User is: {}".format(user))
-        download_video(user, outdir)
-
     # check if config file is specified
     if args.config:
         users = config_reader(args.config)
@@ -86,10 +78,7 @@ def main(argv):
 
     # check if repeat is specified
     if args.repeat:
-        if args.user:
-            recurse(args.repeat, outdir, user=args.user)
-        if args.config:
-            recurse(args.repeat, outdir, config=args.config)
+        recurse(args.repeat, outdir, config=args.config)
 
 
 def recurse(repeat, outdir, **kwargs):
