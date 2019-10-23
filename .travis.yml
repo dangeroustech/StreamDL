@@ -20,7 +20,7 @@ jobs:
     - bandit streamdl.py
   - language: bash
     script:
-    - docker-compose build .
+    - docker-compose build --no-cache
 
 notifications:
   slack:
