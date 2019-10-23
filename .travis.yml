@@ -1,6 +1,4 @@
 dist: bionic
-services:
-  - docker
 
 branches:
   only:
@@ -18,7 +16,9 @@ jobs:
     script:
     - pytest -v
     - bandit streamdl.py
-  - language: bash
+  - language: shell
+    services:
+    - docker
     script:
     - docker-compose build --no-cache
 
