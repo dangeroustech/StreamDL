@@ -33,7 +33,7 @@ def main(argv):
     # set up arg parser and arguments
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
     userspec = parser.add_mutually_exclusive_group(required=True)
-    userspec.add_argument('-u', '--user', help='Chaturbate User')
+    userspec.add_argument('-u', '--user', help='Streaming Site User')
     userspec.add_argument('-c', '--config', help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
