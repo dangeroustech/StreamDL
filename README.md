@@ -35,6 +35,18 @@ Because there are certain streaming websites that don't store historic VODs of t
 
 ## Install
 
+### Docker
+
+If you'd like to tweak individual parameters, the Dockerfile provided can be used. 
+
+Otherwise, just run `docker-compose build && docker-compose up -d`
+
+Edit the Environment variables in `docker-compose.yml` to modify script functionality. 
+
+Logs are piped to stdout by default so that `docker-compose logs` works. If you know what you're doing, you can change this value in `entrypoint.sh`. Make sure to rebuild the container with `docker-compose build` after editing this. 
+
+### Bare Metal
+
 *This example assumes `python --version` returns something above Python 3.6 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
 
 - `pipenv install -e .`
