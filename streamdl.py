@@ -21,6 +21,9 @@ logger = logging.getLogger()
 
 
 class YTDLLogger(object):
+    """
+    Just a class to shut YTDL up
+    """
     def debug(self, msg):
         return
 
@@ -32,6 +35,9 @@ class YTDLLogger(object):
 
 
 def main(argv):
+    """
+    The main function that does the stuff
+    """
     global logger
 
     # set up arg parser and arguments
@@ -85,6 +91,9 @@ def main(argv):
 
 
 def recurse(repeat, outdir, **kwargs):
+    """
+    Main recursive function
+    """
     global logger
 
     sleep_time = int(repeat) * 60
@@ -108,6 +117,9 @@ def recurse(repeat, outdir, **kwargs):
 
 # parse through users and launch downloader if necessary
 def mass_downloader(config, outdir):
+    """
+    Handles the process spawning to download multiple things at once
+    """
     global pids
     global processes
     global logger
@@ -136,6 +148,9 @@ def mass_downloader(config, outdir):
 
 
 def process_cleanup():
+    """
+    Cleans up processes to prevent zombies and max recursion depth issues
+    """
     global processes
     global logger
 
@@ -164,6 +179,9 @@ def process_cleanup():
 
 # do the video downloading
 def download_video(url, user, outpath):
+    """
+    Handles downloading the individual videos
+    """
     global pids
     global logger
 
@@ -204,6 +222,9 @@ def download_video(url, user, outpath):
 
 # read config and return users
 def config_reader(config_file):
+    """
+    Reads the YAML config file
+    """
     global logger
 
     # read config
@@ -215,6 +236,9 @@ def config_reader(config_file):
 
 
 def rotating_logger(path, level, fmt):
+    """
+    Logger for writing to files
+    """
     global logger
 
     logger = logging.getLogger("Rotating Log")
@@ -231,6 +255,9 @@ def rotating_logger(path, level, fmt):
 
 
 def stream_logger(level, fmt):
+    """
+    Logger for writing to stdout (for Docker)
+    """
     global logger
 
     logger = logging.getLogger()
