@@ -8,7 +8,6 @@ RUN apk add --no-cache git ffmpeg
 RUN pip3 install pipenv
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
-RUN git checkout dockerise
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
