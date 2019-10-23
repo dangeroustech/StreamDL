@@ -47,7 +47,10 @@ def main(argv):
     if not args.logfile:
         logfile = os.getcwd() + '/streamdl.log'
     else:
-        logfile = args.logfile
+        if os.path.isdir(args.logfile):
+            logfile = args.logfile + "/streamdl.log"
+        else:
+            logfile = args.logfile
 
     if args.loglevel:
         log_level = getattr(logging, args.loglevel.upper())
