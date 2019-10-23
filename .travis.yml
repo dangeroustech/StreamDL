@@ -8,18 +8,19 @@ branches:
 
 jobs:
   include:
+   - stage: Build and Test Python
    - language: python
      python:
-      - '3.7.5'
-      - '3.8'
-      - 'nightly'
-      install:
-      - pip install pipenv bandit
-      - pipenv install -e .
-      script:
-      - pytest -v
-      - bandit streamdl.py
-
+     - '3.7.5'
+     install:
+     - pip install pipenv bandit
+     - pipenv install -e .
+     script:
+     - pytest -v
+     - bandit streamdl.py
+   
+   - stage: Docker-compose build
+   script:
    - docker-compose build .
 notifications:
   slack:
