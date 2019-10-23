@@ -13,8 +13,6 @@ Because there are certain streaming websites that don't store historic VODs of t
 
   optional arguments:
   -h,               --help      show this help message and exit
-  -u    USER,       --user      USER
-                                Streaming Site User
   -l    LOGPATH,    --logpath   LOGPATH
                                 Logfile to use (defaults to working dir)
   -ll   LOGLEVEL,   --loglevel  Loglevel to use (supports DEBUG, INFO, etc)
