@@ -1,7 +1,8 @@
 # Pycharm settings
 .idea/
-# Logfile
+# Logfiles
 streamdl.log
+streamdl.log.*
 # Live Config File
 config.yml
 # venv
@@ -9,4 +10,8 @@ venv/
 StreamDL.egg-info/
 # media files
 *.mp4
+*.mkv
 *.part
+# testing files
+.pytest_cache/
+__pycache__/

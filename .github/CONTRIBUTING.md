@@ -9,5 +9,6 @@
 - Reference issues and pull requests liberally after the first line
 
 # Submitting Pull Requests
-Please always submit PRs to the staging branch, never to master.
-Features will be moved to master once they have been adequately tested in staging.
+Please always submit PRs to the Staging branch, never to Master.
+
+Features will be moved to master once they have been adequately tested in Staging.
