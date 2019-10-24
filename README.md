@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/biodrone/StreamDL.svg?branch=master)](https://travis-ci.org/biodrone/StreamDL)
-
 # StreamDL
+
+[![Build Status](https://travis-ci.org/biodrone/StreamDL.svg?branch=master)](https://travis-ci.org/biodrone/StreamDL)
 
 ## Why Does This Exist?
 
