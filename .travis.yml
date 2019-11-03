@@ -15,7 +15,8 @@ branches:
 stages:
   - pre-build
   - build
-  - deploy
+  - deploy-staging
+  - deploy-latest
 
 jobs:
   include:
@@ -34,13 +35,22 @@ jobs:
     services:
     - docker
     script:
-    - docker-compose build --no-cache
-  - stage: deploy
+    - docker build -t streamdl:build . --no-cache
+  - stage: "deploy-staging"
+    if: branch = staging
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-    - docker build -t streamdl .
+    - docker build -t streamdl:staging .
     - docker images
-    - docker tag streamdl dangeroustech/streamdl
+    - docker tag streamdl:staging dangeroustech/streamdl:staging
+    - docker push dangeroustech/streamdl:staging
+  - stage: deploy-latest
+    if: "branch = master"
+    script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+    - docker build -t streamdl:latest .
+    - docker images
+    - docker tag streamdl dangeroustech/streamdl:latest
     - docker push dangeroustech/streamdl:latest
 
 notifications:
