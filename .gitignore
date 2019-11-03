@@ -1,5 +1,7 @@
 # Pycharm settings
 .idea/
+# VSCode Settings
+.vscode
 # Logfiles
 streamdl.log
 streamdl.log.*
