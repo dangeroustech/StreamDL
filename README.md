@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/biodrone/StreamDL.svg?branch=master)](https://travis-ci.org/biodrone/StreamDL)
 
+Monitor and Download Streams from a Variety of Websites
+
 ## Why Does This Exist?
 
 Because there are certain streaming websites that don't store historic VODs of their livestreams. This is sad. As a nerd, you probably have terabytes of storage somewhere, right? Why not get some use out of it? Archivists everywhere, rejoice!
