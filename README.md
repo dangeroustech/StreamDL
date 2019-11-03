@@ -29,9 +29,15 @@ Because there are certain streaming websites that don't store historic VODs of t
 
 ## Requirements
 
+### Docker
+- Built on Docker 19.03.4
+- Built on Docker-Compose 1.24.1
+
+### Bare Metal
+
 - Python 3.7
 - ffmpeg
-- pipenv (`pip install pipenv`)
+- pipenv (`pip install pipenv` *or* `pip3 install pipenv` *depending on your system*)
 
 ## Install
 
@@ -39,11 +45,11 @@ Because there are certain streaming websites that don't store historic VODs of t
 
 If you'd like to tweak individual parameters, the Dockerfile provided can be used. 
 
-Otherwise, just run `docker-compose build && docker-compose up -d`
+Otherwise, just run `docker-compose up -d`
 
-Edit the Environment variables in `docker-compose.yml` to modify script functionality. 
+Edit the Environment variables in `docker-compose.yml.example` to modify script functionality. 
 
-Logs are piped to stdout by default so that `docker-compose logs` works. If you know what you're doing, you can change this value in `entrypoint.sh`. Make sure to rebuild the container with `docker-compose build` after editing this. 
+Logs are piped to stdout by default so that `docker-compose logs` works. *If you know what you're doing, you can change this value in `entrypoint.sh`. Make sure to rebuild the container with `docker-compose build` after editing this.*
 
 ### Bare Metal
 
