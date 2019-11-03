@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 bandit = "==1.6.2"
 pytest = "==5.2.1"
+pylint = "*"
 
 [packages]
 streamdl = {editable = true,path = "."}
