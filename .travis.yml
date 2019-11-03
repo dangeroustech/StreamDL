@@ -1,13 +1,23 @@
 dist: bionic
 
+# DOCKER_PASSWORD
+secure: "tdH9nwfuO5cC7lEuOYyp8U/YB44yq7ebceLYtpEqKx4STYs1T8CMVFpo5loL+cjfcsxbbJM13Om7y+Bt+Zv+ir0fGG3E4likOhjaEXI8pD/yoVgn65ezMJi0fYLLUBDHs6LpVJwB5etbec+Xkj300t4koh0+HOSEzeoSx0aFA0FbxZRHbSKQ7pKQN34YTJUCTnRUxVfFySOHUqYRRXeh/HCr3YHNBP+jlWObDvhk/TkIdJQjABdFU68HCUPeErhK00oWHyVqYi+I4FfMmFKYNhJ/XJq6dKIrn/j3bvQ7XmBLjLoe2j1qugFA2WL79KoE5WxydXMXQ6472sMWeE8YAMUZzqmuVTMZEZuyQc61jlt714cux4z+zULbx2E9AgsybayreGRkfij0n3OFKra8wtw7p8On1KuopIWaNlAzyxsKbcNHPUHgjjIxFOFkdnBm4iSYDoh7T6q2A612chQE+uBB0FtD8sags6rM6Myd5s4K7rHGoO4DnaAza6t+cky7ynv2glAnzOlWTzcuaz7WynI0efd1E8+JZllIr89Mpwp96CW+5PmTI4FCsZNkCDuuJT9+o75neK1yy+0J4qpicE/PFMkD3a7CvcjG60UOwLbBHipOW/YaOefThQIz7bXbd+X2y8daaHZ7ekPMtKz9aC2rNr6wgCNITqZ5oQWzqDM="
+
+
 branches:
   only:
   - staging
   - master
 
+stages:
+  - pre-build
+  - build
+  - deploy
+
 jobs:
   include:
-  - language: python
+  - stage: "pre-build"
+    language: python
     python:
     - '3.7.5'
     install:
@@ -16,11 +26,19 @@ jobs:
     script:
     - pytest -v
     - bandit streamdl.py
-  - language: shell
+  - stage: "build"
+    language: shell
     services:
     - docker
     script:
     - docker-compose build --no-cache
+  - stage: deploy
+    script:
+    - echo "$DOCKER_PASSWORD" | docker login -u bobthebuilder --password-stdin
+    - docker build -t streamdl .
+    - docker images
+    - docker tag streamdl dangerous-tech/streamdl
+    - docker push dangerous-tech/streamdl
 
 notifications:
   slack:
