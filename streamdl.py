@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 ##TODO: Figure out what to do with pids/processes as you probably don't need both
 ##TODO: Remove user flag parsing from main
