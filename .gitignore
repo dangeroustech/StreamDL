@@ -17,3 +17,5 @@ StreamDL.egg-info/
 # testing files
 .pytest_cache/
 __pycache__/
+docker-compose.yml
+Dockerfile_local
