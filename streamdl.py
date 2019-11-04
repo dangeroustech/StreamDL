@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 ##TODO: Figure out what to do with pids/processes as you probably don't need both
-##TODO: Remove user flag parsing from main
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -100,21 +99,13 @@ def recurse(repeat, outdir, **kwargs):
     global logger
 
     sleep_time = int(repeat) * 60
-    logger.debug("Repeat Set to {}, Sleeping for {} Seconds".format(repeat, sleep_time))
+    logger.debug("Sleeping for {} Seconds".format(repeat, sleep_time))
     time.sleep(sleep_time)
 
-    logger.debug("Recursing...")
-
-    # change this because user is no longer a valid cmdline flag
-    if kwargs.get("user", False):
-        download_video(kwargs.get("user"), outdir)
-    elif kwargs.get("config", False):
-        # always reload config in case local changes are made
-        users = config_reader(kwargs.get("config"))
-        logger.info("Config: {}".format(users))
-        mass_downloader(users, outdir)
-    else:
-        logger.debug("Something went wrong, neither user or config were used but we're recursing....")
+    # always reload config in case local changes are made
+    users = config_reader(kwargs.get("config"))
+    logger.info("Config: {}".format(users))
+    mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
 
