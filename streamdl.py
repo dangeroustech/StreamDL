@@ -1,7 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 ##TODO: Figure out what to do with pids/processes as you probably don't need both
-##TODO: Remove user flag parsing from main
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -15,6 +14,7 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import time
 import requests
+import signal
 
 # set up manager functions
 mgr = Manager()
@@ -42,6 +42,10 @@ def main(argv):
     The main function that does the stuff
     """
     global logger
+
+    # set up signal handler
+    signal.signal(signal.SIGTERM, receive_signal)
+    signal.signal(signal.SIGINT, receive_signal)
 
     # set up arg parser and arguments
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
@@ -100,21 +104,16 @@ def recurse(repeat, outdir, **kwargs):
     global logger
 
     sleep_time = int(repeat) * 60
-    logger.debug("Repeat Set to {}, Sleeping for {} Seconds".format(repeat, sleep_time))
-    time.sleep(sleep_time)
-
-    logger.debug("Recursing...")
-
-    # change this because user is no longer a valid cmdline flag
-    if kwargs.get("user", False):
-        download_video(kwargs.get("user"), outdir)
-    elif kwargs.get("config", False):
-        # always reload config in case local changes are made
-        users = config_reader(kwargs.get("config"))
-        logger.info("Config: {}".format(users))
-        mass_downloader(users, outdir)
-    else:
-        logger.debug("Something went wrong, neither user or config were used but we're recursing....")
+    logger.debug("Sleeping for {} Seconds".format(sleep_time))
+    for i in range(sleep_time):
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            logger.debug("recurse thread interrupt caught...")
+    # always reload config in case local changes are made
+    users = config_reader(kwargs.get("config"))
+    logger.info("Config: {}".format(users))
+    mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
 
@@ -213,6 +212,7 @@ def download_video(url, user, outpath):
         'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
         'quiet': True,
         'logger': YTDLLogger(),
+        'postprocessor-args': '-movflags +faststart',
     }
 
     # try to pull video from the given user
@@ -221,6 +221,8 @@ def download_video(url, user, outpath):
             ydl.download(["https://{}/{}/".format(url, user)])
     except youtube_dl.utils.DownloadError:
         logger.debug("Download Error, {} is Probably Offline".format(user))
+    except KeyboardInterrupt:
+        logger.debug("Caught KeyBoardInterrupt...")
 
     return True
 
@@ -277,5 +279,41 @@ def stream_logger(level, fmt):
     return logger
 
 
+def receive_signal(signum, frame):
+    """
+    Catches SIGTERM - Mainly to Address Docker Container Stops
+    """
+    global logger
+    logger.debug('Received SIGTERM... Terminating.')
+    kill_pids()
+    sys.exit(0)
+
+
+def kill_pids():
+    """
+    Kill all the PIDs, Even Currently Running Ones
+    """
+    global processes
+    i = 0
+
+    while i < len(processes):
+        try:
+            #ps = subprocess.run(
+            #    ['pstree', '-p', '{}'.format(processes[i].pid)],
+            #    text=True,
+            #    stdout=subprocess.PIPE,
+            #    check=True
+            #)
+            #pid = ps.stdout.lstrip("python3({})---ffmpeg(".format(processes[i].pid))
+            #os.kill(pid[:-2], signal.SIGTERM)
+            #os.kill(processes[i].pid, signal.SIGTERM)
+            processes[i].terminate()
+            i += 1
+        except AssertionError:
+            logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
+            i += 1
+
+
 if __name__ == '__main__':
+    # do the things
     main(sys.argv)
