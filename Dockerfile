@@ -12,4 +12,4 @@ RUN git clone https://github.com/biodrone/StreamDL /app
 RUN mkdir /app/out
 # Create pipenv
 RUN pipenv install -e .
-ENTRYPOINT [ "/bin/ash", "/app/entrypoint.sh" ]
+ENTRYPOINT ["pipenv", "run", "python3", "streamdl.py", "-o", "/app/out", "-c", "config.yml", "-r", "$REPEAT_TIME", "-l", "stdout", "-ll", "$LOG_LEVEL"]
