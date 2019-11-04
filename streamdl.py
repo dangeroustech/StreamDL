@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+##TODO: Figure out what to do with pids/processes as you probably don't need both
+##TODO: Remove user flag parsing from main
+
 import logging
 from logging.handlers import RotatingFileHandler
 import argparse
@@ -102,6 +105,7 @@ def recurse(repeat, outdir, **kwargs):
 
     logger.debug("Recursing...")
 
+    # change this because user is no longer a valid cmdline flag
     if kwargs.get("user", False):
         download_video(kwargs.get("user"), outdir)
     elif kwargs.get("config", False):
