@@ -15,7 +15,6 @@ from multiprocessing import Process
 import time
 import requests
 import signal
-import subprocess
 
 # set up manager functions
 mgr = Manager()
