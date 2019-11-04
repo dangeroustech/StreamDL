@@ -137,12 +137,6 @@ def mass_downloader(config, outdir):
                 processes.append(p)
                 logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
                 # pop pid from dict
-                try:
-                    pids.pop(user)
-                    logger.debug("Popped user {} from PIDs".format(user))
-                    logger.debug("PIDs: {}".format(pids))
-                except KeyError:
-                    logger.debug("KeyError When Popping {} From PIDs List".format(user))
     time.sleep(5)
     process_cleanup()
 
@@ -151,6 +145,7 @@ def process_cleanup():
     """
     Cleans up processes to prevent zombies and max recursion depth issues
     """
+    global pids
     global processes
     global logger
 
@@ -173,6 +168,13 @@ def process_cleanup():
             except AssertionError:
                 logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
                 i += 1
+            try:
+                logger.debug("popping: {}".format(processes[i].name))
+                pids.pop(processes[i].name)
+                logger.debug("Popped user {} from PIDs".format(processes[i].name))
+                logger.debug("PIDs: {}".format(pids))
+            except KeyError:
+                logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
     logger.debug("Processes after cleaning: {}".format(processes))
 
@@ -182,7 +184,6 @@ def download_video(url, user, outpath):
     """
     Handles downloading the individual videos
     """
-    global pids
     global logger
 
     # check if URL is valid
@@ -215,7 +216,7 @@ def download_video(url, user, outpath):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(["https://{}/{}/".format(url, user)])
     except youtube_dl.utils.DownloadError:
-        logger.debug("{} is Offline".format(user))
+        logger.debug("Download Error, {} is Probably Offline".format(user))
 
     return True
 
