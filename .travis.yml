@@ -48,9 +48,9 @@ jobs:
     if: "branch = master"
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-    - docker build -t streamdl:stable .
+    - docker build -t streamdl .
     - docker images
-    - docker tag streamdl:stable dangeroustech/streamdl:stable
+    - docker tag streamdl dangeroustech/streamdl:stable
     - docker push dangeroustech/streamdl:stable
 
 notifications:
