@@ -44,14 +44,14 @@ jobs:
     - docker images
     - docker tag streamdl:staging dangeroustech/streamdl:staging
     - docker push dangeroustech/streamdl:staging
-  - stage: deploy-latest
+  - stage: deploy-stable
     if: "branch = master"
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-    - docker build -t streamdl:latest .
+    - docker build -t streamdl:stable .
     - docker images
-    - docker tag streamdl dangeroustech/streamdl:latest
-    - docker push dangeroustech/streamdl:latest
+    - docker tag streamdl dangeroustech/streamdl:stable
+    - docker push dangeroustech/streamdl:stable
 
 notifications:
   slack:
