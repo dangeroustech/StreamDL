@@ -49,8 +49,9 @@ jobs:
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
     - docker build -t streamdl .
-    - docker images
-    - docker tag streamdl dangeroustech/streamdl:stable
+    - docker tag streamdl dangeroustech/streamdl
+    - docker push dangeroustech/streamdl
+    - docker tag dangeroustech/streamdl dangeroustech/streamdl:stable
     - docker push dangeroustech/streamdl:stable
 
 notifications:
