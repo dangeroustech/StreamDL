@@ -16,7 +16,7 @@ stages:
   - pre-build
   - build
   - deploy-staging
-  - deploy-latest
+  - deploy-stable
 
 jobs:
   include:
