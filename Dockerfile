@@ -13,5 +13,5 @@ RUN git checkout staging
 RUN mkdir /app/out
 # Create pipenv
 RUN pipenv install -e .
-RUN cp -f /app/patches/chaturbate.py /root/.local/share/virtualenvs/app-4PlAip0Q/lib/python3.7/site-packages/youtube_dl/extractors/
+RUN cp -f /app/patches/chaturbate.py /root/.local/share/virtualenvs/app-4PlAip0Q/lib/python3.7/site-packages/youtube_dl/extractors/chaturbate.py
 ENTRYPOINT ["pipenv", "run", "python3", "streamdl.py", "-o", "/app/out", "-c", "config.yml", "-r", "$REPEAT_TIME", "-l", "stdout", "-ll", "$LOG_LEVEL"]
