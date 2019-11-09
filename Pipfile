@@ -11,8 +11,9 @@ pylint = "*"
 [packages]
 streamdl = {editable = true,path = "."}
 requests = "==2.22"
-youtube-dl = "==2019.09.28"
+youtube-dl = "==2019.11.05"
 pyyaml = "==5.1.2"
+setup-py = {editable = true,version = "*"}
 
 [requires]
 python_version = "3.7"
