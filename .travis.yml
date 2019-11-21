@@ -25,7 +25,6 @@ stages:
 jobs:
   include:
   - stage: "test"
-    python: "3.8"
     install:
     - pip install pipenv bandit
     - pipenv install -e .
