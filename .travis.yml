@@ -23,7 +23,8 @@ jobs:
   - stage: "pre-build"
     language: python
     python:
-    - '3.7.5'
+    - '3.7'
+    - '3.8'
     install:
     - pip install pipenv bandit
     - pipenv install -e .
