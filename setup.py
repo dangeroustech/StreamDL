@@ -4,8 +4,8 @@ from setuptools import setup
 
 setup(
     name="StreamDL",
-    version="1.0.0",
+    version="1.2.2",
     description="Monitor and Download Streams from a Variety of Websites",
     author="biodrone",
-    install_requires=['youtube_dl==2019.09.28', 'PyYAML==5.1.2', 'requests==2.22'],
+    install_requires=['youtube_dl==2019.11.22', 'PyYAML==5.1.2', 'requests==2.22'],
 )

@@ -4,15 +4,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-bandit = "==1.6.2"
-pytest = "==5.2.1"
-pylint = "*"
 
 [packages]
 streamdl = {editable = true,path = "."}
-requests = "==2.22"
-youtube-dl = "==2019.09.28"
-pyyaml = "==5.1.2"
 
 [requires]
 python_version = "3.7"
