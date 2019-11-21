@@ -37,6 +37,7 @@ jobs:
     script:
     - docker build -t streamdl:build . --no-cache
   - stage: "deploy-staging"
+    language: shell
     if: branch = staging
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
@@ -45,6 +46,7 @@ jobs:
     - docker tag streamdl:staging dangeroustech/streamdl:staging
     - docker push dangeroustech/streamdl:staging
   - stage: deploy-stable
+    language: shell
     if: "branch = master"
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
