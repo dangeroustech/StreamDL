@@ -46,7 +46,7 @@ jobs:
     - docker images
     - docker tag streamdl:staging dangeroustech/streamdl:staging
     - docker push dangeroustech/streamdl:staging
-  - stage: deploy-stable
+  - stage: "deploy-stable"
     language: shell
     if: "branch = master"
     script:
