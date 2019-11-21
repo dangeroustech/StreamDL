@@ -25,9 +25,10 @@ stages:
 jobs:
   include:
   - stage: "test"
-    install: pip install pipenv bandit
-    script:
+    install:
+    - pip install pipenv bandit
     - pipenv install -e .
+    script:
     - pytest -v
     - bandit streamdl.py
   - stage: "build"
