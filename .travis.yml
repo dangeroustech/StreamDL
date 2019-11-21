@@ -39,7 +39,6 @@ jobs:
     script:
     - docker build -t streamdl:build . --no-cache
   - stage: "deploy-staging"
-    language: shell
     services:
       - docker
     if: branch = staging
@@ -50,7 +49,6 @@ jobs:
     - docker tag streamdl:staging dangeroustech/streamdl:staging
     - docker push dangeroustech/streamdl:staging
   - stage: "deploy-stable"
-    language: shell
     services:
       - docker
     if: "branch = master"
