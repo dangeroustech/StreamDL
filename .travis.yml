@@ -1,7 +1,4 @@
 language: python
-python:
-  - "3.7"
-  - "3.8"
 dist: bionic
 
 env:
@@ -26,6 +23,7 @@ stages:
 jobs:
   include:
   - stage: "test-3.7"
+    python: "3.7"
     install:
     - pip install pipenv bandit
     - pipenv install -e .
@@ -33,6 +31,7 @@ jobs:
     - pytest -v
     - bandit streamdl.py
   - stage: "test-3.8"
+    python: "3.8"
     install:
       - pip install pipenv bandit
       - pipenv install -e .
