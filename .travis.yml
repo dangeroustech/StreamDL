@@ -17,20 +17,28 @@ branches:
   - master
 
 stages:
-  - test
+  - test-3.7
+  - test-3.8
   - build
   - deploy-staging
   - deploy-stable
 
 jobs:
   include:
-  - stage: "test"
+  - stage: "test-3.7"
     install:
     - pip install pipenv bandit
     - pipenv install -e .
     script:
     - pytest -v
     - bandit streamdl.py
+  - stage: "test-3.8"
+    install:
+      - pip install pipenv bandit
+      - pipenv install -e .
+    script:
+      - pytest -v
+      - bandit streamdl.py
   - stage: "build"
     language: shell
     services:
