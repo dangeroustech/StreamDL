@@ -17,14 +17,15 @@ branches:
   - master
 
 stages:
-  - pre-build
+  - test
   - build
   - deploy-staging
   - deploy-stable
 
 jobs:
   include:
-  - stage: "pre-build"
+  - stage: "test"
+    python: "3.8"
     install:
     - pip install pipenv bandit
     - pipenv install -e .
