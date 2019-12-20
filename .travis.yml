@@ -45,6 +45,7 @@ jobs:
     script:
     - docker build -t streamdl:build . --no-cache
   - stage: "deploy"
+    language: shell
     before_install:
     - sudo docker run --privileged linuxkit/binfmt:v0.7
     - sudo docker run -d --privileged -p 1234:1234 --name buildkit moby/buildkit:latest --addr tcp://0.0.0.0:1234 --oci-worker-platform linux/amd64 --oci-worker-platform linux/arm64 --oci-worker-platform linux/armhf
