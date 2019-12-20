@@ -1,16 +1,20 @@
 #!/bin/bash
 set -ev
 
+# Set Build Options
 PLATFORM=amd64
 DOCKERFILE_LOCATION="./Dockerfile"
 DOCKER_IMAGE="streamdl"
 DOCKER_ORG="dangeroustech"
+
+# Set Correct Branch
 if [ "${TRAVIS_BRANCH}" = "master" ]; then
     DOCKER_TAG="stable"
 else
     DOCKER_TAG="staging"
 fi
 
+# If This Isn't A PR, Push to Dockerhub
 if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
     docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
 
@@ -32,6 +36,7 @@ if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
         --local dockerfile=. \
         --local context=.
 else
+    # If This is a PR, Build to Check for Errors
     buildctl build --frontend dockerfile.v0 \
         --progress=plain \
         --opt platform=linux/${PLATFORM} \
