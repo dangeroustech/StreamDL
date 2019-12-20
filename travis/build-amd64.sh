@@ -3,7 +3,8 @@ set -ev
 
 PLATFORM=amd64
 DOCKERFILE_LOCATION="./Dockerfile"
-DOCKER_IMAGE="dangerous-tech"
+DOCKER_IMAGE="streamdl"
+DOCKER_ORG="dangeroustech"
 if [ "${TRAVIS_BRANCH}" = "master" ]; then
     DOCKER_TAG="stable"
 else
@@ -18,7 +19,7 @@ if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
         --opt platform=linux/${PLATFORM} \
         --opt filename=${DOCKERFILE_LOCATION} \
         --opt build-arg:TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
-        --output type=image,name=docker.io/${DOCKER_USER}/${DOCKER_IMAGE}:${DOCKER_TAG}-${PLATFORM},push=true \
+        --output type=image,name=docker.io/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_TAG}-${PLATFORM},push=true \
         --local dockerfile=. \
         --local context=.
 
@@ -27,7 +28,7 @@ if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
         --opt platform=linux/${PLATFORM} \
         --opt filename=${DOCKERFILE_LOCATION} \
         --opt build-arg:TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
-        --output type=image,name=docker.io/${DOCKER_USER}/${DOCKER_IMAGE}:latest-${PLATFORM},push=true \
+        --output type=image,name=docker.io/${DOCKER_ORG}/${DOCKER_IMAGE}:latest-${PLATFORM},push=true \
         --local dockerfile=. \
         --local context=.
 else
