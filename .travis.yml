@@ -1,3 +1,5 @@
+language: python
+os: linux
 dist: bionic
 
 env:
@@ -13,49 +15,50 @@ branches:
   - master
 
 stages:
-  - pre-build
+  - test-3.7
+  - test-3.8
   - build
-  - deploy-staging
-  - deploy-stable
+  - deploy
 
 jobs:
   include:
-  - stage: "pre-build"
-    language: python
-    python:
-    - '3.7'
-    - '3.8'
+  - stage: "test-3.7"
+    python: "3.7"
     install:
     - pip install pipenv bandit
     - pipenv install -e .
     script:
     - pytest -v
     - bandit streamdl.py
+  - stage: "test-3.8"
+    python: "3.8"
+    install:
+      - pip install pipenv bandit
+      - pipenv install -e .
+    script:
+      - pytest -v
+      - bandit streamdl.py
   - stage: "build"
     language: shell
     services:
     - docker
     script:
     - docker build -t streamdl:build . --no-cache
-  - stage: "deploy-staging"
-    language: shell
-    if: branch = staging
+  - stage: "deploy"
+    before_install:
+    - sudo docker run --privileged linuxkit/binfmt:v0.7
+    - sudo docker run -d --privileged -p 1234:1234 --name buildkit moby/buildkit:latest --addr tcp://0.0.0.0:1234 --oci-worker-platform linux/amd64 --oci-worker-platform linux/arm64 --oci-worker-platform linux/armhf
+    - sudo docker cp buildkit:/usr/bin/buildctl /usr/bin/
+    - export BUILDKIT_HOST=tcp://0.0.0.0:1234
+    addons:
+      apt:
+        packages:
+        - docker-ce
     script:
-    - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-    - docker build -t streamdl:staging .
-    - docker images
-    - docker tag streamdl:staging dangeroustech/streamdl:staging
-    - docker push dangeroustech/streamdl:staging
-  - stage: deploy-stable
-    language: shell
-    if: "branch = master"
-    script:
-    - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-    - docker build -t streamdl .
-    - docker tag streamdl dangeroustech/streamdl
-    - docker push dangeroustech/streamdl
-    - docker tag dangeroustech/streamdl dangeroustech/streamdl:stable
-    - docker push dangeroustech/streamdl:stable
+    - ./travis/build-amd64.sh
+    - ./travis/build-arm.sh
+    - ./travis/build-arm64.sh
+    - ./travis/dockerhub-deploy.sh 
 
 notifications:
   slack:
