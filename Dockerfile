@@ -1,5 +1,6 @@
 FROM python:3.7-alpine
 WORKDIR /app
+ARG TRAVIS_BRANCH=$TRAVIS_BRANCH
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 # Install necessary software
@@ -8,7 +9,7 @@ RUN apk add --no-cache git ffmpeg
 RUN pip3 install pipenv
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
-RUN git checkout staging
+RUN if [ "${TRAVIS_BRANCH}" = "staging" ]; then git checkout staging; fi
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
