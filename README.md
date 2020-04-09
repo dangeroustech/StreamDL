@@ -1,6 +1,6 @@
 # StreamDL
 
-[![Build Status](https://travis-ci.org/biodrone/StreamDL.svg?branch=master)](https://travis-ci.org/biodrone/StreamDL)
+[![Build Status](https://travis-ci.com/dangerous-tech/StreamDL.svg?branch=master)](https://travis-ci.com/dangerous-tech/StreamDL)
 
 Monitor and Download Streams from a Variety of Websites
 
