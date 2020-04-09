@@ -37,7 +37,7 @@ jobs:
       - pipenv install -e .
     script:
       - pytest -v
-      - bandit streamdl.py
+      - bandit -c .bandit.yml streamdl.py
   - stage: "build"
     language: shell
     services:
