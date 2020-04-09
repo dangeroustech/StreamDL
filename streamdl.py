@@ -298,15 +298,6 @@ def kill_pids():
 
     while i < len(processes):
         try:
-            #ps = subprocess.run(
-            #    ['pstree', '-p', '{}'.format(processes[i].pid)],
-            #    text=True,
-            #    stdout=subprocess.PIPE,
-            #    check=True
-            #)
-            #pid = ps.stdout.lstrip("python3({})---ffmpeg(".format(processes[i].pid))
-            #os.kill(pid[:-2], signal.SIGTERM)
-            #os.kill(processes[i].pid, signal.SIGTERM)
             processes[i].terminate()
             i += 1
         except AssertionError:
