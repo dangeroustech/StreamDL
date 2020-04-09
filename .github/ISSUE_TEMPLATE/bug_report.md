@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Bug Report
 about: Create a bug report to help us improve
 title: "[BUG] - "
 labels: bug
@@ -14,7 +14,9 @@ A clear and concise description of what the bug is.
 A clear and concise description of what you expected to happen.
 
 **Log Output**
+```
 Please ensure that streamdl.py has been run with the _-ll DEBUG_ and post the relevant error section.
+```
 
 **Platform (please complete the following information):**
  - OS: [e.g. Manjaro Linux Kernel 5.3]
@@ -24,9 +26,11 @@ Please ensure that streamdl.py has been run with the _-ll DEBUG_ and post the re
  - Youtube-dl Version: [e.g. 2019.09.28]
 
 **Config (please post your config.yml file:**
+```YAML
 twitch.tv
 - somestreamer
 - someotherstreamer
+```
 
 **Additional context**
 Add any other context about the problem here.
