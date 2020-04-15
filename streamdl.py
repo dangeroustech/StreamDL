@@ -61,9 +61,6 @@ def setup_logging(args):
     else:
         logger = rotating_logger(logfile, log_level, log_format)
 
-    print(logfile)
-    exit(0)
-
 
 def main(argv):
     """
