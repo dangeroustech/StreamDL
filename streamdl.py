@@ -38,30 +38,6 @@ class YTDLLogger(object):
         return
 
 
-def setup_logging(args):
-    global logger
-
-    log_format = '%(asctime)s %(levelname)s: %(message)s'
-    # check if log path is specified
-    if not args.logfile:
-        logfile = os.getcwd() + '/streamdl.log'
-    else:
-        if os.path.isdir(args.logfile):
-            logfile = args.logfile + "/streamdl.log"
-        else:
-            logfile = args.logfile
-
-    if args.loglevel:
-        log_level = getattr(logging, args.loglevel.upper())
-    else:
-        log_level = logging.INFO
-
-    if logfile == 'stdout':
-        logger = stream_logger(log_level, log_format)
-    else:
-        logger = rotating_logger(logfile, log_level, log_format)
-
-
 def main(argv):
     """
     The main function that does the stuff
@@ -275,6 +251,30 @@ def stream_logger(level, fmt):
     logger.addHandler(handler)
 
     return logger
+
+
+def setup_logging(args):
+    global logger
+
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
+    # check if log path is specified
+    if not args.logfile:
+        logfile = os.getcwd() + '/streamdl.log'
+    else:
+        if os.path.isdir(args.logfile):
+            logfile = args.logfile + "/streamdl.log"
+        else:
+            logfile = args.logfile
+
+    if args.loglevel:
+        log_level = getattr(logging, args.loglevel.upper())
+    else:
+        log_level = logging.INFO
+
+    if logfile == 'stdout':
+        logger = stream_logger(log_level, log_format)
+    else:
+        logger = rotating_logger(logfile, log_level, log_format)
 
 
 def receive_signal(signum, frame):
