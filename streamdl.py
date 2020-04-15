@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # ##TODO: Figure out what to do with pids/processes as you probably don't need both
+# ##TODO: Un-case-convert the Argparser help text
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -37,25 +38,10 @@ class YTDLLogger(object):
         return
 
 
-def main(argv):
-    """
-    The main function that does the stuff
-    """
+def setup_logging(args):
     global logger
 
-    # set up signal handler
-    signal.signal(signal.SIGTERM, receive_signal)
-    signal.signal(signal.SIGINT, receive_signal)
-
-    # set up arg parser and arguments
-    parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
-    parser.add_argument('-c', '--config', help='Config file to use')
-    parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
-    parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
-    parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
-    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
-    args = parser.parse_args()
-
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
     # check if log path is specified
     if not args.logfile:
         logfile = os.getcwd() + '/streamdl.log'
@@ -70,27 +56,48 @@ def main(argv):
     else:
         log_level = logging.INFO
 
+    if logfile == 'stdout':
+        logger = stream_logger(log_level, log_format)
+    else:
+        logger = rotating_logger(logfile, log_level, log_format)
+
+    print(logfile)
+    exit(0)
+
+
+def main(argv):
+    """
+    The main function that does the stuff
+    """
+    global logger
+
+    # set up signal handler
+    signal.signal(signal.SIGTERM, receive_signal)
+    signal.signal(signal.SIGINT, receive_signal)
+
+    # set up arg parser and arguments
+    parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
+    parser.add_argument('-c', '--config', required=True, help='Config file to use')
+    parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
+    parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
+    parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
+    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
+    args = parser.parse_args()
+
+    setup_logging(args)
+
     # check if output dir is specified
     if not args.outdir:
         outdir = os.getcwd() + "/media/"
     else:
         outdir = args.outdir
 
-    # set up logging
-    log_format = '%(asctime)s %(levelname)s: %(message)s'
-    if logfile == 'stdout':
-        logger = stream_logger(log_level, log_format)
-    else:
-        logger = rotating_logger(logfile, log_level, log_format)
-
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
 
-    # check if config file is specified
-    if args.config:
-        users = config_reader(args.config)
-        logger.info("Users in Initial Config: {}".format(users))
-        mass_downloader(users, outdir)
+    users = config_reader(args.config)
+    logger.info("Users in Initial Config: {}".format(users))
+    mass_downloader(users, outdir)
 
     # check if repeat is specified
     if args.repeat:
@@ -226,8 +233,11 @@ def config_reader(config_file):
     global logger
 
     # read config
-    with open(config_file, 'r') as stream:
-        data_loaded = yaml.safe_load(stream)
+    try:
+        with open(config_file, 'r') as stream:
+            data_loaded = yaml.safe_load(stream)
+    except FileNotFoundError:
+        logger.error("File %s Not Found".format(config_file))
 
     # return the data read from config file
     return data_loaded
