@@ -288,12 +288,8 @@ def kill_pids():
     i = 0
 
     while i < len(processes):
-        try:
-            processes[i].terminate()
-            i += 1
-        except AssertionError:
-            logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
-            i += 1
+        processes[i].terminate()
+        i += 1
 
 
 if __name__ == '__main__':
