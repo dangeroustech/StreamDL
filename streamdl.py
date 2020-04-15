@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-##TODO: Figure out what to do with pids/processes as you probably don't need both
+# ##TODO: Figure out what to do with pids/processes as you probably don't need both
+# ##TODO: Un-case-convert the Argparser help text
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -49,26 +50,14 @@ def main(argv):
 
     # set up arg parser and arguments
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
-    parser.add_argument('-c', '--config', help='Config file to use')
+    parser.add_argument('-c', '--config', required=True, help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
     parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
     args = parser.parse_args()
 
-    # check if log path is specified
-    if not args.logfile:
-        logfile = os.getcwd() + '/streamdl.log'
-    else:
-        if os.path.isdir(args.logfile):
-            logfile = args.logfile + "/streamdl.log"
-        else:
-            logfile = args.logfile
-
-    if args.loglevel:
-        log_level = getattr(logging, args.loglevel.upper())
-    else:
-        log_level = logging.INFO
+    setup_logging(args)
 
     # check if output dir is specified
     if not args.outdir:
@@ -76,21 +65,12 @@ def main(argv):
     else:
         outdir = args.outdir
 
-    # set up logging
-    log_format = '%(asctime)s %(levelname)s: %(message)s'
-    if logfile == 'stdout':
-        logger = stream_logger(log_level, log_format)
-    else:
-        logger = rotating_logger(logfile, log_level, log_format)
-
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
 
-    # check if config file is specified
-    if args.config:
-        users = config_reader(args.config)
-        logger.info("Users in Config: {}".format(users))
-        mass_downloader(users, outdir)
+    users = config_reader(args.config)
+    logger.info("Users in Initial Config: {}".format(users))
+    mass_downloader(users, outdir)
 
     # check if repeat is specified
     if args.repeat:
@@ -112,7 +92,7 @@ def recurse(repeat, outdir, **kwargs):
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
     users = config_reader(kwargs.get("config"))
-    logger.info("Config: {}".format(users))
+    logger.info("Users in Current Config: {}".format(users))
     mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
@@ -139,7 +119,6 @@ def mass_downloader(config, outdir):
                 pids[user] = p.pid
                 processes.append(p)
                 logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
-                # pop pid from dict
     time.sleep(5)
     process_cleanup()
 
@@ -157,14 +136,12 @@ def process_cleanup():
         return
 
     # remove old zombie threads
-    logger.debug("Cleaning Up Zombies...")
-    logger.debug("Processes: {}".format(processes))
     while i < len(processes):
+        # if PID is alive
         if processes[i].is_alive():
-            logger.debug("Process {}:{} is alive!".format(processes[i].name, processes[i].pid))
             i += 1
+        # if PID is dead
         else:
-            logger.debug("Process {}:{} is dead!".format(processes[i].name, processes[i].pid))
             try:
                 processes[i].close()
                 # don't increment iterator
@@ -172,10 +149,7 @@ def process_cleanup():
                 logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             try:
-                logger.debug("popping: {}".format(processes[i].name))
                 pids.pop(processes[i].name)
-                logger.debug("Popped user {} from PIDs".format(processes[i].name))
-                logger.debug("PIDs: {}".format(pids))
             except KeyError:
                 logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
@@ -192,9 +166,6 @@ def download_video(url, user, outpath):
     # check if URL is valid
     try:
         request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
-        # warn but don't fail on a redirect
-        if request.status_code == 301:
-            logger.debug("URL {}/{} Has Been Moved to: {}".format(url, user, request.headers['Location']))
         # fail on a bad status code
         if request.status_code >= 400:
             logging.warning("URL Has a Bad Status Code: {}/{}".format(url, user))
@@ -235,8 +206,11 @@ def config_reader(config_file):
     global logger
 
     # read config
-    with open(config_file, 'r') as stream:
-        data_loaded = yaml.safe_load(stream)
+    try:
+        with open(config_file, 'r') as stream:
+            data_loaded = yaml.safe_load(stream)
+    except FileNotFoundError:
+        logger.error("File %s Not Found".format(config_file))
 
     # return the data read from config file
     return data_loaded
@@ -279,6 +253,30 @@ def stream_logger(level, fmt):
     return logger
 
 
+def setup_logging(args):
+    global logger
+
+    log_format = '%(asctime)s %(levelname)s: %(message)s'
+    # check if log path is specified
+    if not args.logfile:
+        logfile = os.getcwd() + '/streamdl.log'
+    else:
+        if os.path.isdir(args.logfile):
+            logfile = args.logfile + "/streamdl.log"
+        else:
+            logfile = args.logfile
+
+    if args.loglevel:
+        log_level = getattr(logging, args.loglevel.upper())
+    else:
+        log_level = logging.INFO
+
+    if logfile == 'stdout':
+        logger = stream_logger(log_level, log_format)
+    else:
+        logger = rotating_logger(logfile, log_level, log_format)
+
+
 def receive_signal(signum, frame):
     """
     Catches SIGTERM - Mainly to Address Docker Container Stops
@@ -297,21 +295,8 @@ def kill_pids():
     i = 0
 
     while i < len(processes):
-        try:
-            #ps = subprocess.run(
-            #    ['pstree', '-p', '{}'.format(processes[i].pid)],
-            #    text=True,
-            #    stdout=subprocess.PIPE,
-            #    check=True
-            #)
-            #pid = ps.stdout.lstrip("python3({})---ffmpeg(".format(processes[i].pid))
-            #os.kill(pid[:-2], signal.SIGTERM)
-            #os.kill(processes[i].pid, signal.SIGTERM)
-            processes[i].terminate()
-            i += 1
-        except AssertionError:
-            logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
-            i += 1
+        processes[i].terminate()
+        i += 1
 
 
 if __name__ == '__main__':

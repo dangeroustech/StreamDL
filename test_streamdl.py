@@ -32,7 +32,7 @@ class TestDownloadVideo(unittest.TestCase):
 
     def test_invalid_url(self):
         """
-        Test that a bad URL fails because test.com doesn't have nyan cat :(
+        Test that a bad URL fails because example.com doesn't have nyan cat :(
         """
         url = 'example.com'
         user = 'watch?v=QH2-TGUlwu4'
