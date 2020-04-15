@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-##TODO: Figure out what to do with pids/processes as you probably don't need both
+# ##TODO: Figure out what to do with pids/processes as you probably don't need both
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -89,7 +89,7 @@ def main(argv):
     # check if config file is specified
     if args.config:
         users = config_reader(args.config)
-        logger.info("Users in Config: {}".format(users))
+        logger.info("Users in Initial Config: {}".format(users))
         mass_downloader(users, outdir)
 
     # check if repeat is specified
@@ -112,7 +112,7 @@ def recurse(repeat, outdir, **kwargs):
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
     users = config_reader(kwargs.get("config"))
-    logger.info("Config: {}".format(users))
+    logger.info("Users in Current Config: {}".format(users))
     mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
@@ -139,7 +139,6 @@ def mass_downloader(config, outdir):
                 pids[user] = p.pid
                 processes.append(p)
                 logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
-                # pop pid from dict
     time.sleep(5)
     process_cleanup()
 
@@ -157,14 +156,12 @@ def process_cleanup():
         return
 
     # remove old zombie threads
-    logger.debug("Cleaning Up Zombies...")
-    logger.debug("Processes: {}".format(processes))
     while i < len(processes):
+        # if PID is alive
         if processes[i].is_alive():
-            logger.debug("Process {}:{} is alive!".format(processes[i].name, processes[i].pid))
             i += 1
+        # if PID is dead
         else:
-            logger.debug("Process {}:{} is dead!".format(processes[i].name, processes[i].pid))
             try:
                 processes[i].close()
                 # don't increment iterator
@@ -172,10 +169,7 @@ def process_cleanup():
                 logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             try:
-                logger.debug("popping: {}".format(processes[i].name))
                 pids.pop(processes[i].name)
-                logger.debug("Popped user {} from PIDs".format(processes[i].name))
-                logger.debug("PIDs: {}".format(pids))
             except KeyError:
                 logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
@@ -192,9 +186,6 @@ def download_video(url, user, outpath):
     # check if URL is valid
     try:
         request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
-        # warn but don't fail on a redirect
-        if request.status_code == 301:
-            logger.debug("URL {}/{} Has Been Moved to: {}".format(url, user, request.headers['Location']))
         # fail on a bad status code
         if request.status_code >= 400:
             logging.warning("URL Has a Bad Status Code: {}/{}".format(url, user))
