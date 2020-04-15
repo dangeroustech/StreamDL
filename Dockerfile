@@ -10,7 +10,7 @@ RUN pip3 install pipenv
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
 # Checkout staging if required
-RUN if [ "${TRAVIS_BRANCH}" = "master" ]; then git checkout staging; fi
+RUN if [ "${TRAVIS_BRANCH}" = "staging" ]; then git checkout staging; fi
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
