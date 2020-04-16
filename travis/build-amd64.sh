@@ -23,6 +23,7 @@ if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
         --opt platform=linux/${PLATFORM} \
         --opt filename=${DOCKERFILE_LOCATION} \
         --opt build-arg:TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
+        --opt build-arg:TRAVIS_BRANCH=${TRAVIS_BRANCH} \
         --output type=image,name=docker.io/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_TAG}-${PLATFORM},push=true \
         --local dockerfile=. \
         --local context=.
@@ -32,6 +33,7 @@ if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
         --opt platform=linux/${PLATFORM} \
         --opt filename=${DOCKERFILE_LOCATION} \
         --opt build-arg:TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
+        --opt build-arg:TRAVIS_BRANCH=${TRAVIS_BRANCH} \
         --output type=image,name=docker.io/${DOCKER_ORG}/${DOCKER_IMAGE}:latest-${PLATFORM},push=true \
         --local dockerfile=. \
         --local context=.
