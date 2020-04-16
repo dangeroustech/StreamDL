@@ -29,16 +29,16 @@ jobs:
     - pip install pipenv bandit
     - pipenv install -e .
     script:
-    - pytest -v
-    - bandit streamdl.py
+    - pipenv run pytest -v
+    - pipenv run bandit streamdl.py
   - stage: "test-3.8"
     python: "3.8"
     install:
       - pip install pipenv bandit
       - pipenv install -e .
     script:
-      - pytest -v
-      - bandit -c .bandit.yml streamdl.py
+      - pipenv run pytest -v
+      - pipenv run bandit -c .bandit.yml streamdl.py
   - stage: "build"
     language: shell
     services:
