@@ -44,7 +44,7 @@ jobs:
     services:
     - docker
     script:
-    - docker build -t streamdl:build . --no-cache
+    - docker build -t streamdl:build --build-arg TRAVIS_BRANCH=$TRAVIS_BRANCH . --no-cache
   - stage: "deploy"
     language: shell
     before_install:
