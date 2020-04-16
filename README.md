@@ -36,7 +36,7 @@ Because there are certain streaming websites that don't store historic VODs of t
 
 ### Bare Metal
 
-- Python 3.7
+- Python 3.8
 - ffmpeg
 - pipenv (`pip install pipenv` *or* `pip3 install pipenv` *depending on your system*)
 
@@ -54,7 +54,7 @@ Logs are piped to stdout by default so that `docker-compose logs` works. *If you
 
 ### Bare Metal
 
-*This example assumes `python --version` returns something above Python 3.6 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
+*This example assumes `python --version` returns something above Python 3.8 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
 
 - `pipenv install -e .`
 
