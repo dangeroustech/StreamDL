@@ -12,7 +12,14 @@ class TestConfigReader(unittest.TestCase):
         data_loaded = config_reader('config.yml.example')
         self.assertIsNotNone(data_loaded)
 
-    def test_yaml(self):
+    def test_object_type(self):
+        """
+        Test that the config reader returns the correct object type
+        """
+        data_loaded = config_reader('config.yml.example')
+        self.assertIs(type(data_loaded), dict)
+
+    def test_full_yaml(self):
         """
         Test that the config reader returns the correct YAML
         """
