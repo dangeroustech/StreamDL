@@ -60,14 +60,6 @@ Logs are piped to stdout by default so that `docker-compose logs` works. *If you
 
 - `pipenv run python streamdl.py -c config.yml -r 5`
 
-Alternatively, use the shell scripts provided depending on your environment:
-
-- `./setup_centos.sh`
-
-OR
-
-- `./setup_debian.sh`
-
 ## Config File
 
 Basic YAML format. See config.yaml.example for a couple of test sites.
