@@ -5,7 +5,7 @@
 
 Monitor and Download Streams from a Variety of Websites
 
-## Why Does This Exist?
+## Why This Exists
 
 Because there are certain streaming websites that don't store historic VODs of their livestreams. This is sad. As a nerd, you probably have terabytes of storage somewhere, right? Why not get some use out of it? Archivists everywhere, rejoice!
 
@@ -28,25 +28,16 @@ Because there are certain streaming websites that don't store historic VODs of t
                                 Time to Repetitively Check Users, in Minutes
 ```
 
-## Requirements
-
-### Docker
-- Built on Docker 19.03.4
-- Built on Docker-Compose 1.24.1
-
-### Bare Metal
-
-- Python 3.8
-- ffmpeg
-- pipenv (`pip install pipenv` *or* `pip3 install pipenv` *depending on your system*)
-
 ## Install
 
 ### Docker
 
-If you'd like to tweak individual parameters, the Dockerfile provided can be used. 
+- Built on Docker 19.03.4
+- Built on Docker-Compose 1.24.1
 
-Edit the Environment variables in `docker-compose.yml.example` to modify script functionality. 
+If you'd like to tweak individual parameters, the Dockerfile provided can be used.
+
+Edit the Environment variables in `docker-compose.yml.example` to modify script functionality.
 
 Otherwise, just rename it to `docker-compose.yml` and run `docker-compose up -d`.
 
@@ -54,11 +45,15 @@ Logs are piped to stdout by default so that `docker-compose logs` works. *If you
 
 ### Bare Metal
 
+- Python 3.7 or newer
+- ffmpeg
+- poetry (`pip install poetry` *or* `pip3 install poetry` *depending on your system*)
+
 *This example assumes `python --version` returns something above Python 3.8 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
 
-- `pipenv install -e .`
+- `poetry install`
 
-- `pipenv run python streamdl.py -c config.yml -r 5`
+- `poetry run python streamdl.py -c config.yml -r 5`
 
 ## Config File
 
