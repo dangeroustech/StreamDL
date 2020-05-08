@@ -8,7 +8,6 @@ env:
     - secure: "AlNoCd1sh1vQtRPNxpWuATFfxiQ6HkpOyXDbMiEqshaMg205ybspicb/3DJD6unnuSI50bA/Iz8ORxNxHED88q2aBfStWWOd3CgV13y4XZrsipeVAUV9V3NBJPVeAAoxP5a9a2hqWkywjqJ168c5Eh9o5a3gzQGgyZ0b92/jIc5Kxbl5id5DZiJN1xDkobPk6kwQUJGYn73hrG/YooMP6Ow/V2Xw2zmriDBDVYkzY6re2YtBdRC6176ecGQLRnAxQqcH4vhYxce4ewywCw/suzIiqnLBZxP9vVwXGvVpBBdK7BRJ3SY5C1Q18hEJYe1DpOd4BnqdjJB8RAc0DBwJIRuUAjZ2RPDALtiEi+RaQ5VnOblnDJgfDbNtg9hasvhZng760MbXt44oHxBuZzOGgtsA0jImHXJZD20Paqxntb26+bqaFV/H1p/vpHBb1jWz9xvqjmAZ6tQpQhxTPUmZWkbl3dzVB08YGDMS9EI4seUaeZPUZ5qjZc/v/UVOul/QskvZOAZonLzQ5i9Q1nu10NkVqBuwn7s9Dwc0hZ0wqFRqADtDuC3RAcDI1TxIMQuxNQCXBt57Jq81Uj6rl7yKM4K9pAKw7n6Wo2FgJqN3tobuo5Oz7tZJAPzbXkNzTtGLnDoOGw/n0kAEY2mA0/szBJfr4wFEm/+Q7KVJHOiszcg="
     # DOCKER_USER
     - secure: "v17uIDajBFDN0hhSI7DeRI2zR94KtB9qOXKK+qiPhSJaSCRlhVumo4MGbW9d4etYGbH7MihcACCfN8ML1ipF8uB6NsSwL2xk2ugA2KQqjoRgG1a1MNwOLWrh5CeCA4P8f1x0Id9YlRsvpPHV5Z04+QDBqVHq4N6303+GTD0JATILiUsCaRlZZnuZ8qFEvRpZGUstrpXqlnxNBoGPT1GPMucuonytxyzPsM6TS/6AMrkV6qQYT+6/K7koMb3rhEmHdMqqbPXfxpoCA2JWBE+aVeEb1XswYRL+CcL4ckLlkAKttH9PJEDcdUJuRLbrHajXStKTTiIMexzf/29/vJGLjyUYXyPbOowHULRoZk02fwJoFIMAHsWviOBe/+QF7R1lZLLytImNUxs+/Vs2l8N8mhRNJR2efiqfUiM2isFpEKRfYzVZEJ+iZho0wKnUvk5VdGO3qrr9eQIpmoV/36WF+2sjzRMLgjfBIR8g3xihe9QBbpO0uNkvNKrO8pmgolCgfV7cD2VC+6N+zLffYlQyFRmAf1TO9OFYGVibajjNsc/kDdDPv3HVAFqfYzNZgE/BbVYYiJRGuf+PG3oX+OO9qXHVA8k6fhJwFbGET9GMoqlCP4dzJtEmbUQCaICD37abSa+Kp1ayGhGE5SAhBt2mKMvzbPLjEhrl51ewTqT7hBw="
-#    - PIPENV_IGNORE_VIRTUALENVS=1
 
 branches:
   only:
@@ -46,8 +45,8 @@ jobs:
       - pip install poetry bandit
       - poetry install
     script:
-      - pipenv run pytest -v
-      - pipenv run bandit -c .bandit.yml streamdl.py
+      - poetry run pytest -v
+      - poetry run bandit -c .bandit.yml streamdl.py
   - stage: "build"
     language: shell
     services:
