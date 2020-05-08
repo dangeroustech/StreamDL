@@ -10,6 +10,7 @@ RUN pip install poetry
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
 # Checkout staging if required
+RUN echo "${TRAVIS_BRANCH}"
 RUN if [ "${TRAVIS_BRANCH}" != "master" ]; then git checkout "$TRAVIS_BRANCH"; fi
 # Create out directory
 RUN mkdir /app/out
