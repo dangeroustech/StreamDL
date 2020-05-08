@@ -16,6 +16,7 @@ branches:
   - master
 
 stages:
+  - test_3.7
   - test_3.8
   - test_3.8-dev
   - build
@@ -23,19 +24,27 @@ stages:
 
 jobs:
   include:
+  - stage: "test_3.7"
+    python: "3.7"
+    install:
+    - pip install poetry bandit
+    - poetry install
+    script:
+    - poetry run pytest -v
+    - poetry run bandit streamdl.py
   - stage: "test_3.8"
     python: "3.8"
     install:
-    - pip install pipenv bandit
-    - pipenv install -e .
+    - pip install poetry bandit
+    - poetry install
     script:
-    - pipenv run pytest -v
-    - pipenv run bandit streamdl.py
+    - poetry run pytest -v
+    - poetry run bandit streamdl.py
   - stage: "test_3.8-dev"
     python: "3.8-dev"
     install:
-      - pip install pipenv bandit
-      - pipenv install -e .
+      - pip install poetry bandit
+      - poetry install
     script:
       - pipenv run pytest -v
       - pipenv run bandit -c .bandit.yml streamdl.py
