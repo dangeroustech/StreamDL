@@ -5,12 +5,12 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 # Install necessary software
 RUN apk update && apk upgrade
-RUN apk add --no-cache build-base gcc git ffmpeg libressl-dev libffi-dev
+RUN apk add --no-cache build-base git ffmpeg openssl-dev libffi-dev
 RUN pip install poetry
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
 # Checkout staging if required
-RUN if [ "${TRAVIS_BRANCH}" = "staging" ]; then git checkout staging; fi
+RUN if [ "${TRAVIS_BRANCH}" != "master" ]; then git checkout "$TRAVIS_BRANCH"; fi
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
