@@ -8,10 +8,7 @@ RUN apk update && apk upgrade
 RUN apk add --no-cache build-base git ffmpeg openssl-dev libffi-dev
 RUN pip install poetry
 # Copy in app files
-RUN git clone https://github.com/biodrone/StreamDL /app
-# Checkout staging if required
-RUN echo "${TRAVIS_BRANCH}"
-RUN if [ "${TRAVIS_BRANCH}" != "master" ]; then git checkout "$TRAVIS_BRANCH"; fi
+ADD . .
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
