@@ -6,7 +6,7 @@ ENV LANG=C.UTF-8
 # Install necessary software
 RUN apk update && apk upgrade
 RUN apk add --no-cache git ffmpeg
-RUN pip3 install pipenv
+RUN pip3 install poetry
 # Copy in app files
 RUN git clone https://github.com/biodrone/StreamDL /app
 # Checkout staging if required
@@ -14,5 +14,5 @@ RUN if [ "${TRAVIS_BRANCH}" = "staging" ]; then git checkout staging; fi
 # Create out directory
 RUN mkdir /app/out
 # Create pipenv
-RUN pipenv install -e .
-ENTRYPOINT ["pipenv", "run", "python3", "streamdl.py", "-o", "/app/out", "-c", "config.yml", "-r", "$REPEAT_TIME", "-l", "stdout", "-ll", "$LOG_LEVEL"]
+RUN poetry install
+ENTRYPOINT ["poetry", "run", "python3", "streamdl.py", "-o", "/app/out", "-c", "config.yml", "-r", "$REPEAT_TIME", "-l", "stdout", "-ll", "$LOG_LEVEL"]
