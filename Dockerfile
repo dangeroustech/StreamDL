@@ -13,4 +13,4 @@ ADD . .
 RUN mkdir /app/out
 # Create poetry venv
 RUN poetry install
-ENTRYPOINT ["poetry", "run", "python3", "streamdl.py", "-o", "/app/out", "-c", "config.yml", "-r", "$REPEAT_TIME", "-l", "stdout", "-ll", "$LOG_LEVEL"]
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
