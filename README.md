@@ -1,7 +1,7 @@
 # StreamDL
 
 [![Build Status](https://travis-ci.com/dangerous-tech/StreamDL.svg?branch=master)](https://travis-ci.com/dangerous-tech/StreamDL)
-[![Maintainability](https://api.codeclimate.com/v1/badges/2c4a9ef5017341701569/maintainability)](https://codeclimate.com/github/dangerous-tech/StreamDL/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/5145a4b986526fa4573b/maintainability)](https://codeclimate.com/github/dangeroustech/StreamDL/maintainability)
 
 Monitor and Download Streams from a Variety of Websites
 
