@@ -3,7 +3,7 @@ version: '3'
 
 services:
   streamdl:
-    image: dangeroustech/streamdl:latest
+    image: dangeroustech/streamdl:stable
     restart: always
     volumes:
       - /media/downloads:/app/out # downloads location

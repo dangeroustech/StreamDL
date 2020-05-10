@@ -210,7 +210,7 @@ def config_reader(config_file):
         with open(config_file, 'r') as stream:
             data_loaded = yaml.safe_load(stream)
     except FileNotFoundError:
-        logger.error("File %s Not Found".format(config_file))
+        logger.error("File {} Not Found".format(config_file))
 
     # return the data read from config file
     return data_loaded

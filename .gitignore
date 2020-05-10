@@ -1,5 +1,5 @@
 # Pycharm settings
-.idea/
+.idea
 # VSCode Settings
 .vscode
 # Logfiles
@@ -9,13 +9,14 @@ streamdl.log.*
 config.yml
 # venv
 venv/
-StreamDL.egg-info/
+StreamDL.egg-info
+streamdl.egg-info
 # media files
 *.mp4
 *.mkv
 *.part
 # testing files
-.pytest_cache/
-__pycache__/
+.pytest_cache
+__pycache__
 docker-compose.yml
 Dockerfile_local
