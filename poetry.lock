@@ -55,7 +55,7 @@ version = "3.0.4"
 [[package]]
 category = "dev"
 description = "Cross-platform colored terminal text."
-marker = "sys_platform == \"win32\" or platform_system == \"Windows\""
+marker = "platform_system == \"Windows\" or sys_platform == \"win32\""
 name = "colorama"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -274,7 +274,7 @@ description = "YouTube video downloader"
 name = "youtube-dl"
 optional = false
 python-versions = "*"
-version = "2020.5.3"
+version = "2020.5.8"
 
 [[package]]
 category = "dev"
@@ -290,7 +290,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "d19175e18de35579b3abfaecb4b2b61600c218fa762e7c4d9a572f5737e920df"
+content-hash = "fbf13dbb9c646cbfdf7b8bfaba8b30c60e77f3f97629c1d2f9b19ba68200a042"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -400,8 +400,8 @@ wcwidth = [
     {file = "wcwidth-0.1.9.tar.gz", hash = "sha256:ee73862862a156bf77ff92b09034fc4825dd3af9cf81bc5b360668d425f3c5f1"},
 ]
 youtube-dl = [
-    {file = "youtube_dl-2020.5.3-py2.py3-none-any.whl", hash = "sha256:609eb20c65dafbfdcb40852431d9e4042c5cae5bfb14b22503189bbcff0a2a11"},
-    {file = "youtube_dl-2020.5.3.tar.gz", hash = "sha256:e7a400a61e35b7cb010296864953c992122db4b0d6c9c6e2630f3e0b9a655043"},
+    {file = "youtube_dl-2020.5.8-py2.py3-none-any.whl", hash = "sha256:0b5d3280522469968eb62eecb1f966f422b2be22f000a801bf87cb2172d8ea39"},
+    {file = "youtube_dl-2020.5.8.tar.gz", hash = "sha256:22da6788b55b7b267c6d59bcdfaf10e67a9ac980976d50d29a670473ad2a05bb"},
 ]
 zipp = [
     {file = "zipp-3.1.0-py3-none-any.whl", hash = "sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b"},
