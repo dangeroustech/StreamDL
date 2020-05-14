@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # ##TODO: Figure out what to do with pids/processes as you probably don't need both
-# ##TODO: Un-case-convert the Argparser help text
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -52,9 +51,9 @@ def main(argv):
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
     parser.add_argument('-c', '--config', required=True, help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
-    parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
+    parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
-    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
+    parser.add_argument('-r', '--repeat', help='Time to repetitively check users, in minutes')
     args = parser.parse_args()
 
     setup_logging(args)
