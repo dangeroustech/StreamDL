@@ -82,7 +82,7 @@ def recurse(repeat, outdir, **kwargs):
     """
     global logger
 
-    sleep_time = int(repeat) * 60
+    sleep_time = (int(repeat) * 60) - 10
     logger.debug("Sleeping for {} Seconds".format(sleep_time))
     for i in range(sleep_time):
         try:
@@ -145,7 +145,7 @@ def process_cleanup():
                 processes[i].close()
                 # don't increment iterator
             except AssertionError:
-                logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
+                logger.debug("Something happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             try:
                 pids.pop(processes[i].name)
@@ -153,6 +153,8 @@ def process_cleanup():
                 logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
     logger.debug("Processes after cleaning: {}".format(processes))
+    time.sleep(5)
+    logger.info("Currently Downloading: {}".format(processes[i].name))
 
 
 # do the video downloading
