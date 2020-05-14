@@ -82,14 +82,16 @@ def recurse(repeat, outdir, **kwargs):
     """
     global logger
 
-    sleep_time = (int(repeat) * 60) - 10
+    sleep_time = int(repeat) * 60
     logger.debug("Sleeping for {} Seconds".format(sleep_time))
-    for i in range(sleep_time):
+    # sleep for sleep_time minus process checking sleep time
+    for i in range(sleep_time - 10):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
+    # TODO: Put in a try catch here in case the file has been removed and it errors
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
     mass_downloader(users, outdir)
@@ -152,9 +154,10 @@ def process_cleanup():
             except KeyError:
                 logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
-    logger.debug("Processes after cleaning: {}".format(processes))
     time.sleep(5)
-    logger.info("Currently Downloading: {}".format(processes[i].name))
+    logger.debug("Processes after cleaning: {}".format(processes))
+    for x in range(0, len(processes)):
+        logger.info("Currently Downloading: {}".format(processes[x].name))
 
 
 # do the video downloading
