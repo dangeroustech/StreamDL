@@ -18,14 +18,14 @@ Because there are certain streaming websites that don't store historic VODs of t
   -h,               --help      show this help message and exit
   -l    LOGPATH,    --logpath   LOGPATH
                                 Logfile to use (defaults to working dir)
-  -ll   LOGLEVEL,   --loglevel  Loglevel to use (supports DEBUG, INFO, etc)
+  -ll   LOGLEVEL,   --loglevel  Log level to set (defaults to INFO)
   -o    OUTDIR,     --outdir    OUTDIR
                                 Output file location without trailing slash
                                 (defaults to working dir)
   -c    CONFIG,     --config    CONFIG
                                 Config file to use
   -r    REPEAT,     --repeat    REPEAT
-                                Time to Repetitively Check Users, in Minutes
+                                Time to repetitively check users, in minutes
 ```
 
 ## Install
