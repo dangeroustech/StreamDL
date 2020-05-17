@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# ##TODO: Figure out what to do with pids/processes as you probably don't need both
+# TODO: Figure out what to do with pids/processes as you probably don't need both
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -184,6 +184,7 @@ def download_video(url, user, outpath):
         return True
 
     # pass opts to YTDL
+    # TODO: Add an --exec option to this to trigger the move operation
     ydl_opts = {
         'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now(timezone.utc)),
         'quiet': True,
