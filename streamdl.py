@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # ##TODO: Figure out what to do with pids/processes as you probably don't need both
-# ##TODO: Un-case-convert the Argparser help text
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -9,11 +8,11 @@ import argparse
 import sys
 import os
 import youtube_dl
-from datetime import datetime
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
+from datetime import datetime, timezone
 import requests
 import signal
 
@@ -52,9 +51,9 @@ def main(argv):
     parser = argparse.ArgumentParser(prog='python streamdl.py', description='Download Streaming Video')
     parser.add_argument('-c', '--config', required=True, help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
-    parser.add_argument('-ll', '--loglevel', help='Log Level to Set')
+    parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
-    parser.add_argument('-r', '--repeat', help='Time to Repetitively Check Users, in Minutes')
+    parser.add_argument('-r', '--repeat', help='Time to repetitively check users, in minutes')
     args = parser.parse_args()
 
     setup_logging(args)
@@ -85,12 +84,14 @@ def recurse(repeat, outdir, **kwargs):
 
     sleep_time = int(repeat) * 60
     logger.debug("Sleeping for {} Seconds".format(sleep_time))
-    for i in range(sleep_time):
+    # sleep for sleep_time minus process checking sleep time
+    for i in range(sleep_time - 10):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
+    # TODO: Put in a try catch here in case the file has been removed and it errors
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
     mass_downloader(users, outdir)
@@ -146,14 +147,18 @@ def process_cleanup():
                 processes[i].close()
                 # don't increment iterator
             except AssertionError:
-                logger.debug("Some shit happened, process {} is not joinable...".format(processes[i]))
+                logger.debug("Something happened, process {} is not joinable...".format(processes[i]))
                 i += 1
             try:
                 pids.pop(processes[i].name)
             except KeyError:
                 logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
             processes.remove(processes[i])
+    time.sleep(5)
     logger.debug("Processes after cleaning: {}".format(processes))
+
+    for x in range(0, len(processes)):
+        logger.info("Currently Downloading: {}".format(processes[x].name))
 
 
 # do the video downloading
@@ -180,7 +185,7 @@ def download_video(url, user, outpath):
 
     # pass opts to YTDL
     ydl_opts = {
-        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
+        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now(timezone.utc)),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
