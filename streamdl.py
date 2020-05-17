@@ -8,11 +8,11 @@ import argparse
 import sys
 import os
 import youtube_dl
-from datetime import datetime
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
+from datetime import datetime, timezone
 import requests
 import signal
 
@@ -156,6 +156,7 @@ def process_cleanup():
             processes.remove(processes[i])
     time.sleep(5)
     logger.debug("Processes after cleaning: {}".format(processes))
+
     for x in range(0, len(processes)):
         logger.info("Currently Downloading: {}".format(processes[x].name))
 
@@ -184,7 +185,7 @@ def download_video(url, user, outpath):
 
     # pass opts to YTDL
     ydl_opts = {
-        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now()),
+        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now(timezone.utc)),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
