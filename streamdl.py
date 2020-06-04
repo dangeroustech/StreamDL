@@ -16,12 +16,14 @@ from datetime import datetime, timezone
 import requests
 import signal
 import platform
+import shutil
 
 # set up manager functions
 mgr = Manager()
 pids = mgr.dict()
 processes = []
 logger = logging.getLogger()
+movepath = ""
 
 
 class YTDLLogger(object):
@@ -43,6 +45,7 @@ def main(argv):
     The main function that does the stuff
     """
     global logger
+    global movepath
 
     # set up signal handler
     signal.signal(signal.SIGTERM, receive_signal)
@@ -67,6 +70,12 @@ def main(argv):
     else:
         outdir = args.outdir
 
+    # check if movedir is specified
+    if args.movedir:
+        movepath = args.movedir
+    else:
+        movepath = outdir
+
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
 
@@ -76,7 +85,7 @@ def main(argv):
 
     # check if repeat is specified
     if args.repeat:
-        recurse(args.repeat, outdir, movedir=args.movedir, config=args.config)
+        recurse(args.repeat, outdir, config=args.config)
 
 
 def recurse(repeat, outdir, **kwargs):
@@ -98,18 +107,13 @@ def recurse(repeat, outdir, **kwargs):
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
 
-    if 'movedir' in kwargs:
-        movedir = kwargs.get('movedir')
-    else:
-        movedir = outdir
-
-    mass_downloader(users, outdir, movedir)
+    mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(config, outdir, movedir):
+def mass_downloader(config, outdir):
     """
     Handles the process spawning to download multiple things at once
     """
@@ -120,7 +124,7 @@ def mass_downloader(config, outdir, movedir):
     for url in config:
         for user in config[url]:
             # set up process for given user
-            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir, movedir))
+            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
@@ -171,16 +175,12 @@ def process_cleanup():
 
 
 # do the video downloading
-def download_video(url, user, outpath, movepath):
+def download_video(url, user, outpath):
     """
     Handles downloading the individual videos
     """
     global logger
-
-    if platform.system():
-        movecmd = "move " + '{}' + " {}".format(movepath)
-    else:
-        movecmd = "mv " + '{}' + " {}".format(movepath)
+    global movepath
 
     # check if URL is valid
     try:
@@ -204,7 +204,7 @@ def download_video(url, user, outpath, movepath):
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
-        'exec': movecmd
+        'progress_hooks': [hookyboi],
     }
 
     # try to pull video from the given user
@@ -217,6 +217,15 @@ def download_video(url, user, outpath, movepath):
         logger.debug("Caught KeyBoardInterrupt...")
 
     return True
+
+def hookyboi(d):
+    global movepath
+
+    if d['status'] == 'finished':
+        file_tuple = os.path.split(os.path.abspath(d['filename']))
+        # TODO: Can use this to pop elements from a Currently Downloading dict in the future
+        # print("Done downloading {}".format(file_tuple[1]))
+        shutil.move(d['filename'], movepath)
 
 
 # read config and return users
