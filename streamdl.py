@@ -48,7 +48,8 @@ def main(argv):
     signal.signal(signal.SIGINT, receive_signal)
 
     # set up arg parser and arguments
-    parser = argparse.ArgumentParser(prog='python streamdl.py', description='Monitor and Download Streams from a Variety of Websites')
+    parser = argparse.ArgumentParser(prog='python streamdl.py',
+                                     description='Monitor and Download Streams from a Variety of Websites')
     parser.add_argument('-c', '--config', required=True, help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO)')
