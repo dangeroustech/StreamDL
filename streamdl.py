@@ -200,7 +200,7 @@ def download_video(url, user, outpath):
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
     ydl_opts = {
-        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now(timezone.utc)),
+        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url.upper().split('.')[0], user, datetime.now(timezone.utc)),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
