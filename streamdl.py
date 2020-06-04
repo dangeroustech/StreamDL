@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 import requests
 import signal
+import platform
 
 # set up manager functions
 mgr = Manager()
@@ -54,6 +55,7 @@ def main(argv):
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
+    parser.add_argument('-m', '--movedir', help='Directory to move after download has completed')
     parser.add_argument('-r', '--repeat', help='Time to repetitively check users, in minutes')
     args = parser.parse_args()
 
@@ -74,7 +76,7 @@ def main(argv):
 
     # check if repeat is specified
     if args.repeat:
-        recurse(args.repeat, outdir, config=args.config)
+        recurse(args.repeat, outdir, movedir=args.movedir, config=args.config)
 
 
 def recurse(repeat, outdir, **kwargs):
@@ -95,13 +97,19 @@ def recurse(repeat, outdir, **kwargs):
     # TODO: Put in a try catch here in case the file has been removed and it errors
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
-    mass_downloader(users, outdir)
+
+    if 'movedir' in kwargs:
+        movedir = kwargs.get('movedir')
+    else:
+        movedir = outdir
+
+    mass_downloader(users, outdir, movedir)
 
     recurse(repeat, outdir, **kwargs)
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(config, outdir):
+def mass_downloader(config, outdir, movedir):
     """
     Handles the process spawning to download multiple things at once
     """
@@ -112,7 +120,7 @@ def mass_downloader(config, outdir):
     for url in config:
         for user in config[url]:
             # set up process for given user
-            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir, movedir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
@@ -163,11 +171,16 @@ def process_cleanup():
 
 
 # do the video downloading
-def download_video(url, user, outpath):
+def download_video(url, user, outpath, movepath):
     """
     Handles downloading the individual videos
     """
     global logger
+
+    if platform.system():
+        movecmd = "move " + '{}' + " {}".format(movepath)
+    else:
+        movecmd = "mv " + '{}' + " {}".format(movepath)
 
     # check if URL is valid
     try:
@@ -191,6 +204,7 @@ def download_video(url, user, outpath):
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
+        'exec': movecmd
     }
 
     # try to pull video from the given user
