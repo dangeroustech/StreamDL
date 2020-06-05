@@ -1,3 +1,3 @@
-#!/bin.sh
+#!/bin/sh
 
-poetry run python streamdl.py -o /app/out -c config.yml -r "$REPEAT_TIME" -l stdout -ll "$LOG_LEVEL"
+poetry run python streamdl.py -c config.yml -o /app/dl -m /app/out -r "$REPEAT_TIME" -l stdout -ll "$LOG_LEVEL"
