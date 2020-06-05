@@ -103,7 +103,6 @@ def recurse(repeat, outdir, **kwargs):
         except KeyboardInterrupt:
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
-    # TODO: Put in a try catch here in case the file has been removed and it errors
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
 
@@ -135,6 +134,7 @@ def mass_downloader(config, outdir):
                 logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
     time.sleep(5)
     process_cleanup()
+    return
 
 
 def process_cleanup():
@@ -172,6 +172,7 @@ def process_cleanup():
 
     for x in range(0, len(processes)):
         logger.info("Currently Downloading: {}".format(processes[x].name))
+        return
 
 
 # do the video downloading
@@ -200,11 +201,11 @@ def download_video(url, user, outpath):
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
     ydl_opts = {
-        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url.upper().split('.')[0], user, datetime.now(timezone.utc)),
+        'outtmpl': '{}/{}/{}/{} - {}.%(ext)s'.format(outpath, url.upper().split('.')[0], user, user, datetime.now(timezone.utc)),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
-        'progress_hooks': [hookyboi],
+        'progress_hooks': [ytdl_hooks],
     }
 
     # try to pull video from the given user
@@ -219,7 +220,7 @@ def download_video(url, user, outpath):
     return True
 
 
-def hookyboi(d):
+def ytdl_hooks(d):
     global movepath
 
     if d['status'] == 'finished':
