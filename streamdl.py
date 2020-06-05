@@ -233,7 +233,7 @@ def ytdl_hooks(d):
         # print("Done downloading {}".format(file_tuple[1]))
         loc.mkdir(parents=True, exist_ok=True)
         logger.debug("Moving {} to {}".format(file_tuple[0], loc))
-        shutil.move(d['filename'], loc)
+        shutil.move(d['filename'], f'{loc}{os.sep}')
 
 
 # read config and return users
