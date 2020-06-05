@@ -9,8 +9,9 @@ RUN apk add --no-cache build-base git ffmpeg openssl-dev libffi-dev
 RUN pip install poetry
 # Copy in app files
 ADD . .
-# Create out directory
+# Create out directories
 RUN mkdir /app/out
+RUN mkdir /app/dl
 # Create poetry venv
 RUN poetry install
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
