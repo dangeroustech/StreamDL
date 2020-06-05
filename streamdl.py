@@ -232,7 +232,7 @@ def ytdl_hooks(d):
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
         # print("Done downloading {}".format(file_tuple[1]))
         loc.mkdir(parents=True, exist_ok=True)
-        logger.debug("Moving {} to {}".format(file_tuple[0], loc))
+        logger.debug("Moving {} to {}".format(file_tuple[0], f'{loc}{os.sep}'))
         shutil.move(d['filename'], f'{loc}{os.sep}')
 
 
