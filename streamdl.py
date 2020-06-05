@@ -18,6 +18,7 @@ import signal
 import platform
 import shutil
 from pathlib import Path
+from streamlink import StreamLink
 
 # set up manager functions
 mgr = Manager()
@@ -125,7 +126,10 @@ def mass_downloader(config, outdir):
     for url in config:
         for user in config[url]:
             # set up process for given user
-            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+            if "twitch" in url:
+                p = Process(name="{}".format(user), target=twitch_download, args=(url, user, outdir))
+            else:
+                p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
@@ -234,6 +238,10 @@ def ytdl_hooks(d):
         loc.mkdir(parents=True, exist_ok=True)
         logger.debug("Moving {} to {}".format(file_tuple[0], loc))
         logger.debug(shutil.move(d['filename'], loc))
+
+
+def twitch_download(url, user, outpath):
+    streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/day9tv best
 
 
 # read config and return users
