@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 import requests
 import signal
+from streamlink import StreamLink
 
 # set up manager functions
 mgr = Manager()
@@ -111,7 +112,10 @@ def mass_downloader(config, outdir):
     for url in config:
         for user in config[url]:
             # set up process for given user
-            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+            if "twitch" in url:
+                p = Process(name="{}".format(user), target=twitch_download, args=(url, user, outdir))
+            else:
+                p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
@@ -201,6 +205,10 @@ def download_video(url, user, outpath):
         logger.debug("Caught KeyBoardInterrupt...")
 
     return True
+
+
+def twitch_download(url, user, outpath):
+    streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/day9tv best
 
 
 # read config and return users
