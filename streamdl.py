@@ -17,6 +17,7 @@ import requests
 import signal
 import platform
 import shutil
+from pathlib import Path
 
 # set up manager functions
 mgr = Manager()
@@ -225,9 +226,11 @@ def ytdl_hooks(d):
 
     if d['status'] == 'finished':
         file_tuple = os.path.split(os.path.abspath(d['filename']))
+        loc = Path(movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1])
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
         # print("Done downloading {}".format(file_tuple[1]))
-        shutil.move(d['filename'], movepath)
+        loc.mkdir(parents=True, exist_ok=True)
+        shutil.move(d['filename'], loc)
 
 
 # read config and return users
