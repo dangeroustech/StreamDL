@@ -79,9 +79,10 @@ def main(argv):
 
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
+    logger.info("Moving to: {}".format(movepath))
 
     users = config_reader(args.config)
-    logger.info("Users in Initial Config: {}".format(users))
+    logger.info("Users in Config: {}".format(users))
     mass_downloader(users, outdir)
 
     # check if repeat is specified
@@ -230,6 +231,7 @@ def ytdl_hooks(d):
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
         # print("Done downloading {}".format(file_tuple[1]))
         loc.mkdir(parents=True, exist_ok=True)
+        logger.debug("Moving {} to {}".format(file_tuple[0], loc)
         shutil.move(d['filename'], loc)
 
 
