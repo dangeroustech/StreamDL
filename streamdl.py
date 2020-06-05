@@ -223,6 +223,7 @@ def download_video(url, user, outpath):
 
 
 def ytdl_hooks(d):
+    global logger
     global movepath
 
     if d['status'] == 'finished':
@@ -231,7 +232,7 @@ def ytdl_hooks(d):
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
         # print("Done downloading {}".format(file_tuple[1]))
         loc.mkdir(parents=True, exist_ok=True)
-        logger.debug("Moving {} to {}".format(file_tuple[0], loc)
+        logger.debug("Moving {} to {}".format(file_tuple[0], loc))
         shutil.move(d['filename'], loc)
 
 
