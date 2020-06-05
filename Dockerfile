@@ -11,7 +11,6 @@ RUN pip install poetry
 ADD . .
 # Create out directories
 RUN mkdir /app/out
-RUN mkdir /app/dl
 # Create poetry venv
 RUN poetry install
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
