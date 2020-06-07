@@ -308,6 +308,23 @@ websocket-client = "*"
 
 [[package]]
 category = "main"
+description = "Streamlink is command-line utility that extracts streams from various services and pipes them into a video player of choice."
+name = "streamlink"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+version = "1.4.1"
+
+[package.dependencies]
+PySocks = ">=1.5.6,<1.5.7 || >1.5.7"
+iso-639 = "*"
+iso3166 = "*"
+isodate = "*"
+pycryptodome = ">=3.4.3,<4"
+requests = ">=2.21.0,<3.0"
+websocket-client = "*"
+
+[[package]]
+category = "main"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 name = "urllib3"
 optional = false
@@ -326,6 +343,17 @@ name = "wcwidth"
 optional = false
 python-versions = "*"
 version = "0.2.3"
+
+[[package]]
+category = "main"
+description = "WebSocket client for Python. hybi13 is supported."
+name = "websocket-client"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "0.57.0"
+
+[package.dependencies]
+six = "*"
 
 [[package]]
 category = "main"
@@ -515,6 +543,12 @@ streamlink = [
     {file = "streamlink-1.4.1-py2.py3-none-win_amd64.whl", hash = "sha256:55d6ed2066181d551556ed5537a309106f3bd0684aadc4dde4fea02dba32af10"},
     {file = "streamlink-1.4.1.tar.gz", hash = "sha256:ed3278d18f17e473bf3b35c8943da9dc19a37d43ba6b8122e260d3f0d14485e8"},
 ]
+streamlink = [
+    {file = "streamlink-1.4.1-py2.py3-none-any.whl", hash = "sha256:0c94489cfab1752076b0c7b7ab830b8e4c49c5c990dfd15cc9357f99fe2acbdf"},
+    {file = "streamlink-1.4.1-py2.py3-none-win32.whl", hash = "sha256:5916df28cb4bd3db1918445dd926ae7948f9ecef00288c49082463620b4922fe"},
+    {file = "streamlink-1.4.1-py2.py3-none-win_amd64.whl", hash = "sha256:55d6ed2066181d551556ed5537a309106f3bd0684aadc4dde4fea02dba32af10"},
+    {file = "streamlink-1.4.1.tar.gz", hash = "sha256:ed3278d18f17e473bf3b35c8943da9dc19a37d43ba6b8122e260d3f0d14485e8"},
+]
 urllib3 = [
     {file = "urllib3-1.25.9-py2.py3-none-any.whl", hash = "sha256:88206b0eb87e6d677d424843ac5209e3fb9d0190d0ee169599165ec25e9d9115"},
     {file = "urllib3-1.25.9.tar.gz", hash = "sha256:3018294ebefce6572a474f0604c2021e33b3fd8006ecd11d62107a5d2a963527"},
@@ -522,6 +556,10 @@ urllib3 = [
 wcwidth = [
     {file = "wcwidth-0.2.3-py2.py3-none-any.whl", hash = "sha256:980fbf4f3c196c0f329cdcd1e84c554d6a211f18e252e525a0cf4223154a41d6"},
     {file = "wcwidth-0.2.3.tar.gz", hash = "sha256:edbc2b718b4db6cdf393eefe3a420183947d6aa312505ce6754516f458ff8830"},
+]
+websocket-client = [
+    {file = "websocket_client-0.57.0-py2.py3-none-any.whl", hash = "sha256:0fc45c961324d79c781bab301359d5a1b00b13ad1b10415a4780229ef71a5549"},
+    {file = "websocket_client-0.57.0.tar.gz", hash = "sha256:d735b91d6d1692a6a181f2a8c9e0238e5f6373356f561bb9dc4c7af36f452010"},
 ]
 websocket-client = [
     {file = "websocket_client-0.57.0-py2.py3-none-any.whl", hash = "sha256:0fc45c961324d79c781bab301359d5a1b00b13ad1b10415a4780229ef71a5549"},
