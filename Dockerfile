@@ -9,7 +9,7 @@ RUN apk add --no-cache build-base git ffmpeg openssl-dev libffi-dev
 RUN pip install poetry
 # Copy in app files
 ADD . .
-# Create out directory
+# Create out directories
 RUN mkdir /app/out
 # Create poetry venv
 RUN poetry install

@@ -1,8 +1,17 @@
-# ***Changelog not yet fully implemented***
+***Changelog not yet fully implemented***
 
 # Changelog
 
-## [Unreleased]
+## [Changes Currently In Staging]
+
+- Better folder renaming
+- Option to move each file after the download is complete
+
+---
+
+# Old - Rewrite
+
+## [Something]
 
 - Conversion from Pipenv to Poetry for Dependency Management
 

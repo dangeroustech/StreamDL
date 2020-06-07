@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# ##TODO: Figure out what to do with pids/processes as you probably don't need both
+# TODO: Figure out what to do with pids/processes as you probably don't need both
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -15,12 +15,16 @@ import time
 from datetime import datetime, timezone
 import requests
 import signal
+import platform
+import shutil
+from pathlib import Path
 
 # set up manager functions
 mgr = Manager()
 pids = mgr.dict()
 processes = []
 logger = logging.getLogger()
+movepath = ""
 
 
 class YTDLLogger(object):
@@ -42,17 +46,20 @@ def main(argv):
     The main function that does the stuff
     """
     global logger
+    global movepath
 
     # set up signal handler
     signal.signal(signal.SIGTERM, receive_signal)
     signal.signal(signal.SIGINT, receive_signal)
 
     # set up arg parser and arguments
-    parser = argparse.ArgumentParser(prog='python streamdl.py', description='Monitor and Download Streams from a Variety of Websites')
+    parser = argparse.ArgumentParser(prog='python streamdl.py',
+                                     description='Monitor and Download Streams from a Variety of Websites')
     parser.add_argument('-c', '--config', required=True, help='Config file to use')
     parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
     parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO)')
     parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
+    parser.add_argument('-m', '--movedir', help='Directory to move after download has completed')
     parser.add_argument('-r', '--repeat', help='Time to repetitively check users, in minutes')
     args = parser.parse_args()
 
@@ -64,11 +71,18 @@ def main(argv):
     else:
         outdir = args.outdir
 
+    # check if movedir is specified
+    if args.movedir:
+        movepath = args.movedir
+    else:
+        movepath = outdir
+
     logger.info("Starting StreamDL...")
     logger.info("Downloading to: {}".format(outdir))
+    logger.info("Moving to: {}".format(movepath))
 
     users = config_reader(args.config)
-    logger.info("Users in Initial Config: {}".format(users))
+    logger.info("Users in Config: {}".format(users))
     mass_downloader(users, outdir)
 
     # check if repeat is specified
@@ -91,9 +105,9 @@ def recurse(repeat, outdir, **kwargs):
         except KeyboardInterrupt:
             logger.debug("recurse thread interrupt caught...")
     # always reload config in case local changes are made
-    # TODO: Put in a try catch here in case the file has been removed and it errors
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
+
     mass_downloader(users, outdir)
 
     recurse(repeat, outdir, **kwargs)
@@ -122,6 +136,7 @@ def mass_downloader(config, outdir):
                 logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
     time.sleep(5)
     process_cleanup()
+    return
 
 
 def process_cleanup():
@@ -159,6 +174,7 @@ def process_cleanup():
 
     for x in range(0, len(processes)):
         logger.info("Currently Downloading: {}".format(processes[x].name))
+        return
 
 
 # do the video downloading
@@ -167,6 +183,7 @@ def download_video(url, user, outpath):
     Handles downloading the individual videos
     """
     global logger
+    global movepath
 
     # check if URL is valid
     try:
@@ -184,11 +201,13 @@ def download_video(url, user, outpath):
         return True
 
     # pass opts to YTDL
+    # TODO: Add an --exec option to this to trigger the move operation
     ydl_opts = {
-        'outtmpl': '{}/{}/{} - {}.%(ext)s'.format(outpath, url, user, datetime.now(timezone.utc)),
+        'outtmpl': '{}/{}/{}/{} - {}.%(ext)s'.format(outpath, url.upper().split('.')[0], user, user, datetime.now(timezone.utc)),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
+        'progress_hooks': [ytdl_hooks],
     }
 
     # try to pull video from the given user
@@ -201,6 +220,20 @@ def download_video(url, user, outpath):
         logger.debug("Caught KeyBoardInterrupt...")
 
     return True
+
+
+def ytdl_hooks(d):
+    global logger
+    global movepath
+
+    if d['status'] == 'finished':
+        file_tuple = os.path.split(os.path.abspath(d['filename']))
+        loc = Path(movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1])
+        # TODO: Can use this to pop elements from a Currently Downloading dict in the future
+        # print("Done downloading {}".format(file_tuple[1]))
+        loc.mkdir(parents=True, exist_ok=True)
+        logger.debug("Moving {} to {}".format(file_tuple[0], loc))
+        logger.debug(shutil.move(d['filename'], loc))
 
 
 # read config and return users
