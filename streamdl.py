@@ -18,7 +18,7 @@ import signal
 import platform
 import shutil
 from pathlib import Path
-from streamlink import StreamLink
+from streamlink import Streamlink, StreamError, PluginError, NoPluginError
 
 # set up manager functions
 mgr = Manager()
@@ -126,18 +126,22 @@ def mass_downloader(config, outdir):
     for url in config:
         for user in config[url]:
             # set up process for given user
-            if "twitch" in url:
-                p = Process(name="{}".format(user), target=twitch_download, args=(url, user, outdir))
-            else:
-                p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
             else:
-                p.start()
-                pids[user] = p.pid
-                processes.append(p)
-                logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
+                if "twitch" in url:
+                    if twitch_validate(url):
+                        p.start()
+                        pids[user] = p.pid
+                        processes.append(p)
+                        logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
+                else:
+                    p.start()
+                    pids[user] = p.pid
+                    processes.append(p)
+                    logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
     time.sleep(5)
     process_cleanup()
     return
@@ -207,7 +211,8 @@ def download_video(url, user, outpath):
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
     ydl_opts = {
-        'outtmpl': '{}/{}/{}/{} - {}.%(ext)s'.format(outpath, url.upper().split('.')[0], user, user, datetime.now(timezone.utc)),
+        'outtmpl': '{}/{}/{}/{} - {}.%(ext)s'.format(
+            outpath.rsplit("/", 1)[0], url.upper().split('.')[0], user, user, datetime.utcnow().date()),
         'quiet': True,
         'logger': YTDLLogger(),
         'postprocessor-args': '-movflags +faststart',
@@ -231,6 +236,8 @@ def ytdl_hooks(d):
     global movepath
 
     if d['status'] == 'finished':
+        if movepath == "":
+            return
         file_tuple = os.path.split(os.path.abspath(d['filename']))
         loc = Path(movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1])
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
@@ -240,8 +247,27 @@ def ytdl_hooks(d):
         logger.debug(shutil.move(d['filename'], loc))
 
 
-def twitch_download(url, user, outpath):
-    streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/day9tv best
+def twitch_validate(url):
+
+    streamlink = Streamlink()
+
+    try:
+        streams = streamlink.streams(url)
+    except NoPluginError:
+        logger.info("Streamlink is unable to handle the URL '{0}'".format(url))
+        return False
+    except PluginError as err:
+        logging.info("Plugin error: {0}".format(err))
+        return False
+
+    if not streams:
+        logger.debug("No streams found on URL '{0}'".format(url))
+        return False
+    else:
+        return True
+
+    # stream = streams['best']
+    # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/day9tv best
 
 
 # read config and return users
