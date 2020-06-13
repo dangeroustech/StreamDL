@@ -132,7 +132,7 @@ def mass_downloader(config, outdir):
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
             else:
                 if "twitch" in url:
-                    if twitch_validate(url):
+                    if twitch_validate(url + "/" + user):
                         p.start()
                         pids[user] = p.pid
                         processes.append(p)
