@@ -33,8 +33,16 @@ class TestDownloadVideo(unittest.TestCase):
         """
         Test that a good URL succeeds by downloading nyan cat
         """
-        url = 'www.youtube.com'
+        url = 'youtube.com'
         user = 'watch?v=QH2-TGUlwu4'
+        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
+
+    def test_offline_twitch(self):
+        """
+        Test that a good URL succeeds by downloading nyan cat
+        """
+        url = 'twitch.tv'
+        user = 'biodrone'
         self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
     def test_invalid_url(self):
@@ -44,14 +52,6 @@ class TestDownloadVideo(unittest.TestCase):
         url = 'example.com'
         user = 'watch?v=QH2-TGUlwu4'
         self.assertFalse(download_video(url, user, os.getcwd() + "/media/"))
-
-    def test_moved_url(self):
-        """
-        Test that a 301 moved URL succeeds
-        """
-        url = 'youtube.com'
-        user = 'watch?v=QH2-TGUlwu4'
-        self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
     def test_non_video_url(self):
         """
