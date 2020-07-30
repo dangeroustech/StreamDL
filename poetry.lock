@@ -344,7 +344,7 @@ description = "YouTube video downloader"
 name = "youtube-dl"
 optional = false
 python-versions = "*"
-version = "2020.6.16.1"
+version = "2020.7.28"
 
 [[package]]
 category = "dev"
@@ -360,7 +360,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "227c1dbab8fc90aa1e582abbcb285207557213ed2174690964de9586c0c647cb"
+content-hash = "a463dde48f1e1499ba96600ddac24b1478770ef6b74749260972149a22143919"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -528,8 +528,8 @@ websocket-client = [
     {file = "websocket_client-0.57.0.tar.gz", hash = "sha256:d735b91d6d1692a6a181f2a8c9e0238e5f6373356f561bb9dc4c7af36f452010"},
 ]
 youtube-dl = [
-    {file = "youtube_dl-2020.6.16.1-py2.py3-none-any.whl", hash = "sha256:e54b307048bb18164729fb278013af6d5477c69c3d995147205a16f22a61296b"},
-    {file = "youtube_dl-2020.6.16.1.tar.gz", hash = "sha256:9fc0389a1bbbeb609a5bb4ad5630dea107a9d1a24c73721c611a78c234309a75"},
+    {file = "youtube_dl-2020.7.28-py2.py3-none-any.whl", hash = "sha256:c1bf9a20b0bc8cf6489930b96b9830156e2a7e865fc96ef628e97fa37aad8de9"},
+    {file = "youtube_dl-2020.7.28.tar.gz", hash = "sha256:4af90dac41dba8b2c8bdce3903177c4ecbc27d75e03a3f08070f9d9decbae829"},
 ]
 zipp = [
     {file = "zipp-3.1.0-py3-none-any.whl", hash = "sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b"},
