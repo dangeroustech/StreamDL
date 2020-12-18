@@ -11,7 +11,7 @@ readme = "README.md"
 python = "^3.7"
 youtube_dl = "2020.12.14"
 PyYAML = "5.3.1"
-requests = "2.25.0"
+requests = "2.25.1"
 streamlink = "^1.7.0"
 
 [tool.poetry.dev-dependencies]
