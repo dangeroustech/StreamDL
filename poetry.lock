@@ -282,11 +282,11 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "1.7.0"
-description = "Streamlink is command-line utility that extracts streams from various services and pipes them into a video player of choice."
+version = "2.0.0"
+description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+python-versions = ">=3.6, <4"
 
 [package.dependencies]
 iso-639 = "*"
@@ -352,7 +352,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f10a8fa38b1157942bc7d5d379ac7a3c98ac6254b33e467f09079f59ff38baca"
+content-hash = "45befad6a2fbaa8dffc504f82c2752f6e2876d641e7e94ac9caca782310abe2d"
 
 [metadata.files]
 atomicwrites = [
@@ -508,10 +508,10 @@ stevedore = [
     {file = "stevedore-3.2.0.tar.gz", hash = "sha256:38791aa5bed922b0a844513c5f9ed37774b68edc609e5ab8ab8d8fe0ce4315e5"},
 ]
 streamlink = [
-    {file = "streamlink-1.7.0-py2.py3-none-any.whl", hash = "sha256:574db7c297b050d48ef7cda0ce302af79185e1b5c6e1c8dba1a5bf2b238b0392"},
-    {file = "streamlink-1.7.0-py2.py3-none-win32.whl", hash = "sha256:61b114ef2333c083743019dd691b95e92d8b12715263ffb5cdf71942638ade88"},
-    {file = "streamlink-1.7.0-py2.py3-none-win_amd64.whl", hash = "sha256:9ba4f4bd7a462e373342f0f4b1b816c3b1f930be204a0dcdfc036d259ab52ae2"},
-    {file = "streamlink-1.7.0.tar.gz", hash = "sha256:f87a62a47212d94769929bd040d9c186b461643bdbda06f839b99ec9efefb87a"},
+    {file = "streamlink-2.0.0-py3-none-any.whl", hash = "sha256:4bc9dd5bacf094ed8a778eece177b77ac805b2235544649f7a68240f0a469a6a"},
+    {file = "streamlink-2.0.0-py3-none-win32.whl", hash = "sha256:be098c0c4afc9dd7c6e7a276761a8fc4190a7a624b166499cbd02dc08f118bfe"},
+    {file = "streamlink-2.0.0-py3-none-win_amd64.whl", hash = "sha256:badd4584967299e63aea74ccb758ac1fa8e887e718a016b8f1125bd943e3ff76"},
+    {file = "streamlink-2.0.0.tar.gz", hash = "sha256:c0ead9e961638d41cab9bd9677cdc701f2313bfd4d23cd8158410932839c62db"},
 ]
 toml = [
     {file = "toml-0.10.1-py2.py3-none-any.whl", hash = "sha256:bda89d5935c2eac546d648028b9901107a595863cb36bae0c73ac804a9b4ce88"},
