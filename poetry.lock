@@ -331,7 +331,7 @@ six = "*"
 
 [[package]]
 name = "youtube-dl"
-version = "2021.3.14"
+version = "2021.3.31"
 description = "YouTube video downloader"
 category = "main"
 optional = false
@@ -352,7 +352,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f791917c3c2f841eecd6767655ca8c4b8d1d37512c147c70abdf65e509cf1ad6"
+content-hash = "dcb775daf7384570e7c3cfefbd77d6c37cf70cee517a2ce940bad918d174781f"
 
 [metadata.files]
 atomicwrites = [
@@ -542,8 +542,8 @@ websocket-client = [
     {file = "websocket_client-0.57.0.tar.gz", hash = "sha256:d735b91d6d1692a6a181f2a8c9e0238e5f6373356f561bb9dc4c7af36f452010"},
 ]
 youtube-dl = [
-    {file = "youtube_dl-2021.3.14-py2.py3-none-any.whl", hash = "sha256:d414166efe52447877db06803816277f52f405faeee2bdf5ef816b30e352b3b8"},
-    {file = "youtube_dl-2021.3.14.tar.gz", hash = "sha256:c287ad8dd33471aabaabab5ab1dd825bebc70eb8b83ebfa93fd71022e01a1d08"},
+    {file = "youtube_dl-2021.3.31-py2.py3-none-any.whl", hash = "sha256:8f7cf300878dbdb63fed1c9c4d9d2d56bf4c7467260e0f0c1ade66c11647eebe"},
+    {file = "youtube_dl-2021.3.31.tar.gz", hash = "sha256:822be370d9c1bc63ec2ca9634fef1baf12db9c10d2b1f322401c0f1f9d35dcd2"},
 ]
 zipp = [
     {file = "zipp-3.1.0-py3-none-any.whl", hash = "sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b"},
