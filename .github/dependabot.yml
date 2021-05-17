@@ -12,17 +12,3 @@ updates:
   - biodrone
   labels:
   - dependencies
-  ignore:
-  - dependency-name: youtube-dl
-    versions:
-    - 2021.2.4
-    - 2021.3.2
-    - 2021.3.25
-    - 2021.3.3
-    - 2021.3.31
-    - 2021.4.1
-    - 2021.4.17
-    - 2021.4.7
-  - dependency-name: streamlink
-    versions:
-    - 2.1.0
