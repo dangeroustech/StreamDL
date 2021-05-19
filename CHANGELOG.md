@@ -1,19 +1,47 @@
-***Changelog not yet fully implemented***
-
 # Changelog
 
-## [Changes Currently In Staging]
+## [1.3] [UNRELEASED]
 
-- Better folder renaming
-- Option to move each file after the download is complete
+### Changes
+
+- Major dependency updates for security patches
+- Convert to using StreamLink for Twitch streams
+- Add 'move when finished' option
 
 ---
 
-# Old - Rewrite
+## [1.2.6] - 2020-08-11
 
-## [Something]
+### Changed
 
-- Conversion from Pipenv to Poetry for Dependency Management
+- Security updates
+- Minor syntax changes
+
+## [1.2.5] - 2020-08-11
+
+### Changed
+
+- Added 'Currently Downloading' log message
+
+## [1.2.4] - 2020-04-16
+
+### Changed
+
+- Default Python version bumped to 3.8
+
+### Fixed
+
+- Various build fixes for staging branch
+
+## [1.2.3] - 2020-03-27
+
+### Added
+
+- Multi-architecture docker builds
+
+### Fixed
+
+- Travis would check out master wehen building staging
 
 ## [1.2.2] - 2019-11-21
 
