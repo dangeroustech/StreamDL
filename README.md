@@ -6,7 +6,10 @@ Monitor and Download Streams from a Variety of Websites
 
 ## Why This Exists
 
-Because there are certain streaming websites that don't store historic VODs of their livestreams. This is sad. As a nerd, you probably have terabytes of storage somewhere, right? Why not get some use out of it? Archivists everywhere, rejoice!
+Because there are certain streaming websites that don't store historic VODs.
+This is sad.
+As a nerd, you probably have terabytes of storage somewhere, right?
+Why not get some use out of it? Archivists everywhere, rejoice!
 
 ## Usage
 
@@ -40,19 +43,21 @@ Edit the Environment variables in `docker-compose.yml.example` to modify script 
 
 Otherwise, just rename it to `docker-compose.yml` and run `docker-compose up -d`.
 
-Logs are piped to stdout by default so that `docker-compose logs` works. *If you know what you're doing, you can change this value in `entrypoint.sh`. Make sure to rebuild the container with `docker-compose build` after editing this.*
+Logs are piped to stdout by default so that `docker-compose logs` works.
+*If you know what you're doing, you can change this value in `entrypoint.sh`.*
+*Make sure to rebuild the container with `docker-compose build` after editing this.*
 
 ### Bare Metal
 
-- Python 3.7 or newer
+- Python 3.8 or newer
 - ffmpeg
 - poetry (`pip install poetry` *or* `pip3 install poetry` *depending on your system*)
 
-*This example assumes `python --version` returns something above Python 3.8 and you have made a config.yml file based on the `config.yml.example` provided in the repo.*
+#### Example Run
 
-- `poetry install`
-
-- `poetry run python streamdl.py -c config.yml -r 5`
+- `user@box$: git clone https://github.com/dangeroustech/streamdl && cd streamdl`
+- `user@box$: poetry install`
+- `user@box$: poetry run python streamdl.py -c config.yml -r 5`
 
 ## Config File
 
