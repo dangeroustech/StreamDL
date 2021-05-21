@@ -12,7 +12,7 @@ python = "^3.7"
 youtube_dl = "2021.5.16"
 PyYAML = "5.4.1"
 requests = "2.25.1"
-streamlink = "^2.1.1"
+streamlink = "^2.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
