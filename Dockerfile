@@ -1,6 +1,5 @@
 FROM python:3.8-alpine
 WORKDIR /app
-ARG TRAVIS_BRANCH=$TRAVIS_BRANCH
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 # Install necessary software
