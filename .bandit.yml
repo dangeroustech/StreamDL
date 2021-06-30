@@ -129,12 +129,12 @@ start_process_with_a_shell:
   - popen2.Popen4
   - commands.getoutput
   - commands.getstatusoutput
-  subprocess:
-  - subprocess.Popen
-  - subprocess.call
-  - subprocess.check_call
-  - subprocess.check_output
-  - subprocess.run
+  # subprocess:
+  # - subprocess.Popen
+  # - subprocess.call
+  # - subprocess.check_call
+  # - subprocess.check_output
+  # - subprocess.run
 start_process_with_no_shell:
   no_shell:
   - os.execl
