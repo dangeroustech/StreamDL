@@ -11,4 +11,4 @@ services:
       - ./config.yml:/app/config.yml # config file
     environment:
       - REPEAT_TIME=5 # time to repeat, in minutes
-      - LOG_LEVEL=DEBUG # log level
+      - LOG_LEVEL=INFO # log level
