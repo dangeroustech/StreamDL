@@ -1,14 +1,20 @@
 # Changelog
 
-## [1.3] [UNRELEASED]
+## [1.3] - [UNRELEASED]
 
-### Changes
+### Changed
 
 - Major dependency updates for security patches
-- Convert to using StreamLink for Twitch streams
 - Add 'move when finished' option
 
 ---
+
+## [1.2.7] - [UNRELEASED]
+
+### Fixed
+
+- Moved from Travis to Jenkins for builds after Travis open source kill-off
+- Convert to using StreamLink for Twitch streams
 
 ## [1.2.6] - 2020-08-11
 
