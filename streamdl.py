@@ -19,6 +19,7 @@ import platform
 import shutil
 from pathlib import Path
 from streamlink import Streamlink, StreamError, PluginError, NoPluginError
+import subprocess
 
 # set up manager functions
 mgr = Manager()
@@ -104,7 +105,7 @@ def recurse(repeat, outdir, **kwargs):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            logger.debug("recurse thread interrupt caught...")
+            logger.warn("recurse thread interrupt caught...")
     # always reload config in case local changes are made
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
@@ -118,6 +119,10 @@ def recurse(repeat, outdir, **kwargs):
 def mass_downloader(config, outdir):
     """
     Handles the process spawning to download multiple things at once
+
+    Args:
+    - config (dict)
+    - outdir (string)
     """
     global pids
     global processes
@@ -125,19 +130,21 @@ def mass_downloader(config, outdir):
 
     for url in config:
         for user in config[url]:
-            # set up process for given user
-            p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
             # check for existing download
             if user in pids:
                 logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
             else:
                 if "twitch" in url:
-                    if twitch_validate(url + "/" + user):
-                        p.start()
-                        pids[user] = p.pid
-                        processes.append(p)
-                        logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
+                    # set up process for given user
+                    p = Process(name="{}".format(user), target=twitch_download, args=(url, user, outdir))
+                    logger.debug("P: {}".format(p._args))
+                    p.start()
+                    pids[user] = p.pid
+                    processes.append(p)
+                    logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
                 else:
+                    # set up process for given user
+                    p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
                     p.start()
                     pids[user] = p.pid
                     processes.append(p)
@@ -198,7 +205,7 @@ def download_video(url, user, outpath):
         request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
         # fail on a bad status code
         if request.status_code >= 400:
-            logging.warning("URL Has a Bad Status Code: {}/{}".format(url, user))
+            logging.warning("URL Has a Bad Status Code ({}): {}/{}".format(request.status_code, url, user))
             logging.warning("Please check your config!")
             return False
     # fail on connection error
@@ -247,27 +254,42 @@ def ytdl_hooks(d):
         logger.debug(shutil.move(d['filename'], loc))
 
 
-def twitch_validate(url):
+def twitch_download(url, user, outdir):
+    """
+    Downloads Twitch Videos
 
-    streamlink = Streamlink()
+    Args:
+    - url
+    - user
+    - outdir
+    """
+
+    session = Streamlink()
 
     try:
-        streams = streamlink.streams(url)
+        # use this to check for live streams
+        stream = session.streams(url + '/' + user)['best']
+
+        if not stream:
+            logger.warn("No streams found on URL '{0}'".format(url))
+            return False
+        else:
+            logger.debug("{}/{}/{}/{} - {}.mp4".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user, user, datetime.utcnow().date()))
+            subprocess.call(["mkdir", "-p", "{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user)])
+            subprocess.call(
+                ["streamlink", "-Q", "-f", "-4",
+                "-o", "{} - {}.mp4".format(user, datetime.utcnow().date()),
+                "--twitch-disable-ads", "--twitch-disable-reruns", "--twitch-disable-hosting", "{}/{}".format(url, user), "worst"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd="{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user))
+        #streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
     except NoPluginError:
-        logger.info("Streamlink is unable to handle the URL '{0}'".format(url))
+        logger.warn("Streamlink is unable to handle the URL '{0}'".format(url))
         return False
     except PluginError as err:
-        logging.info("Plugin error: {0}".format(err))
+        logging.warn("Plugin error: {0}".format(err))
         return False
-
-    if not streams:
-        logger.debug("No streams found on URL '{0}'".format(url))
-        return False
-    else:
-        return True
-
-    # stream = streams['best']
-    # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/day9tv best
 
 
 # read config and return users
