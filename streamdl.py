@@ -275,7 +275,9 @@ def twitch_download(url, user, outdir):
             return False
         else:
             logger.debug("{}/{}/{}/{} - {}.mp4".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user, user, datetime.utcnow().date()))
+            # create dir because streamlink is incapable of doing so apparently
             subprocess.call(["mkdir", "-p", "{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user)])
+            # download video with streamlink
             subprocess.call(
                 ["streamlink", "-Q", "-f", "-4",
                 "-o", "{} - {}.mp4".format(user, datetime.utcnow().date()),
@@ -283,7 +285,8 @@ def twitch_download(url, user, outdir):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 cwd="{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user))
-        #streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
+            #streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
+            return True
     except NoPluginError:
         logger.warn("Streamlink is unable to handle the URL '{0}'".format(url))
         return False
