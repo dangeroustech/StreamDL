@@ -30,13 +30,13 @@ any_other_function_with_shell_equals_true:
   - popen2.Popen4
   - commands.getoutput
   - commands.getstatusoutput
-  subprocess:
-  - subprocess.Popen
-  - subprocess.call
-  - subprocess.check_call
-  - subprocess.check_output
-  - subprocess.run
-hardcoded_tmp_directory:
+#   subprocess:
+#   - subprocess.Popen
+#   - subprocess.call
+#   - subprocess.check_call
+#   - subprocess.check_output
+#   - subprocess.run
+# hardcoded_tmp_directory:
   tmp_dirs:
   - /tmp
   - /var/tmp
