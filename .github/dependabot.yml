@@ -12,3 +12,7 @@ updates:
   - biodrone
   labels:
   - dependencies
+  commit_message:
+    prefix: "chore"
+    prefix_development: "chore"
+    include_scope: true
