@@ -14,5 +14,5 @@ updates:
   - dependencies
   commit-message:
     prefix: "chore"
-    prefix_development: "chore"
-    include_scope: true
+    prefix-development: "chore"
+    include: "scope"
