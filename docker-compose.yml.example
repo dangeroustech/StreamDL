@@ -6,8 +6,9 @@ services:
     image: dangeroustech/streamdl:stable
     restart: always
     volumes:
-      - /media/downloads:/app/out # downloads location
+      - /media/downloads/incomplete:/app/dl # in-progress downloads location
+      - /media/downloads/complete:/app/out # completed downloads location
       - ./config.yml:/app/config.yml # config file
     environment:
       - REPEAT_TIME=5 # time to repeat, in minutes
-      - LOG_LEVEL=DEBUG # log level
+      - LOG_LEVEL=INFO # log level
