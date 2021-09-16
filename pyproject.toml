@@ -17,4 +17,4 @@ streamlink = "^2.4.0"
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-pylint = "^2.10.2"
+pylint = "^2.11.1"
