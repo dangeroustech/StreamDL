@@ -24,6 +24,8 @@ Why not get some use out of it? Archivists everywhere, rejoice!
   -o    OUTDIR,     --outdir    OUTDIR
                                 Output file location without trailing slash
                                 (defaults to working dir)
+  -m    MOVEDIR,    --movedir   MOVEDIR
+                                Directory to move files to after downloading
   -c    CONFIG,     --config    CONFIG
                                 Config file to use
   -r    REPEAT,     --repeat    REPEAT
