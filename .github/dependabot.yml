@@ -13,6 +13,6 @@ updates:
   labels:
   - dependencies
   commit-message:
-    prefix: "chore"
-    prefix-development: "chore"
+    prefix: "chore 🤖: "
+    prefix-development: "chore 🤖: "
     include: "scope"
