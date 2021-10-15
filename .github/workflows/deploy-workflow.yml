@@ -10,6 +10,17 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+          architecture: "x64"
+      - run: |
+          python -m pip install poetry bandit
+          python -m poetry install
+          python -m poetry run pytest -v
+          python -m poetry run bandit -ll -c .bandit.yml streamdl.py
 
   docker:
     runs-on: ubuntu-latest
@@ -30,5 +41,7 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          context: .
+          platforms: linux/amd64, linux/arm64, linux/armhf
           push: true
-          tags: user/app:latest
+          tags: dangeroustech/streamdl:latest
