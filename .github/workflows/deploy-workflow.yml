@@ -47,4 +47,4 @@ jobs:
           context: .
           platforms: linux/amd64, linux/arm64, linux/armhf
           push: true
-          tags: dangeroustech/streamdl:lates
+          tags: dangeroustech/streamdl:latest
