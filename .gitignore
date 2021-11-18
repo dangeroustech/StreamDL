@@ -20,3 +20,5 @@ streamdl.egg-info
 __pycache__
 docker-compose.yml
 Dockerfile_local
+.env
+*.exe
