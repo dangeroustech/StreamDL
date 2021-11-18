@@ -2,7 +2,7 @@ name: "Deploy"
 
 on:
   push:
-    branches: [master, staging]
+    branches: [staging]
   pull_request:
     branches: [master, staging]
 
@@ -54,7 +54,7 @@ jobs:
           tags: ${{ env.TEST_TAG }}
     
       - name: Push
-        if: github.event.pull_request.merged
+        if: ${{ github.ref == 'refs/heads/master' }}
         id: dockerhub_push
         uses: docker/build-push-action@v2
         with:
