@@ -34,7 +34,7 @@ class TestDownloadVideo(unittest.TestCase):
         Test that a good URL succeeds by downloading nyan cat
         """
         url = 'youtube.com'
-        user = 'watch?v=QH2-TGUlwu4'
+        user = 'watch?v=v2GCfSGFkG0'
         self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
     def test_offline_twitch(self):
@@ -57,7 +57,7 @@ class TestDownloadVideo(unittest.TestCase):
         """
         Test that a non video site exits quietly
         """
-        url = 'test.com'
+        url = 'dangerous.tech'
         user = 'watch?v=QH2-TGUlwu4'
         self.assertTrue(download_video(url, user, os.getcwd() + "/media/"))
 
