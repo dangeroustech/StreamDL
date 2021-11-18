@@ -22,7 +22,7 @@ jobs:
           python -m poetry run pytest -v
           python -m poetry run bandit -ll -c .bandit.yml streamdl.py
 
-  docker:
+  Docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
