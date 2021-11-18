@@ -48,18 +48,6 @@ jobs:
           context: .
           load: true
           tags: dangeroustech/streamdl:latest
-    
-      - name: Dockerhub Push Stable
-        if: ${{ github.ref == 'refs/heads/master' }}
-        id: dockerhub_stable_push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          platforms: linux/amd64, linux/arm64, linux/armhf
-          push: true
-          tags: |
-            dangeroustech/streamdl:latest
-            dangeroustech/streamdl:stable
 
       - name: Dockerhub Push Staging
         if: ${{ github.ref == 'refs/heads/staging' }}
@@ -72,3 +60,15 @@ jobs:
           tags: |
             dangeroustech/streamdl:latest
             dangeroustech/streamdl:staging
+
+      - name: Dockerhub Push Stable
+        if: ${{ github.ref == 'refs/heads/master' }}
+        id: dockerhub_stable_push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64, linux/arm64, linux/armhf
+          push: true
+          tags: |
+            dangeroustech/streamdl:latest
+            dangeroustech/streamdl:stable
