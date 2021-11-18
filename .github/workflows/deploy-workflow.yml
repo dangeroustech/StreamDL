@@ -50,7 +50,6 @@ jobs:
         with:
           context: .
           load: true
-        #   platforms: linux/amd64, linux/arm64, linux/armhf
           tags: ${{ env.TEST_TAG }}
     
       - name: Dockerhub Push
