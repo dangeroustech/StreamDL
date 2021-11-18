@@ -51,7 +51,7 @@ jobs:
     
       - name: Dockerhub Push Stable
         if: ${{ github.ref == 'refs/heads/master' }}
-        id: dockerhub_push
+        id: dockerhub_stable_push
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -63,7 +63,7 @@ jobs:
 
       - name: Dockerhub Push Staging
         if: ${{ github.ref == 'refs/heads/staging' }}
-        id: dockerhub_push
+        id: dockerhub_staging_push
         uses: docker/build-push-action@v2
         with:
           context: .
