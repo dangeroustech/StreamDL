@@ -3,7 +3,7 @@ WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 # Install necessary software
-RUN pip install poetry==1.1.7
+RUN pip install poetry==1.1.11
 # Copy in app files
 COPY . .
 # Create download directories
