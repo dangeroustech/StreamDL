@@ -2,6 +2,9 @@
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/5145a4b986526fa4573b/maintainability)](https://codeclimate.com/github/dangeroustech/StreamDL/maintainability)
 
+![Build and Push](https://github.com/dangeroustech/streamdl/actions/workflows/deploy-workflow.yml/badge.svg)
+![CodeQL Analysis](https://github.com/dangeroustech/streamdl/actions/workflows/codeql-analysis.yml/badge.svg)
+
 Monitor and Download Streams from a Variety of Websites
 
 ## Why This Exists
