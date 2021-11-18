@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master, staging]
 
+env:
+  TEST_TAG: dangeroustech/streamdl:ci
+
 jobs:
   test:
     name: Test
@@ -22,8 +25,10 @@ jobs:
           python -m poetry run pytest -v
           python -m poetry run bandit -ll -c .bandit.yml streamdl.py
 
-  Docker:
+  docker:
+    name: Docker
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -40,8 +45,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build
         id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          load: true
+        #   platforms: linux/amd64, linux/arm64, linux/armhf
+          tags: ${{ env.TEST_TAG }}
+
+      - name: Push
+        if: github.event.pull_request.merged
+        id: dockerhub_push
         uses: docker/build-push-action@v2
         with:
           context: .
