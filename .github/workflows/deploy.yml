@@ -1,27 +1,10 @@
-name: "Test && Build && Deploy"
+name: "Dockerhub Build"
 
 on:
   push:
-    branches: [master, staging]
-  pull_request:
-    branches: [master, staging]
+    branches: [ master ]
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-          architecture: "x64"
-      - run: |
-          python -m pip install poetry bandit
-          python -m poetry install
-          python -m poetry run pytest -v
-          python -m poetry run bandit -ll -c .bandit.yml streamdl.py
-
   docker:
     name: Docker
     runs-on: ubuntu-latest
