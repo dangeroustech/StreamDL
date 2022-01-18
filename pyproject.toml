@@ -11,11 +11,10 @@ readme = "README.md"
 python = "^3.9"
 PyYAML = "5.4.1"
 requests = "2.26.0"
-streamlink = "^2.4.0"
+streamlink = "^3.0.3"
 yt-dlp = "^2021.12.27"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-pylint = "^2.10.2"
 black = "^21.12b0"
