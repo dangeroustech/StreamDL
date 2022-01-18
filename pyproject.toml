@@ -3,7 +3,7 @@ name = "StreamDL"
 version = "1.2.9"
 description = "Monitor and Download Streams from a Variety of Websites"
 authors = [
-    "biodrone<biodrone@dangerous.tech>"
+    "biodrone <biodrone@dangerous.tech>"
 ]
 readme = "README.md"
 
