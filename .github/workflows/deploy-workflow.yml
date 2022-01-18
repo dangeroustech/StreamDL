@@ -49,6 +49,17 @@ jobs:
           load: true
           tags: dangeroustech/streamdl:latest
 
+      - name: Version
+        uses: go-semantic-release/action@v1
+        id: semrel
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          force-bump-patch-version: true
+          changelog-generator-opt: "emojis=true"
+          changelog-file: "CHANGELOG.md"
+          prepend: true
+          update-file: pyproject.toml
+
       - name: Dockerhub Push Staging
         if: ${{ github.ref == 'refs/heads/staging' }}
         id: dockerhub_staging_push
