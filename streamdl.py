@@ -379,9 +379,9 @@ def receive_signal(signum, frame):
     Catches SIGTERM - Mainly to Address Docker Container Stops
     """
     global logger
-    logger.debug('Received SIGTERM... Terminating.')
+    logger.debug(f"Received {signum}... Terminating...")
     kill_pids()
-    sys.exit(0)
+    sys.exit(1)
 
 
 def kill_pids():
