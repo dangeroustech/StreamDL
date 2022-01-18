@@ -1,4 +1,4 @@
-name: "Dockerhub Build"
+name: "Dockerhub Build - Staging"
 
 on:
   push:
