@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 import argparse
 import sys
 import os
-import youtube_dl
+from yt_dlp import YoutubeDL as ytdl
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
@@ -252,7 +252,7 @@ def download_video(url, user, outpath):
 
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
-    ydl_opts = {
+    ytdl_opts = {
         "outtmpl": "{}/{}/{}/{} - {}.%(ext)s".format(
             outpath.rsplit("/", 1)[0],
             url.upper().split(".")[0],
@@ -268,9 +268,9 @@ def download_video(url, user, outpath):
 
     # try to pull video from the given user
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(["https://{}/{}/".format(url, user)])
-    except youtube_dl.utils.DownloadError:
+        with ytdl(ytdl_opts) as ydl:
+            ytdl.download(["https://{}/{}/".format(url, user)])
+    except ytdl.utils.DownloadError:
         logger.debug("Download Error, {} is Probably Offline".format(user))
     except KeyboardInterrupt:
         logger.debug("Caught KeyBoardInterrupt...")
