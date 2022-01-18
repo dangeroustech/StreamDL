@@ -8,6 +8,7 @@ import argparse
 import sys
 import os
 from yt_dlp import YoutubeDL as ytdl
+from yt_dlp import utils as ytdl_utils
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
@@ -269,8 +270,8 @@ def download_video(url, user, outpath):
     # try to pull video from the given user
     try:
         with ytdl(ytdl_opts) as ydl:
-            ytdl.download(["https://{}/{}/".format(url, user)])
-    except ytdl.utils.DownloadError:
+            ydl.download(["https://{}/{}/".format(url, user)])
+    except ytdl_utils.DownloadError:
         logger.debug("Download Error, {} is Probably Offline".format(user))
     except KeyboardInterrupt:
         logger.debug("Caught KeyBoardInterrupt...")
