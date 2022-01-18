@@ -9,7 +9,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-youtube_dl = "2021.6.6"
+youtube_dl = "2021.12.17"
 PyYAML = "6.0"
 requests = "2.27.1"
 streamlink = "^2.4.0"
