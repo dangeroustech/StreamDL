@@ -7,7 +7,8 @@ from logging.handlers import RotatingFileHandler
 import argparse
 import sys
 import os
-import youtube_dl
+from yt_dlp import YoutubeDL as ytdl
+from yt_dlp import utils as ytdl_utils
 import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
@@ -33,6 +34,7 @@ class YTDLLogger(object):
     """
     Just a class to shut YTDL up
     """
+
     def debug(self, msg):
         return
 
@@ -55,14 +57,26 @@ def main(argv):
     signal.signal(signal.SIGINT, receive_signal)
 
     # set up arg parser and arguments
-    parser = argparse.ArgumentParser(prog='python streamdl.py',
-                                     description='Monitor and Download Streams from a Variety of Websites')
-    parser.add_argument('-c', '--config', required=True, help='Config file to use')
-    parser.add_argument('-l', '--logfile', help='Logfile to use (path defaults to working dir)')
-    parser.add_argument('-ll', '--loglevel', help='Log level to set (defaults to INFO)')
-    parser.add_argument('-o', '--outdir', help='Output file location without trailing slash (defaults to working dir)')
-    parser.add_argument('-m', '--movedir', help='Directory to move after download has completed')
-    parser.add_argument('-r', '--repeat', help='Time to repetitively check users, in minutes')
+    parser = argparse.ArgumentParser(
+        prog="python streamdl.py",
+        description="Monitor and Download Streams from a Variety of Websites",
+    )
+    parser.add_argument("-c", "--config", required=True, help="Config file to use")
+    parser.add_argument(
+        "-l", "--logfile", help="Logfile to use (path defaults to working dir)"
+    )
+    parser.add_argument("-ll", "--loglevel", help="Log level to set (defaults to INFO)")
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        help="Output file location without trailing slash (defaults to working dir)",
+    )
+    parser.add_argument(
+        "-m", "--movedir", help="Directory to move after download has completed"
+    )
+    parser.add_argument(
+        "-r", "--repeat", help="Time to repetitively check users, in minutes"
+    )
     args = parser.parse_args()
 
     setup_logging(args)
@@ -132,11 +146,17 @@ def mass_downloader(config, outdir):
         for user in config[url]:
             # check for existing download
             if user in pids:
-                logger.debug("Process {} Exists with PID {}".format(user, pids.get(user)))
+                logger.debug(
+                    "Process {} Exists with PID {}".format(user, pids.get(user))
+                )
             else:
                 if "twitch" in url:
                     # set up process for given user
-                    p = Process(name="{}".format(user), target=twitch_download, args=(url, user, outdir))
+                    p = Process(
+                        name="{}".format(user),
+                        target=twitch_download,
+                        args=(url, user, outdir),
+                    )
                     logger.debug("P: {}".format(p._args))
                     p.start()
                     pids[user] = p.pid
@@ -144,7 +164,11 @@ def mass_downloader(config, outdir):
                     logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
                 else:
                     # set up process for given user
-                    p = Process(name="{}".format(user), target=download_video, args=(url, user, outdir))
+                    p = Process(
+                        name="{}".format(user),
+                        target=download_video,
+                        args=(url, user, outdir),
+                    )
                     p.start()
                     pids[user] = p.pid
                     processes.append(p)
@@ -177,12 +201,18 @@ def process_cleanup():
                 processes[i].close()
                 # don't increment iterator
             except AssertionError:
-                logger.debug("Something happened, process {} is not joinable...".format(processes[i]))
+                logger.debug(
+                    "Something happened, process {} is not joinable...".format(
+                        processes[i]
+                    )
+                )
                 i += 1
             try:
                 pids.pop(processes[i].name)
             except KeyError:
-                logger.debug("KeyError When Popping {} From PIDs List".format(processes[i].name))
+                logger.debug(
+                    "KeyError When Popping {} From PIDs List".format(processes[i].name)
+                )
             processes.remove(processes[i])
     time.sleep(5)
     logger.debug("Processes after cleaning: {}".format(processes))
@@ -205,32 +235,43 @@ def download_video(url, user, outpath):
         request = requests.get("https://{}/{}".format(url, user), allow_redirects=False)
         # fail on a bad status code
         if request.status_code >= 400:
-            logging.warning("URL Has a Bad Status Code ({}): {}/{}".format(request.status_code, url, user))
+            logging.warning(
+                "URL Has a Bad Status Code ({}): {}/{}".format(
+                    request.status_code, url, user
+                )
+            )
             logging.warning("Please check your config!")
             return False
     # fail on connection error
     except:
         logging.warning("Unexpected Error: {}".format(sys.exc_info()[0]))
         logging.warning("Invalid URL: {}/{}".format(url, user))
-        logging.warning("Please file a bug report: https://github.com/biodrone/issues/new")
+        logging.warning(
+            "Please file a bug report: https://github.com/biodrone/issues/new"
+        )
         return True
 
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
-    ydl_opts = {
-        'outtmpl': '{}/{}/{}/{} - {}.%(ext)s'.format(
-            outpath.rsplit("/", 1)[0], url.upper().split('.')[0], user, user, datetime.utcnow().date()),
-        'quiet': True,
-        'logger': YTDLLogger(),
-        'postprocessor-args': '-movflags +faststart',
-        'progress_hooks': [ytdl_hooks],
+    ytdl_opts = {
+        "outtmpl": "{}/{}/{}/{} - {}.%(ext)s".format(
+            outpath.rsplit("/", 1)[0],
+            url.upper().split(".")[0],
+            user,
+            user,
+            datetime.utcnow().date(),
+        ),
+        "quiet": True,
+        "logger": YTDLLogger(),
+        "postprocessor-args": "-movflags +faststart",
+        "progress_hooks": [ytdl_hooks],
     }
 
     # try to pull video from the given user
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with ytdl(ytdl_opts) as ydl:
             ydl.download(["https://{}/{}/".format(url, user)])
-    except youtube_dl.utils.DownloadError:
+    except ytdl_utils.DownloadError:
         logger.debug("Download Error, {} is Probably Offline".format(user))
     except KeyboardInterrupt:
         logger.debug("Caught KeyBoardInterrupt...")
@@ -242,16 +283,18 @@ def ytdl_hooks(d):
     global logger
     global movepath
 
-    if d['status'] == 'finished':
+    if d["status"] == "finished":
         if movepath == "":
             return
-        file_tuple = os.path.split(os.path.abspath(d['filename']))
-        loc = Path(movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1])
+        file_tuple = os.path.split(os.path.abspath(d["filename"]))
+        loc = Path(
+            movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1]
+        )
         # TODO: Can use this to pop elements from a Currently Downloading dict in the future
         # print("Done downloading {}".format(file_tuple[1]))
         loc.mkdir(parents=True, exist_ok=True)
         logger.debug("Moving {} to {}".format(file_tuple[0], loc))
-        logger.debug(shutil.move(d['filename'], loc))
+        logger.debug(shutil.move(d["filename"], loc))
 
 
 def twitch_download(url, user, outdir):
@@ -268,24 +311,53 @@ def twitch_download(url, user, outdir):
 
     try:
         # use this to check for live streams
-        stream = session.streams(url + '/' + user)['best']
+        stream = session.streams(url + "/" + user)["best"]
 
         if not stream:
             logger.warn("No streams found on URL '{0}'".format(url))
             return False
         else:
-            logger.debug("{}/{}/{}/{} - {}.mp4".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user, user, datetime.utcnow().date()))
+            logger.debug(
+                "{}/{}/{}/{} - {}.mp4".format(
+                    outdir.rsplit("/", 1)[0],
+                    url.upper().split(".")[0],
+                    user,
+                    user,
+                    datetime.utcnow().date(),
+                )
+            )
             # create dir because streamlink is incapable of doing so apparently
-            subprocess.call(["mkdir", "-p", "{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user)])
+            subprocess.call(
+                [
+                    "mkdir",
+                    "-p",
+                    "{}/{}/{}".format(
+                        outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
+                    ),
+                ]
+            )
             # download video with streamlink
             subprocess.call(
-                ["streamlink", "-Q", "-f", "-4",
-                "-o", "{} - {}.mp4".format(user, datetime.utcnow().date()),
-                "--twitch-disable-ads", "--twitch-disable-reruns", "--twitch-disable-hosting", "{}/{}".format(url, user), "worst"],
+                [
+                    "streamlink",
+                    "-Q",
+                    "-f",
+                    "-4",
+                    "-o",
+                    "{} - {}.mp4".format(user, datetime.utcnow().date()),
+                    "--twitch-disable-ads",
+                    "--twitch-disable-reruns",
+                    "--twitch-disable-hosting",
+                    "{}/{}".format(url, user),
+                    "worst",
+                ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                cwd="{}/{}/{}".format(outdir.rsplit("/", 1)[0], url.upper().split('.')[0], user))
-            #streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
+                cwd="{}/{}/{}".format(
+                    outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
+                ),
+            )
+            # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
             return True
     except NoPluginError:
         logger.warn("Streamlink is unable to handle the URL '{0}'".format(url))
@@ -304,7 +376,7 @@ def config_reader(config_file):
 
     # read config
     try:
-        with open(config_file, 'r') as stream:
+        with open(config_file, "r") as stream:
             data_loaded = yaml.safe_load(stream)
     except FileNotFoundError:
         logger.error("File {} Not Found".format(config_file))
@@ -353,10 +425,10 @@ def stream_logger(level, fmt):
 def setup_logging(args):
     global logger
 
-    log_format = '%(asctime)s %(levelname)s: %(message)s'
+    log_format = "%(asctime)s %(levelname)s: %(message)s"
     # check if log path is specified
     if not args.logfile:
-        logfile = os.getcwd() + '/streamdl.log'
+        logfile = os.getcwd() + "/streamdl.log"
     else:
         if os.path.isdir(args.logfile):
             logfile = args.logfile + "/streamdl.log"
@@ -368,7 +440,7 @@ def setup_logging(args):
     else:
         log_level = logging.INFO
 
-    if logfile == 'stdout':
+    if logfile == "stdout":
         logger = stream_logger(log_level, log_format)
     else:
         logger = rotating_logger(logfile, log_level, log_format)
@@ -379,9 +451,9 @@ def receive_signal(signum, frame):
     Catches SIGTERM - Mainly to Address Docker Container Stops
     """
     global logger
-    logger.debug('Received SIGTERM... Terminating.')
+    logger.debug(f"Received {signum}... Terminating...")
     kill_pids()
-    sys.exit(0)
+    sys.exit(1)
 
 
 def kill_pids():
@@ -396,6 +468,6 @@ def kill_pids():
         i += 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # do the things
     main(sys.argv)

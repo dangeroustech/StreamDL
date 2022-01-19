@@ -1,21 +1,18 @@
 [tool.poetry]
 name = "StreamDL"
-version = "1.2.5"
+version = "1.2.9"
 description = "Monitor and Download Streams from a Variety of Websites"
-authors = [
-    "biodrone"
-]
+authors = [ "biodrone <biodrone@dangerous.tech>" ]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-youtube_dl = "2021.6.6"
-PyYAML = "5.4.1"
-requests = "2.26.0"
-streamlink = "^2.4.0"
+PyYAML = "6.0"
+requests = "2.27.1"
+streamlink = "^3.0.3"
+yt-dlp = "^2021.12.27"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-pylint = "^2.10.2"
 black = "^21.12b0"
