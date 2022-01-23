@@ -10,7 +10,7 @@ python = "^3.9"
 PyYAML = "6.0"
 requests = "2.27.1"
 streamlink = "^3.0.3"
-yt-dlp = "^2021.12.27"
+yt-dlp = "^2022.1.21"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
