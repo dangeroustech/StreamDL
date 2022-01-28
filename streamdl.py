@@ -119,7 +119,7 @@ def recurse(repeat, outdir, **kwargs):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            logger.warn("recurse thread interrupt caught...")
+            logger.warning("recurse thread interrupt caught...")
     # always reload config in case local changes are made
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
@@ -360,10 +360,10 @@ def twitch_download(url, user, outdir):
             # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
             return True
     except NoPluginError:
-        logger.warn("Streamlink is unable to handle the URL '{0}'".format(url))
+        logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
         return False
     except PluginError as err:
-        logging.warn("Plugin error: {0}".format(err))
+        logging.warning("Plugin error: {0}".format(err))
         return False
 
 
