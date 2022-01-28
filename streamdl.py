@@ -21,6 +21,7 @@ import shutil
 from pathlib import Path
 from streamlink import Streamlink, StreamError, PluginError, NoPluginError
 import subprocess
+import ffmpeg
 
 # set up manager functions
 mgr = Manager()
@@ -308,6 +309,9 @@ def twitch_download(url, user, outdir):
     """
 
     session = Streamlink()
+    session.set_plugin_option("twitch", "twitch-disable-ads", True)
+    session.set_plugin_option("twitch", "twitch-disable-reruns", True)
+    session.set_plugin_option("twitch", "twitch-disable-hosting", True)
 
     try:
         # use this to check for live streams
@@ -317,6 +321,7 @@ def twitch_download(url, user, outdir):
             logger.warning(f"No streams found for user {user}")
             return False
         else:
+            # TODO: Make this log message better
             logger.debug(
                 "{}/{}/{}/{} - {}.mp4".format(
                     outdir.rsplit("/", 1)[0],
@@ -327,6 +332,7 @@ def twitch_download(url, user, outdir):
                 )
             )
             # create dir because streamlink is incapable of doing so apparently
+            # TODO: Do this natively
             subprocess.call(
                 [
                     "mkdir",
@@ -337,27 +343,12 @@ def twitch_download(url, user, outdir):
                 ]
             )
             # download video with streamlink
-            subprocess.call(
-                [
-                    "streamlink",
-                    "-Q",
-                    "-f",
-                    "-4",
-                    "-o",
-                    "{} - {}.mp4".format(user, datetime.utcnow().date()),
-                    "--twitch-disable-ads",
-                    "--twitch-disable-reruns",
-                    "--twitch-disable-hosting",
-                    "{}/{}".format(url, user),
-                    "best",
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd="{}/{}/{}".format(
-                    outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
-                ),
+            (
+                ffmpeg
+                .input(stream["best"].url)
+                .output("test.mp4")
+                .run()
             )
-            # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
