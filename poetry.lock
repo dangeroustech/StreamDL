@@ -22,17 +22,22 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "bandit"
-version = "1.7.1"
+version = "1.7.2"
 description = "Security oriented static analyser for python code."
 category = "dev"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.7"
 
 [package.dependencies]
 colorama = {version = ">=0.3.9", markers = "platform_system == \"Windows\""}
 GitPython = ">=1.0.1"
 PyYAML = ">=5.3.1"
 stevedore = ">=1.20.0"
+
+[package.extras]
+test = ["beautifulsoup4 (>=4.8.0)", "coverage (>=4.5.4)", "fixtures (>=3.0.0)", "flake8 (>=4.0.0)", "pylint (==1.9.4)", "stestr (>=2.5.0)", "testscenarios (>=0.5.0)", "testtools (>=2.3.0)", "toml"]
+toml = ["toml"]
+yaml = ["pyyaml"]
 
 [[package]]
 name = "black"
@@ -355,7 +360,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "3.0.3"
+version = "3.1.1"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
@@ -430,7 +435,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "yt-dlp"
-version = "2021.12.27"
+version = "2022.1.21"
 description = "A youtube-dl fork with additional features and patches"
 category = "main"
 optional = false
@@ -444,7 +449,7 @@ websockets = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "690892d7237af59be7433e4195eee15499024356ce531d1d48f98979dcb721b6"
+content-hash = "8908b180a36fe05c1b375faa6f3595acee3b83bbfc86d9df9f316bb285ad0764"
 
 [metadata.files]
 atomicwrites = [
@@ -456,8 +461,8 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 bandit = [
-    {file = "bandit-1.7.1-py3-none-any.whl", hash = "sha256:f5acd838e59c038a159b5c621cf0f8270b279e884eadd7b782d7491c02add0d4"},
-    {file = "bandit-1.7.1.tar.gz", hash = "sha256:a81b00b5436e6880fa8ad6799bc830e02032047713cbb143a12939ac67eb756c"},
+    {file = "bandit-1.7.2-py3-none-any.whl", hash = "sha256:e20402cadfd126d85b68ed4c8862959663c8c372dbbb1fca8f8e2c9f55a067ec"},
+    {file = "bandit-1.7.2.tar.gz", hash = "sha256:6d11adea0214a43813887bfe71a377b5a9955e4c826c8ffd341b494e3ab25260"},
 ]
 black = [
     {file = "black-21.12b0-py3-none-any.whl", hash = "sha256:a615e69ae185e08fdd73e4715e260e2479c861b5740057fde6e8b4e3b7dd589f"},
@@ -725,10 +730,10 @@ stevedore = [
     {file = "stevedore-3.5.0.tar.gz", hash = "sha256:f40253887d8712eaa2bb0ea3830374416736dc8ec0e22f5a65092c1174c44335"},
 ]
 streamlink = [
-    {file = "streamlink-3.0.3-py3-none-any.whl", hash = "sha256:595578706fb640a186c65d7b98d559ffd87b13ef3700bfac75ba90a96b71eb91"},
-    {file = "streamlink-3.0.3-py3-none-win32.whl", hash = "sha256:59ce60d22652189086f5830358d51a9f9afbbc956ebbbed85c2a100cbe2ac425"},
-    {file = "streamlink-3.0.3-py3-none-win_amd64.whl", hash = "sha256:7fd8899fa1ce814fc08d997240444f39920a942f3561649f20e42b9c57b3d5e1"},
-    {file = "streamlink-3.0.3.tar.gz", hash = "sha256:a042bda7a3aea864a6d897607e727e374b09b51abac02a15086714d0634430b2"},
+    {file = "streamlink-3.1.1-py3-none-any.whl", hash = "sha256:90f8ab43751550fd0d3415af19275d74b796267f177c3c41fbc44f6f1cde2c2b"},
+    {file = "streamlink-3.1.1-py3-none-win32.whl", hash = "sha256:2debbf408a4714e2b2e8a2cf82bebbfd67a5f1d1c69b59e19e33273e02fbc6db"},
+    {file = "streamlink-3.1.1-py3-none-win_amd64.whl", hash = "sha256:c23606d5df9309e65b6d81c5e49d9a293a5953235b5ed80fa1c61c09e8547fba"},
+    {file = "streamlink-3.1.1.tar.gz", hash = "sha256:855cd31e900e3ae1d5328a37123bfffe2aec501a1d74bcdd12f0d2a2758060e4"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
@@ -801,6 +806,6 @@ websockets = [
     {file = "websockets-10.1.tar.gz", hash = "sha256:181d2b25de5a437b36aefedaf006ecb6fa3aa1328ec0236cdde15f32f9d3ff6d"},
 ]
 yt-dlp = [
-    {file = "yt-dlp-2021.12.27.tar.gz", hash = "sha256:2244df3759751487e796b23b67216bee98e70832a3a43c2526b0b0e0bbfbcb5b"},
-    {file = "yt_dlp-2021.12.27-py2.py3-none-any.whl", hash = "sha256:bb46898a175d149c9c6bb2846056590d297aa4eafad8487c3e1315d2c6090896"},
+    {file = "yt-dlp-2022.1.21.tar.gz", hash = "sha256:220ec407389b5ea72e25dfc11c30e543489b90075c55311d5255e2045db8a9e2"},
+    {file = "yt_dlp-2022.1.21-py2.py3-none-any.whl", hash = "sha256:182903b78a4645edd504dcd9f2603f76f9fdaf8bd279fd45d01992f7637b6d8a"},
 ]

@@ -119,7 +119,7 @@ def recurse(repeat, outdir, **kwargs):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            logger.warn("recurse thread interrupt caught...")
+            logger.warning("recurse thread interrupt caught...")
     # always reload config in case local changes are made
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
@@ -311,10 +311,10 @@ def twitch_download(url, user, outdir):
 
     try:
         # use this to check for live streams
-        stream = session.streams(url + "/" + user)["best"]
+        stream = session.streams(url=(url + "/" + user))
 
         if not stream:
-            logger.warn("No streams found on URL '{0}'".format(url))
+            logger.warning(f"No streams found for user {user}")
             return False
         else:
             logger.debug(
@@ -349,7 +349,7 @@ def twitch_download(url, user, outdir):
                     "--twitch-disable-reruns",
                     "--twitch-disable-hosting",
                     "{}/{}".format(url, user),
-                    "worst",
+                    "best",
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -360,10 +360,10 @@ def twitch_download(url, user, outdir):
             # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
             return True
     except NoPluginError:
-        logger.warn("Streamlink is unable to handle the URL '{0}'".format(url))
+        logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
         return False
     except PluginError as err:
-        logging.warn("Plugin error: {0}".format(err))
+        logging.warning("Plugin error: {0}".format(err))
         return False
 
 
