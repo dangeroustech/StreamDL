@@ -21,6 +21,7 @@ import shutil
 from pathlib import Path
 from streamlink import Streamlink, StreamError, PluginError, NoPluginError
 import subprocess
+import ffmpeg
 
 # set up manager functions
 mgr = Manager()
@@ -77,6 +78,9 @@ def main(argv):
     parser.add_argument(
         "-r", "--repeat", help="Time to repetitively check users, in minutes"
     )
+    parser.add_argument(
+        "-q", "--quality", help="Quality of stream (defaults to 'best')"
+    )
     args = parser.parse_args()
 
     setup_logging(args)
@@ -99,11 +103,16 @@ def main(argv):
 
     users = config_reader(args.config)
     logger.info("Users in Config: {}".format(users))
-    mass_downloader(users, outdir)
+    mass_downloader(users, outdir, quality=args.quality if args.quality else "")
 
     # check if repeat is specified
     if args.repeat:
-        recurse(args.repeat, outdir, config=args.config)
+        recurse(
+            args.repeat,
+            outdir,
+            config=args.config,
+            quality=args.quality if args.quality else "",
+        )
 
 
 def recurse(repeat, outdir, **kwargs):
@@ -124,13 +133,13 @@ def recurse(repeat, outdir, **kwargs):
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
 
-    mass_downloader(users, outdir)
+    mass_downloader(users, outdir, kwargs.get("quality"))
 
     recurse(repeat, outdir, **kwargs)
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(config, outdir):
+def mass_downloader(config, outdir, quality):
     """
     Handles the process spawning to download multiple things at once
 
@@ -155,7 +164,7 @@ def mass_downloader(config, outdir):
                     p = Process(
                         name="{}".format(user),
                         target=twitch_download,
-                        args=(url, user, outdir),
+                        args=(url, user, outdir, quality),
                     )
                     logger.debug("P: {}".format(p._args))
                     p.start()
@@ -297,7 +306,7 @@ def ytdl_hooks(d):
         logger.debug(shutil.move(d["filename"], loc))
 
 
-def twitch_download(url, user, outdir):
+def twitch_download(url, user, outdir, quality):
     """
     Downloads Twitch Videos
 
@@ -308,6 +317,9 @@ def twitch_download(url, user, outdir):
     """
 
     session = Streamlink()
+    session.set_plugin_option("twitch", "twitch-disable-ads", True)
+    session.set_plugin_option("twitch", "twitch-disable-reruns", True)
+    session.set_plugin_option("twitch", "twitch-disable-hosting", True)
 
     try:
         # use this to check for live streams
@@ -317,53 +329,35 @@ def twitch_download(url, user, outdir):
             logger.warning(f"No streams found for user {user}")
             return False
         else:
-            logger.debug(
-                "{}/{}/{}/{} - {}.mp4".format(
-                    outdir.rsplit("/", 1)[0],
-                    url.upper().split(".")[0],
-                    user,
-                    user,
-                    datetime.utcnow().date(),
+            try:
+                logger.debug(
+                    f"Quality {quality if quality else 'best'} for stream {url + '/' + user}"
                 )
+                print(stream[quality if quality else "best"].url)
+            except KeyError:
+                logger.critical(
+                    f"Stream quality {quality} for {user} not found - exiting"
+                )
+                exit(404)
+            logger.debug(
+                f"{outdir.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}/{user} - {datetime.utcnow().date()}.mp4"
             )
+
             # create dir because streamlink is incapable of doing so apparently
-            subprocess.call(
-                [
-                    "mkdir",
-                    "-p",
-                    "{}/{}/{}".format(
-                        outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
-                    ),
-                ]
-            )
-            # download video with streamlink
-            subprocess.call(
-                [
-                    "streamlink",
-                    "-Q",
-                    "-f",
-                    "-4",
-                    "-o",
-                    "{} - {}.mp4".format(user, datetime.utcnow().date()),
-                    "--twitch-disable-ads",
-                    "--twitch-disable-reruns",
-                    "--twitch-disable-hosting",
-                    "{}/{}".format(url, user),
-                    "best",
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd="{}/{}/{}".format(
-                    outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
-                ),
-            )
-            # streamlink -o test.mp4 --twitch-disable-ads --twitch-disable-reruns --twitch-disable-hosting https://www.twitch.tv/classykatie best
+            p = Path(f"{outdir.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}")
+            p.mkdir(parents=True, exist_ok=True)
+
+            # download video with ffmpeg
+            timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
+            ffmpeg.input(stream[quality if quality else "best"].url).output(
+                f"{p}/{user}-{timestamp}.mp4"
+            ).run()
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
         return False
     except PluginError as err:
-        logging.warning("Plugin error: {0}".format(err))
+        logger.warning("Plugin error: {0}".format(err))
         return False
 
 

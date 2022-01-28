@@ -33,6 +33,8 @@ Why not get some use out of it? Archivists everywhere, rejoice!
                                 Config file to use
   -r    REPEAT,     --repeat    REPEAT
                                 Time to repetitively check users, in minutes
+  -q    QUALITY,    --quality   Quality of stream to download
+                                (best, 1080p, >720p)
 ```
 
 ## Install
