@@ -311,10 +311,10 @@ def twitch_download(url, user, outdir):
 
     try:
         # use this to check for live streams
-        stream = session.streams(url + "/" + user)["best"]
+        stream = session.streams(url=(url + "/" + user))
 
         if not stream:
-            logger.warn("No streams found on URL '{0}'".format(url))
+            logger.warning(f"No streams found for user {user}")
             return False
         else:
             logger.debug(
@@ -349,7 +349,7 @@ def twitch_download(url, user, outdir):
                     "--twitch-disable-reruns",
                     "--twitch-disable-hosting",
                     "{}/{}".format(url, user),
-                    "worst",
+                    "best",
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
