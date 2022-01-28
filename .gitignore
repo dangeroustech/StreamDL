@@ -19,6 +19,6 @@ streamdl.egg-info
 .pytest_cache
 __pycache__
 docker-compose.yml
-Dockerfile_local
+Dockerfile
 .env
 *.exe
