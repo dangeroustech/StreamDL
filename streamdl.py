@@ -321,15 +321,8 @@ def twitch_download(url, user, outdir):
             logger.warning(f"No streams found for user {user}")
             return False
         else:
-            # TODO: Make this log message better
             logger.debug(
-                "{}/{}/{}/{} - {}.mp4".format(
-                    outdir.rsplit("/", 1)[0],
-                    url.upper().split(".")[0],
-                    user,
-                    user,
-                    datetime.utcnow().date(),
-                )
+                f"{outdir.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}/{user} - {datetime.utcnow().date()}.mp4"
             )
             # create dir because streamlink is incapable of doing so apparently
             # TODO: Do this natively
@@ -343,12 +336,7 @@ def twitch_download(url, user, outdir):
                 ]
             )
             # download video with streamlink
-            (
-                ffmpeg
-                .input(stream["best"].url)
-                .output("test.mp4")
-                .run()
-            )
+            (ffmpeg.input(stream["best"].url).output("test.mp4").run())
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
