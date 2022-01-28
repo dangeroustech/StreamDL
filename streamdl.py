@@ -325,18 +325,12 @@ def twitch_download(url, user, outdir):
                 f"{outdir.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}/{user} - {datetime.utcnow().date()}.mp4"
             )
             # create dir because streamlink is incapable of doing so apparently
-            # TODO: Do this natively
-            subprocess.call(
-                [
-                    "mkdir",
-                    "-p",
-                    "{}/{}/{}".format(
-                        outdir.rsplit("/", 1)[0], url.upper().split(".")[0], user
-                    ),
-                ]
-            )
-            # download video with streamlink
-            (ffmpeg.input(stream["best"].url).output("test.mp4").run())
+            p = Path(f"{outdir.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}")
+            p.mkdir(parents=True, exist_ok=True)
+
+            # download video with ffmpeg
+            timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
+            ffmpeg.input(stream["best"].url).output(f"{p}/{user}-{timestamp}.mp4").run()
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
