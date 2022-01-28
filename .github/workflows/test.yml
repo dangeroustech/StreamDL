@@ -35,4 +35,4 @@ jobs:
           context: .
           file: Dockerfile.example
           load: true
-          tags: dangeroustech/streamdl:latest
+          tags: dangeroustech/streamdl:ci_test
