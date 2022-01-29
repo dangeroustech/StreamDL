@@ -1,14 +1,18 @@
 # Contributing to StreamDownloader
 
-:+1: First off, thanks for taking the time to contribute! :+1:
+:+1: First off, thanks for taking the time to contribute! :tada:
 
-# Git Commit Message Best Practice
+## Git Commit Message Best Practice
+
+- Please open an issue with your requested feature/fix/etc first
 - Use the present tense ("Add feature" not "Added feature")
 - Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
-- Limit the first line to 72 characters or less
-- Reference issues and pull requests liberally after the first line
+- Follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) standards
+- Update any tests that your PR breaks
+- PRs should reference the issue they are addressing with `Fixes: 999`
 
-# Submitting Pull Requests
+## Submitting Pull Requests
+
 Please always submit PRs to the Staging branch, never to Master.
 
 Features will be moved to master once they have been adequately tested in Staging.
