@@ -1,6 +1,6 @@
 import os
 import unittest
-from streamdl import config_reader
+from streamdl import config_reader, twitch_download
 from streamdl import yt_download
 
 
@@ -35,15 +35,17 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = "youtube.com"
         user = "watch?v=v2GCfSGFkG0"
-        self.assertTrue(yt_download(url, user, os.getcwd() + "/media/"))
+        self.assertTrue(yt_download(url, user, os.getcwd() + "/media/", opts=""))
 
     def test_offline_twitch(self):
         """
-        Test that a good URL succeeds by downloading nyan cat
+        Test that an offline Twitch user fails correctly
         """
         url = "twitch.tv"
         user = "biodrone"
-        self.assertTrue(yt_download(url, user, os.getcwd() + "/media/"))
+        self.assertFalse(
+            twitch_download(url, user, os.getcwd() + "/media/", quality="best")
+        )
 
     def test_invalid_url(self):
         """
@@ -51,7 +53,7 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = "example.com"
         user = "watch?v=QH2-TGUlwu4"
-        self.assertFalse(yt_download(url, user, os.getcwd() + "/media/"))
+        self.assertFalse(yt_download(url, user, os.getcwd() + "/media/", opts=""))
 
     def test_non_video_url(self):
         """
@@ -59,7 +61,7 @@ class TestDownloadVideo(unittest.TestCase):
         """
         url = "dangerous.tech"
         user = "watch?v=QH2-TGUlwu4"
-        self.assertTrue(yt_download(url, user, os.getcwd() + "/media/"))
+        self.assertTrue(yt_download(url, user, os.getcwd() + "/media/", opts=""))
 
 
 if __name__ == "__main__":
