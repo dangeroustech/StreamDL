@@ -1,3 +1,12 @@
+## [2.0.3](https://github.com/dangeroustech/StreamDL/compare/v2.0.2...v2.0.3) (2022-01-29)
+
+
+### Bug Fixes
+
+* remove unnecessary docker build ([a331f56](https://github.com/dangeroustech/StreamDL/commit/a331f569702a1403f04602d128d81db025af05d9))
+
+
+
 ## [2.0.2](https://github.com/dangeroustech/StreamDL/compare/v0.1.0...v2.0.2) (2022-01-29)
 
 
