@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "StreamDL"
-version = "2.0.5"
+version = "2.1.0"
 description = "Monitor and Download Streams from a Variety of Websites"
 authors = [ "biodrone <biodrone@dangerous.tech>" ]
 readme = "README.md"

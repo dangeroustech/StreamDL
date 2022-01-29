@@ -1,3 +1,16 @@
+## [2.1.0](https://github.com/dangeroustech/StreamDL/compare/v2.0.5...v2.1.0) (2022-01-29)
+
+
+### 🎉 New Features
+
+* **build:** slim down docker conatiners ([5232609](https://github.com/dangeroustech/StreamDL/commit/5232609d91b639bdd8afbaa9a3fb1777203aa46d)), closes [#219](https://github.com/dangeroustech/StreamDL/issues/219)
+
+
+### 🐛 Bug Fixes
+
+* **app:** use ffmpeg copy codec ([c4c694a](https://github.com/dangeroustech/StreamDL/commit/c4c694a71088bd2d8aea625e5879613df721c07b))
+* **build:** supporting python call without poetry ([2acb76b](https://github.com/dangeroustech/StreamDL/commit/2acb76b266461d077b16af620842123b5cf41183))
+
 ### [2.0.5](https://github.com/dangeroustech/StreamDL/compare/v2.0.4...v2.0.5) (2022-01-29)
 
 
