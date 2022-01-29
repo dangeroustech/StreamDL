@@ -32,20 +32,7 @@ jobs:
           file: Dockerfile.example
           load: true
           tags: dangeroustech/streamdl:latest
-
-      - name: Changelog
-        uses: TriPSs/conventional-changelog-action@v3
-        id: changelog
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          git-message: 'chore(release): {version} [skip ci]'
-          force-bump-patch-version: true
-          changelog-generator-opt: "emojis=true"
-          output-file: "CHANGELOG.md"
-          tag-prefix: 'v'
-          release-count: 0
-          version-file: pyproject.toml
-
+      
       - name: Create Release
         uses: actions/create-release@v1
         id: release
@@ -56,6 +43,19 @@ jobs:
           tag_name: ${{ steps.changelog.outputs.tag }}
           release_name: ${{ steps.changelog.outputs.tag }}
           body: ${{ steps.changelog.outputs.clean_changelog }}
+
+      - name: Changelog
+        uses: TriPSs/conventional-changelog-action@v3
+        id: changelog
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-message: 'chore(release)🤖: {version} [skip ci]'
+          output-file: "CHANGELOG.md"
+          tag-prefix: 'v'
+          fallback-version: '2.1.1'
+          release-count: 0
+          version-file: pyproject.toml
+          version-path: tool.poetry.version
 
       - name: Dockerhub Push Stable
         id: dockerhub_stable_push
