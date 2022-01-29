@@ -36,6 +36,7 @@ jobs:
           release-count: 0
           version-file: pyproject.toml
           version-path: tool.poetry.version
+          config-file-path: './.changelog.config.js'
 
       - name: Create Release
         uses: actions/create-release@v1
