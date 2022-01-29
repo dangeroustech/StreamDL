@@ -1,3 +1,21 @@
+## [2.2.0](https://github.com/dangeroustech/StreamDL/compare/v2.1.1...v2.2.0) (2022-01-29)
+
+
+### ✍ Chore
+
+* **app:** import cleaning ([a8cf8be](https://github.com/dangeroustech/StreamDL/commit/a8cf8be82d30ab456990ba43b52fde5623c088ce))
+* **deps:** update deps ([d717a6b](https://github.com/dangeroustech/StreamDL/commit/d717a6b0fffdd8fab8eee894471dd01f772958d8))
+
+
+### 🎉 New Features
+
+* **app:** allow custom ytdl options specification ([bffe8d4](https://github.com/dangeroustech/StreamDL/commit/bffe8d4f4fa06e6beb4ff8c5134ab9605d70c036))
+
+
+### 🧪 Tests
+
+* **app:** fix broken offline twitch test ([5c82a21](https://github.com/dangeroustech/StreamDL/commit/5c82a2150df8d537ab68d49798ed4e78a1efffb6))
+
 ### [2.1.1](https://github.com/dangeroustech/StreamDL/compare/v2.1.0...v2.1.1) (2022-01-29)
 
 
