@@ -1,3 +1,10 @@
+### [2.1.1](https://github.com/dangeroustech/StreamDL/compare/v2.1.0...v2.1.1) (2022-01-29)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** correct repo checkout for tags ([0dda40b](https://github.com/dangeroustech/StreamDL/commit/0dda40ba7281c1785ef63a13eea9d5a57f4feffd))
+
 ## [2.1.0](https://github.com/dangeroustech/StreamDL/compare/v2.0.5...v2.1.0) (2022-01-29)
 
 
