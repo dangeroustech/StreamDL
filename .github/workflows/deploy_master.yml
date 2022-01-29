@@ -68,3 +68,4 @@ jobs:
           tags: |
             dangeroustech/streamdl:latest
             dangeroustech/streamdl:stable
+            dangeroustech/streamdl:${{ steps.changelog.outputs.tag }}
