@@ -166,6 +166,7 @@ def mass_downloader(config, outdir, quality):
                         target=twitch_download,
                         args=(url, user, outdir, quality),
                     )
+                    # TODO: Make this a more useful log message
                     logger.debug("P: {}".format(p._args))
                     p.start()
                     pids[user] = p.pid
