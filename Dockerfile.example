@@ -1,15 +1,30 @@
-FROM python:3.10-slim-bullseye
+FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
+
+# Export packages from poetry and save
+# to venv to avoid building them later
+FROM python:3.10-slim-bullseye as compile
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+COPY . .
+RUN pip install poetry==1.1.12
+RUN poetry export -o requirements.txt
+RUN pip install -r requirements.txt
+
+FROM python:3.10-slim-bullseye as final
 WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-# Install necessary software
-RUN apt update && apt install -y build-essential=12.9 libssl-dev=1.1.1k-1+deb11u1 libffi-dev=3.3-6 python3-dev=3.9.2-3 cargo=0.47.0-3+b1 libxml2-dev=2.9.10+dfsg-6.7 libxslt1-dev=1.1.34-4 ffmpeg=7:4.3.3-0+deb11u1
-RUN pip install poetry==1.1.11
-# Copy in app files
-COPY . .
-# Create download directories
 RUN mkdir -p /app/out
 RUN mkdir -p /app/dl
-# Create poetry venv
-RUN poetry install
+# Copy FFMPEG Binaries
+COPY --from=ffmpeg /ffmpeg /usr/local/bin/
+COPY --from=ffmpeg /ffprobe /usr/local/bin/
+COPY --from=ffmpeg /qt-faststart /usr/local/bin/
+# Copy Venv
+COPY --from=compile /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+# Copy in app files
+COPY streamdl.py .
+COPY entrypoint.sh .
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
