@@ -13,14 +13,12 @@ import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 import requests
 import signal
-import platform
 import shutil
 from pathlib import Path
-from streamlink import Streamlink, StreamError, PluginError, NoPluginError
-import subprocess
+from streamlink import Streamlink, PluginError, NoPluginError
 import ffmpeg
 
 # set up manager functions
