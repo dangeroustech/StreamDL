@@ -352,7 +352,7 @@ def twitch_download(url, user, outdir, quality):
             timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
             ffmpeg.input(stream[quality if quality else "best"].url).output(
                 f"{p}/{user}-{timestamp}.mp4"
-            ).global_args("-loglevel", "error").run()
+            ).global_args("-loglevel", "error").global_args("-codec", "copy").run()
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
