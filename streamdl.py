@@ -334,7 +334,7 @@ def twitch_download(url, user, outdir, quality):
                 logger.debug(
                     f"Quality {quality if quality else 'best'} for stream {url + '/' + user}"
                 )
-                print(stream[quality if quality else "best"].url)
+                stream[quality if quality else "best"].url
             except KeyError:
                 logger.critical(
                     f"Stream quality {quality} for {user} not found - exiting"
@@ -352,7 +352,7 @@ def twitch_download(url, user, outdir, quality):
             timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
             ffmpeg.input(stream[quality if quality else "best"].url).output(
                 f"{p}/{user}-{timestamp}.mp4"
-            ).run()
+            ).global_args("-loglevel", "error").run()
             return True
     except NoPluginError:
         logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
