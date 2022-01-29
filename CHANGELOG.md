@@ -1,3 +1,13 @@
+### [2.0.5](https://github.com/dangeroustech/StreamDL/compare/v2.0.4...v2.0.5) (2022-01-29)
+
+
+### ✍ Chore
+
+* add security vuln issue template ([c191016](https://github.com/dangeroustech/StreamDL/commit/c1910166d83f1deefce33e09d1cb0348bc16c5e9))
+* clarity around bug template ([cde4b44](https://github.com/dangeroustech/StreamDL/commit/cde4b447ba7ae28a475163ed9ff318338f062ecf))
+* update contributing.md ([eb2596d](https://github.com/dangeroustech/StreamDL/commit/eb2596dd5d8b285c85813a666214aba3d7b6ce00))
+* update supported versions ([819c6b7](https://github.com/dangeroustech/StreamDL/commit/819c6b70e08036ee19f08f43b822c3600f6aa6ad))
+
 ### [2.0.4](https://github.com/dangeroustech/StreamDL/compare/v2.0.3...v2.0.4) (2022-01-29)
 
 
