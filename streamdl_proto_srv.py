@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import logging
+from yt_dlp import YoutubeDL as ytdl
+from yt_dlp import utils as ytdl_utils
+from streamlink import Streamlink, PluginError, NoPluginError
+import stream_pb2 as pb
+import stream_pb2_grpc as pb_grpc
+from concurrent import futures
+import grpc
+
+
+class StreamServicer(pb_grpc.Stream):
+    def GetStream(self, request, context):
+        res = get_stream(request)
+        if not res.get("error"):
+            return pb.StreamResponse(url=res["url"], error=0)
+        else:
+            return pb.StreamResponse(error=res.error)
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    pb_grpc.add_StreamServicer_to_server(StreamServicer(), server)
+    server.add_insecure_port("[::]:50051")
+    server.start()
+    server.wait_for_termination()
+
+
+def get_stream(r):
+    session = Streamlink()
+    session.set_plugin_option("twitch", "twitch-disable-ads", True)
+    session.set_plugin_option("twitch", "twitch-disable-reruns", True)
+    session.set_plugin_option("twitch", "twitch-disable-hosting", True)
+
+    try:
+        stream = session.streams(url=(r.site + "/" + r.user))
+
+        if not stream:
+            # logger.warning(f"No streams found for user {user}")
+            return {"error": 404}
+        else:
+            try:
+                return {"url": stream[r.quality if r.quality else "best"].url}
+            except KeyError:
+                # logger.critical("Stream quality not found - exiting")
+                return {"error": 414}
+    except NoPluginError:
+        # logger.warning(f"Streamlink is unable to handle the {url}")
+        return {"error": 101}
+    except PluginError as err:
+        # logger.warning(f"Plugin error: {err}")
+        return {"error": 102}
+
+
+if __name__ == "__main__":
+    logging.basicConfig()
+    try:
+        serve()
+    except KeyboardInterrupt as e:
+        print("\nClosing Due To Keyboard Interrupt...")
