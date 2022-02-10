@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"time"
 
 	pb "dangerous.tech/streamdl/protos"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -14,6 +16,7 @@ const (
 )
 
 func main() {
+	deadlineMs := flag.Int("deadline_ms", 20*1000, "Default deadline in milliseconds.")
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("grpc failed to connect: %v", err)
@@ -21,11 +24,13 @@ func main() {
 	defer conn.Close()
 	c := pb.NewStreamClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*deadlineMs)*time.Millisecond)
 	defer cancel()
 	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: "twitch.tv", User: "teampgp", Quality: "best"})
 	if err != nil {
-		log.Fatalf("could not request stream: %v", err)
+		if e, ok := status.FromError(err); ok {
+			log.Fatalf("could not request stream: %v", e.Code())
+		}
 	}
 	// if msg.Error == nil {
 	log.Printf("Stream Fetched: %v", msg.Url)
