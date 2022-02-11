@@ -31,8 +31,7 @@ func main() {
 		if e, ok := status.FromError(err); ok {
 			log.Fatalf("could not request stream: %v", e.Code())
 		}
+	} else {
+		log.Printf("Stream Fetched: %v", msg.Url)
 	}
-	// if msg.Error == nil {
-	log.Printf("Stream Fetched: %v", msg.Url)
-	// }
 }
