@@ -1,7 +1,11 @@
 package main
 
+type Config struct {
+	Site      string     `yaml:"site"`
+	Streamers []Streamer `yaml:"users"`
+}
+
 type Streamer struct {
-	Site    string
-	User    string
-	Quality string
+	User    string `yaml:"name"`
+	Quality string `yaml:"quality"`
 }
