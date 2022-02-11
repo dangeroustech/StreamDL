@@ -17,8 +17,18 @@ class StreamServicer(pb_grpc.Stream):
             return pb.StreamResponse(url=res["url"])
         else:
             match res["error"]:
+                case 400:
+                    context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                case 403:
+                    context.set_code(grpc.StatusCode.UNAUTHENTICATED)
                 case 404:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
+                case 408:
+                    context.set_code(grpc.StatusCode.DEADLINE_EXCEEDED)
+                case 412:
+                    context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
+                case 418:
+                    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
             return pb.StreamResponse()
