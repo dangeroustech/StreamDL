@@ -8,6 +8,7 @@ import (
 
 	pb "dangerous.tech/streamdl/protos"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
 
@@ -17,7 +18,7 @@ const (
 
 func main() {
 	deadlineMs := flag.Int("deadline_ms", 20*1000, "Default deadline in milliseconds.")
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("grpc failed to connect: %v", err)
 	}
