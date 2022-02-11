@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
 	"time"
 
@@ -10,30 +10,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"gopkg.in/yaml.v2"
 )
 
 const (
 	address = "localhost:50051"
 )
 
-func main() {
-	var config []Config
-	confErr := yaml.Unmarshal(readConfig(), &config)
-	if confErr != nil {
-		log.Fatalf("error: %v", confErr)
-	}
-	fmt.Printf("config: %v\n", config)
-	for _, site := range config {
-		// fmt.Printf("site: %v\n\n", site.Site)
-		for _, streamer := range site.Streamers {
-			fmt.Printf("streamer: %v\nquality: %v\n", streamer.User, streamer.Quality)
-			getStream(site.Site, streamer.User, streamer.Quality)
-		}
-	}
-}
-
-func getStream(site string, user string, quality string) {
+func getStream(site string, user string, quality string) (string, error) {
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("grpc failed to connect: %v", err)
@@ -46,9 +29,11 @@ func getStream(site string, user string, quality string) {
 	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
-			log.Printf("could not request stream: %v", e.Code())
+			log.Printf("Failed to get stream for %v: %v", user, e.Code())
+			return "", errors.New("failed to get stream")
 		}
 	} else {
-		log.Printf("Stream Fetched: %v", msg.Url)
+		log.Printf("Stream for %v Fetched: %v", user, msg.Url)
 	}
+	return msg.Url, nil
 }
