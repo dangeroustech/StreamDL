@@ -14,6 +14,7 @@ class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
         res = get_stream(request)
         if not res.get("error"):
+            context.set_code(grpc.StatusCode.OK)
             return pb.StreamResponse(url=res["url"])
         else:
             match res["error"]:
