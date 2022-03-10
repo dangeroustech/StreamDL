@@ -1,3 +1,10 @@
+### [2.2.1](https://github.com/dangeroustech/StreamDL/compare/v2.2.0...v2.2.1) (2022-03-10)
+
+
+### ✍ Chore
+
+* deps update ([dbb63a1](https://github.com/dangeroustech/StreamDL/commit/dbb63a166435baf7f823479c6211053057a73467))
+
 ## [2.2.0](https://github.com/dangeroustech/StreamDL/compare/v2.1.1...v2.2.0) (2022-01-29)
 
 
