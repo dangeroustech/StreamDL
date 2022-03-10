@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"io/ioutil"
-	"log"
-	"os"
 	"time"
 
-	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
+	log "github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,6 +12,9 @@ func main() {
 	var config []Config
 	urls := make(map[string]string)
 	confErr := yaml.Unmarshal(readConfig(), &config)
+
+	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
+	log.SetLevel(log.DebugLevel)
 
 	if confErr != nil {
 		log.Fatalf("Config Error: %v", confErr)
@@ -29,19 +29,18 @@ func main() {
 		}
 	}
 
+	control := make(chan bool, len(urls))
+	response := make(chan bool, len(urls))
+
 	for user, url := range urls {
-		buf := &bytes.Buffer{}
-		done := make(chan error, 1)
-		cmd := fluentffmpeg.NewCommand("").InputPath(url).OutputFormat("mp4").OutputPath(user + ".mp4").Overwrite(true).OutputLogs(buf).Build()
-		cmd.Start()
-
-		go func() {
-			done <- cmd.Wait()
-		}()
-
-		time.Sleep(time.Second * 30)
-		out, _ := ioutil.ReadAll(buf) // read logs
-		log.Println(string(out))
-		cmd.Process.Signal(os.Interrupt)
+		go downloadStream(user, url, control, response)
 	}
+
+	log.Debugf("Sleeping...")
+	time.Sleep(time.Second * 5)
+	close(control)
+	for i := 0; i < len(urls); i++ {
+		<-response
+	}
+	time.Sleep(time.Second * 2)
 }

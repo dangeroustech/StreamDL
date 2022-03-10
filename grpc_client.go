@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	pb "dangerous.tech/streamdl/protos"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
@@ -29,11 +29,11 @@ func getStream(site string, user string, quality string) (string, error) {
 	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
-			log.Printf("Failed to get stream for %v: %v", user, e.Code())
+			log.Errorf("Failed to get stream for %v: %v", user, e.Code())
 			return "", errors.New("failed to get stream")
 		}
 	} else {
-		log.Printf("Stream for %v Fetched: %v", user, msg.Url)
+		log.Debugf("Stream for %v Fetched: %v", user, msg.Url)
 	}
 	return msg.Url, nil
 }
