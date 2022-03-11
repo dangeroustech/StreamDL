@@ -33,7 +33,7 @@ func getStream(site string, user string, quality string) (string, error) {
 			return "", errors.New("failed to get stream")
 		}
 	} else {
-		log.Debugf("Stream for %v Fetched: %v", user, msg.Url)
+		log.Tracef("Stream for %v Fetched: %v", user, msg.Url)
 	}
 	return msg.Url, nil
 }
