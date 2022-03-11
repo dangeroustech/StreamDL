@@ -19,7 +19,7 @@ const (
 func getStream(site string, user string, quality string) (string, error) {
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("grpc failed to connect: %v", err)
+		log.Fatalf("gRPC Failed to Connect: %v", err)
 	}
 	defer conn.Close()
 	c := pb.NewStreamClient(conn)
@@ -29,7 +29,7 @@ func getStream(site string, user string, quality string) (string, error) {
 	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
-			log.Errorf("Failed to get stream for %v: %v", user, e.Code())
+			log.Debugf("Failed to Get Stream for %v: %v", user, e.Code())
 			return "", errors.New("failed to get stream")
 		}
 	} else {
