@@ -378,7 +378,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "3.1.1"
+version = "4.1.0"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
@@ -459,7 +459,7 @@ websockets = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "1a32b1643c4c58b2972c90bdd9c094036a087f6a84c4ca803c2b18a1b6aaabd6"
+content-hash = "b8fde5568fda58ee1cf26eae43ec8e87c8584b4040d1935c10c1bde882e5a428"
 
 [metadata.files]
 atomicwrites = [
@@ -768,10 +768,10 @@ stevedore = [
     {file = "stevedore-3.5.0.tar.gz", hash = "sha256:f40253887d8712eaa2bb0ea3830374416736dc8ec0e22f5a65092c1174c44335"},
 ]
 streamlink = [
-    {file = "streamlink-3.1.1-py3-none-any.whl", hash = "sha256:90f8ab43751550fd0d3415af19275d74b796267f177c3c41fbc44f6f1cde2c2b"},
-    {file = "streamlink-3.1.1-py3-none-win32.whl", hash = "sha256:2debbf408a4714e2b2e8a2cf82bebbfd67a5f1d1c69b59e19e33273e02fbc6db"},
-    {file = "streamlink-3.1.1-py3-none-win_amd64.whl", hash = "sha256:c23606d5df9309e65b6d81c5e49d9a293a5953235b5ed80fa1c61c09e8547fba"},
-    {file = "streamlink-3.1.1.tar.gz", hash = "sha256:855cd31e900e3ae1d5328a37123bfffe2aec501a1d74bcdd12f0d2a2758060e4"},
+    {file = "streamlink-4.1.0-py3-none-any.whl", hash = "sha256:e7d36d22690c57a66fb49a107d905090094b16ad466e352b2474e2aadf7f2c40"},
+    {file = "streamlink-4.1.0-py3-none-win32.whl", hash = "sha256:6dea0a82c39b8a90ac8daa8ae7056009463fb5bb1a62e8d1368c9fbfce739f93"},
+    {file = "streamlink-4.1.0-py3-none-win_amd64.whl", hash = "sha256:6f5a627073c80287c676debee115a873a1b8054e22d637f2e5fe4c42be9bc75e"},
+    {file = "streamlink-4.1.0.tar.gz", hash = "sha256:0b492cf48cf1c8f12adc112e42df504857088363f036f400bc9330f80ff00893"},
 ]
 tomli = [
     {file = "tomli-1.2.3-py3-none-any.whl", hash = "sha256:e3069e4be3ead9668e21cb9b074cd948f7b3113fd9c8bba083f48247aab8b11c"},

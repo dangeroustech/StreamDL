@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.9"
 PyYAML = "6.0"
 requests = "2.27.1"
-streamlink = "^3.1.1"
+streamlink = "^4.1.0"
 yt-dlp = "^2022.2.4"
 ffmpeg-python = "^0.2.0"
 
