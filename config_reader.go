@@ -10,8 +10,8 @@ func check(e error) {
 	}
 }
 
-func readConfig() []byte {
-	dat, err := os.ReadFile("config.yml")
+func readConfig(loc string) []byte {
+	dat, err := os.ReadFile(loc)
 	check(err)
 	return dat
 }

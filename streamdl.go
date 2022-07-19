@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,11 +14,18 @@ import (
 
 var urls = make(map[string]string)
 var c = make(chan os.Signal, 2)
-var ticker = time.NewTicker(time.Second * 5)
 
 func main() {
+	confLoc := flag.String("config", "config.yml", "Location of config file (full path inc filename)")
+	outLoc := flag.String("out", "", "Location of output file (folder only, trailing slash)")
+	moveLoc := flag.String("move", "", "Location of move file (folder only, trailing slash)")
+	tickTime := flag.Int("tick", 5, "Time to tick (seconds)")
+	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
+	flag.Parse()
+
+	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
 	var config []Config
-	confErr := yaml.Unmarshal(readConfig(), &config)
+	confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
 	control := make(chan bool, len(config[0].Streamers))
 	response := make(chan bool, len(config[0].Streamers))
 
@@ -38,7 +46,7 @@ func main() {
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
 					if err == nil {
 						urls[streamer.User] = url
-						go downloadStream(streamer.User, url, control, response)
+						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 					}
 				}
 			}
@@ -67,7 +75,7 @@ func main() {
 			os.Exit(0)
 		case t := <-ticker.C:
 			// block until we tick
-			log.Tracef("Ticking Like Adam Curry: %v", t)
+			log.Tracef("Ticking: %v", t)
 		}
 	}
 }
