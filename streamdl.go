@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var urls = make(map[string]string)
@@ -29,7 +29,7 @@ func main() {
 	if confErr != nil {
 		log.Fatalf("Config Error: %v", confErr)
 	}
-
+	log.Tracef("Config: %v", config)
 	for {
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
