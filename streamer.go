@@ -2,10 +2,10 @@ package main
 
 type Config struct {
 	Site      string     `yaml:"site"`
-	Streamers []Streamer `yaml:"streamers"`
+	Streamers []Streamer `yaml:"channels"`
 }
 
 type Streamer struct {
-	User    string `yaml:"channel"`
+	User    string `yaml:"name"`
 	Quality string `yaml:"quality"`
 }
