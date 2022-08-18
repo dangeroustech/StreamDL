@@ -35,7 +35,7 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.component }}
           load: true
-          tags: dangeroustech/streamdl_${{ matrix.component }}:latest
+          tags: dangeroustech/streamdl:${{ matrix.component }}_latest
 
       - name: Dockerhub Push Staging
         id: dockerhub_staging_push
@@ -46,5 +46,5 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl_${{ matrix.component }}:latest
-            dangeroustech/streamdl_${{ matrix.component }}:staging
+            dangeroustech/streamdl:${{ matrix.component }}_latest
+            dangeroustech/streamdl:${{ matrix.component }}_staging
