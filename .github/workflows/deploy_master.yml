@@ -8,10 +8,6 @@ jobs:
   Changelog_Release:
     name: Changelog Release
     runs-on: "ubuntu-latest"
-    strategy:
-      fail-fast: true
-      matrix:
-        component: ["client", "server"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -52,6 +48,10 @@ jobs:
     name: Docker
     runs-on: ubuntu-latest
     needs: Changelog_Release
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ["client", "server"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -85,6 +85,6 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl_${{ matrix.component }}:latest
-            dangeroustech/streamdl_${{ matrix.component }}:stable
-            dangeroustech/streamdl_${{ matrix.component }}:${{ steps.tag.outputs.tag }}
+            dangeroustech/streamdl:${{ matrix.component }}_latest
+            dangeroustech/streamdl:${{ matrix.component }}_stable
+            dangeroustech/streamdl:${{ matrix.component }}_${{ steps.tag.outputs.tag }}
