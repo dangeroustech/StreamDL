@@ -8,6 +8,10 @@ jobs:
   Changelog_Release:
     name: Changelog Release
     runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ["client", "server"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -77,10 +81,10 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.example
+          file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl:latest
-            dangeroustech/streamdl:stable
-            dangeroustech/streamdl:${{ steps.tag.outputs.tag }}
+            dangeroustech/streamdl_${{ matrix.component }}:latest
+            dangeroustech/streamdl_${{ matrix.component }}:stable
+            dangeroustech/streamdl_${{ matrix.component }}:${{ steps.tag.outputs.tag }}
