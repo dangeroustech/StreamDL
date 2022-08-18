@@ -19,7 +19,7 @@ func main() {
 	confLoc := flag.String("config", "config.yml", "Location of config file (full path inc filename)")
 	outLoc := flag.String("out", "", "Location of output file (folder only, trailing slash)")
 	moveLoc := flag.String("move", "", "Location of move file (folder only, trailing slash)")
-	tickTime := flag.Int("tick", 5, "Time to tick (seconds)")
+	tickTime := flag.Int("time", 5, "Time to tick (seconds)")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
 	flag.Parse()
 
@@ -33,11 +33,12 @@ func main() {
 	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
 	log.SetLevel(log.TraceLevel)
 	log.Infof("Starting StreamDL...")
+	log.Tracef("Config: %v", config)
 
 	if confErr != nil {
 		log.Fatalf("Config Error: %v", confErr)
 	}
-	log.Tracef("Config: %v", config)
+
 	for {
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
