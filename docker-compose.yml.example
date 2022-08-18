@@ -2,13 +2,24 @@
 version: '3'
 
 services:
-  streamdl:
-    image: dangeroustech/streamdl:stable
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    restart: always
+    environment:
+      - STREAMDL_GRPC_PORT=50051
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
     restart: always
     volumes:
-      - /media/downloads/incomplete:/app/dl # in-progress downloads location
-      - /media/downloads/complete:/app/out # completed downloads location
-      - ./config.yml:/app/config.yml # config file
+        - /media/downloads/incomplete:/app/dl # in-progress downloads location
+        - /media/downloads/complete:/app/out # completed downloads location
+        - ./config.yml:/app/config.yml # config file
     environment:
-      - REPEAT_TIME=5 # time to repeat, in minutes
+      - TICK_TIME=10 # time to repeat, in minutes
       - LOG_LEVEL=INFO # log level
+      - STREAMDL_GRPC_ADDR=server
+      - STREAMDL_GRPC_PORT=50051
