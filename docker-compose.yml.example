@@ -3,16 +3,12 @@ version: '3'
 
 services:
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
+    image: dangeroustech/streamdl_server:stable
     restart: always
     environment:
       - STREAMDL_GRPC_PORT=50051
   client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
+    image: dangeroustech/streamdl_client:stable
     restart: always
     volumes:
         - /media/downloads/incomplete:/app/dl # in-progress downloads location
