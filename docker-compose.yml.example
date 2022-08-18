@@ -3,12 +3,12 @@ version: '3'
 
 services:
   server:
-    image: dangeroustech/streamdl_server:stable
+    image: dangeroustech/streamdl:server_v3.0.0
     restart: always
     environment:
       - STREAMDL_GRPC_PORT=50051
   client:
-    image: dangeroustech/streamdl_client:stable
+    image: dangeroustech/streamdl:client_v3.0.0
     restart: always
     volumes:
         - /media/downloads/incomplete:/app/dl # in-progress downloads location
