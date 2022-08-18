@@ -1,3 +1,14 @@
+## [3.0.0](https://github.com/dangeroustech/StreamDL/compare/v2.3.0...v3.0.0) (2022-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* v3 publication :tada:
+
+### 📚 Documentation
+
+* :sparkles: update docs for v3 ([056eede](https://github.com/dangeroustech/StreamDL/commit/056eede02441d9fa114833af1e33bd3b7db47e36))
+
 ## [2.3.0](https://github.com/dangeroustech/StreamDL/compare/v2.2.1...v2.3.0) (2022-08-18)
 
 
