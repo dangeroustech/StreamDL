@@ -22,7 +22,7 @@ jobs:
       - run: |
           python -m pip install poetry bandit
           python -m poetry install
-          python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv
+          python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv.py
   Docker_Test:
     name: Docker Build Test
     runs-on: "ubuntu-latest"
