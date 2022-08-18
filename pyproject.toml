@@ -1,16 +1,18 @@
 [tool.poetry]
 name = "StreamDL"
-version = "1.2.9"
+version = "2.2.0"
 description = "Monitor and Download Streams from a Variety of Websites"
 authors = [ "biodrone <biodrone@dangerous.tech>" ]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 PyYAML = "6.0"
 requests = "2.27.1"
 streamlink = "^3.1.1"
-yt-dlp = "^2022.2.4"
+yt-dlp = "^2022.1.21"
+grpcio = "^1.43.0"
+protobuf = "^3.19.4"
 ffmpeg-python = "^0.2.0"
 
 [tool.poetry.dev-dependencies]

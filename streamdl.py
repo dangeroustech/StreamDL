@@ -2,6 +2,15 @@
 
 # TODO: Figure out what to do with pids/processes as you probably don't need both
 
+# TODO: Make a `streamers` class to load the config YAML into so that it's easier to pass to functions
+# Should contain things like name, website, quality, maybe even per-user frequency?
+
+###################
+##### Write a cron timer in Go which parses the YAML and holds the structs etc
+##### Python should be running as a fastapi thingy that Golang can curl when the timer is up
+##### This means a separate process will run for each download and remove the python recursion bug too
+##################
+
 import logging
 from logging.handlers import RotatingFileHandler
 import argparse
@@ -13,15 +22,14 @@ import yaml
 from multiprocessing import Manager
 from multiprocessing import Process
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 import requests
 import signal
-import platform
 import shutil
 from pathlib import Path
-from streamlink import Streamlink, StreamError, PluginError, NoPluginError
-import subprocess
+from streamlink import Streamlink, PluginError, NoPluginError
 import ffmpeg
+import json
 
 # set up manager functions
 mgr = Manager()
@@ -79,7 +87,13 @@ def main(argv):
         "-r", "--repeat", help="Time to repetitively check users, in minutes"
     )
     parser.add_argument(
-        "-q", "--quality", help="Quality of stream (defaults to 'best')"
+        "-q",
+        "--quality",
+        help="Quality of stream (defaults to 'best')(Currently Twitch only)",
+    )
+    parser.add_argument(
+        "--ytdl_opts",
+        help='Supplmentary YTDL Opts (passed as dictionary: \'{"key1": "value1"}\'',
     )
     args = parser.parse_args()
 
@@ -103,7 +117,12 @@ def main(argv):
 
     users = config_reader(args.config)
     logger.info("Users in Config: {}".format(users))
-    mass_downloader(users, outdir, quality=args.quality if args.quality else "")
+    mass_downloader(
+        users,
+        outdir,
+        quality=args.quality if args.quality else "",
+        opts=args.ytdl_opts if args.ytdl_opts else "",
+    )
 
     # check if repeat is specified
     if args.repeat:
@@ -112,6 +131,7 @@ def main(argv):
             outdir,
             config=args.config,
             quality=args.quality if args.quality else "",
+            opts=args.ytdl_opts if args.ytdl_opts else "",
         )
 
 
@@ -133,13 +153,13 @@ def recurse(repeat, outdir, **kwargs):
     users = config_reader(kwargs.get("config"))
     logger.info("Users in Current Config: {}".format(users))
 
-    mass_downloader(users, outdir, kwargs.get("quality"))
+    mass_downloader(users, outdir, kwargs.get("quality"), kwargs.get("ytdl-opts"))
 
     recurse(repeat, outdir, **kwargs)
 
 
 # parse through users and launch downloader if necessary
-def mass_downloader(config, outdir, quality):
+def mass_downloader(config, outdir, quality, opts):
     """
     Handles the process spawning to download multiple things at once
 
@@ -166,17 +186,18 @@ def mass_downloader(config, outdir, quality):
                         target=twitch_download,
                         args=(url, user, outdir, quality),
                     )
-                    logger.debug("P: {}".format(p._args))
+                    # TODO: Make this a more useful log message
+                    logger.debug(f"Process: {p._args}")
                     p.start()
                     pids[user] = p.pid
                     processes.append(p)
-                    logger.debug("Process {} Started with PID {}".format(p.name, p.pid))
+                    logger.debug(f"Process {p.name} Started with PID {p.pid}")
                 else:
                     # set up process for given user
                     p = Process(
                         name="{}".format(user),
-                        target=download_video,
-                        args=(url, user, outdir),
+                        target=yt_download,
+                        args=(url, user, outdir, opts),
                     )
                     p.start()
                     pids[user] = p.pid
@@ -232,7 +253,7 @@ def process_cleanup():
 
 
 # do the video downloading
-def download_video(url, user, outpath):
+def yt_download(url, user, outpath, opts):
     """
     Handles downloading the individual videos
     """
@@ -245,16 +266,14 @@ def download_video(url, user, outpath):
         # fail on a bad status code
         if request.status_code >= 400:
             logging.warning(
-                "URL Has a Bad Status Code ({}): {}/{}".format(
-                    request.status_code, url, user
-                )
+                f"URL Has a Bad Status Code ({request.status_code}): {url}/{user}"
             )
-            logging.warning("Please check your config!")
             return False
     # fail on connection error
+    # TODO: Make this a scoped exception not a catchall
     except:
-        logging.warning("Unexpected Error: {}".format(sys.exc_info()[0]))
-        logging.warning("Invalid URL: {}/{}".format(url, user))
+        logging.warning(f"Unexpected Error: {sys.exc_info()[0]}")
+        logging.warning(f"Invalid URL: {url}/{user}")
         logging.warning(
             "Please file a bug report: https://github.com/biodrone/issues/new"
         )
@@ -262,26 +281,24 @@ def download_video(url, user, outpath):
 
     # pass opts to YTDL
     # TODO: Add an --exec option to this to trigger the move operation
+    timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
     ytdl_opts = {
-        "outtmpl": "{}/{}/{}/{} - {}.%(ext)s".format(
-            outpath.rsplit("/", 1)[0],
-            url.upper().split(".")[0],
-            user,
-            user,
-            datetime.utcnow().date(),
-        ),
+        "outtmpl": f"{outpath.rsplit('/', 1)[0]}/{url.upper().split('.')[0]}/{user}/{user} - {timestamp}.%(ext)s",
         "quiet": True,
         "logger": YTDLLogger(),
         "postprocessor-args": "-movflags +faststart",
         "progress_hooks": [ytdl_hooks],
     }
+    if opts:
+        ytdl_opts.update(json.loads(opts))
+    logger.debug(f"YTDL Opts After Update: {ytdl_opts}")
 
     # try to pull video from the given user
     try:
         with ytdl(ytdl_opts) as ydl:
-            ydl.download(["https://{}/{}/".format(url, user)])
+            ydl.download([f"https://{url}/{user}/"])
     except ytdl_utils.DownloadError:
-        logger.debug("Download Error, {} is Probably Offline".format(user))
+        logger.debug(f"Download Error, {user} is Probably Offline")
     except KeyboardInterrupt:
         logger.debug("Caught KeyBoardInterrupt...")
 
@@ -289,21 +306,28 @@ def download_video(url, user, outpath):
 
 
 def ytdl_hooks(d):
+    # TODO: Moving is currently a bit broken, fix it
     global logger
     global movepath
 
     if d["status"] == "finished":
         if movepath == "":
             return
-        file_tuple = os.path.split(os.path.abspath(d["filename"]))
-        loc = Path(
-            movepath + file_tuple[0].split("/")[-2] + "/" + file_tuple[0].split("/")[-1]
-        )
-        # TODO: Can use this to pop elements from a Currently Downloading dict in the future
-        # print("Done downloading {}".format(file_tuple[1]))
-        loc.mkdir(parents=True, exist_ok=True)
-        logger.debug("Moving {} to {}".format(file_tuple[0], loc))
-        logger.debug(shutil.move(d["filename"], loc))
+        else:
+            file_tuple = os.path.split(os.path.abspath(d["filename"]))
+            logger.debug(f"file_tuple = {file_tuple}")
+            loc = Path(
+                movepath
+                + file_tuple[0].split("/")[-2]
+                + "/"
+                + file_tuple[0].split("/")[-1]
+            )
+            logger.debug(f"loc = {loc}")
+            # TODO: Can use this to pop elements from a Currently Downloading dict in the future
+            # print("Done downloading {}".format(file_tuple[1]))
+            loc.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Moving {file_tuple[0]} to {loc}")
+            logger.debug(shutil.move(d["filename"], loc))
 
 
 def twitch_download(url, user, outdir, quality):
@@ -333,7 +357,7 @@ def twitch_download(url, user, outdir, quality):
                 logger.debug(
                     f"Quality {quality if quality else 'best'} for stream {url + '/' + user}"
                 )
-                print(stream[quality if quality else "best"].url)
+                stream[quality if quality else "best"].url
             except KeyError:
                 logger.critical(
                     f"Stream quality {quality} for {user} not found - exiting"
@@ -351,13 +375,14 @@ def twitch_download(url, user, outdir, quality):
             timestamp = str(datetime.utcnow()).replace(" ", "_").replace(":", "-")
             ffmpeg.input(stream[quality if quality else "best"].url).output(
                 f"{p}/{user}-{timestamp}.mp4"
-            ).run()
+            ).global_args("-loglevel", "error").global_args("-codec", "copy").run()
+            # TODO: Implement a move function here if movedir is specified
             return True
     except NoPluginError:
-        logger.warning("Streamlink is unable to handle the URL '{0}'".format(url))
+        logger.warning(f"Streamlink is unable to handle the {url}")
         return False
     except PluginError as err:
-        logger.warning("Plugin error: {0}".format(err))
+        logger.warning(f"Plugin error: {err}")
         return False
 
 

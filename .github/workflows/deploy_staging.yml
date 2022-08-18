@@ -8,6 +8,10 @@ jobs:
   docker:
     name: Docker
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ["client", "server"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,29 +33,18 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.example
+          file: Dockerfile.${{ matrix.component }}
           load: true
-          tags: dangeroustech/streamdl:latest
-
-      - name: Version
-        uses: go-semantic-release/action@v1
-        id: semrel
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          force-bump-patch-version: true
-          changelog-generator-opt: "emojis=true"
-          changelog-file: "CHANGELOG.md"
-          prepend: true
-          update-file: pyproject.toml
+          tags: dangeroustech/streamdl_${{ matrix.component }}:latest
 
       - name: Dockerhub Push Staging
         id: dockerhub_staging_push
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.example
-          platforms: linux/amd64, linux/arm64, linux/armhf
+          file: Dockerfile.${{ matrix.component }}
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl:latest
-            dangeroustech/streamdl:staging
+            dangeroustech/streamdl_${{ matrix.component }}:latest
+            dangeroustech/streamdl_${{ matrix.component }}:staging

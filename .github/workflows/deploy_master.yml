@@ -5,12 +5,64 @@ on:
     branches: [ master ]
 
 jobs:
-  docker:
-    name: Docker
-    runs-on: ubuntu-latest
+  Changelog_Release:
+    name: Changelog Release
+    runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ["client", "server"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          check-latest: true
+
+      - name: Install Changelog NPM Package
+        run: npm install conventional-changelog-conventionalcommits
+
+      - name: Changelog
+        uses: TriPSs/conventional-changelog-action@v3
+        id: changelog
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-message: 'chore(release)🤖: {version} [skip ci]'
+          output-file: "CHANGELOG.md"
+          tag-prefix: 'v'
+          fallback-version: '2.1.1'
+          release-count: 0
+          version-file: pyproject.toml
+          version-path: tool.poetry.version
+          config-file-path: './.changelog.config.js'
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: release
+        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          release_name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+  Docker_Release:
+    name: Docker
+    runs-on: ubuntu-latest
+    needs: Changelog_Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: 'Get Tag'
+        id: tag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 1.0.0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -24,34 +76,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker Build
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: Dockerfile.example
-          load: true
-          tags: dangeroustech/streamdl:latest
-
-      - name: Version
-        uses: go-semantic-release/action@v1
-        id: semrel
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          force-bump-patch-version: true
-          changelog-generator-opt: "emojis=true"
-          changelog-file: "CHANGELOG.md"
-          prepend: true
-          update-file: pyproject.toml
-
       - name: Dockerhub Push Stable
         id: dockerhub_stable_push
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.example
-          platforms: linux/amd64, linux/arm64, linux/armhf
+          file: Dockerfile.${{ matrix.component }}
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl:latest
-            dangeroustech/streamdl:stable
+            dangeroustech/streamdl_${{ matrix.component }}:latest
+            dangeroustech/streamdl_${{ matrix.component }}:stable
+            dangeroustech/streamdl_${{ matrix.component }}:${{ steps.tag.outputs.tag }}
