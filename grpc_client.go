@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 	"time"
 
 	pb "dangerous.tech/streamdl/protos"
@@ -12,12 +13,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	address = "localhost:50051"
-)
-
 func getStream(site string, user string, quality string) (string, error) {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.Dial(os.Getenv("STREAMDL_GRPC_ADDR")+":"+os.Getenv("STREAMDL_GRPC_PORT"), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("gRPC Failed to Connect: %v", err)
 	}

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 from yt_dlp import YoutubeDL as ytdl
 from yt_dlp import utils as ytdl_utils
 from streamlink import Streamlink, PluginError, NoPluginError
@@ -38,7 +39,7 @@ class StreamServicer(pb_grpc.Stream):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb_grpc.add_StreamServicer_to_server(StreamServicer(), server)
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{os.environ.get('STREAMDL_GRPC_PORT')}")
     server.start()
     server.wait_for_termination()
 
