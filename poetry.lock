@@ -437,11 +437,11 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "3.2.0"
+version = "4.3.0"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
-python-versions = "<4,>=3.6"
+python-versions = "<4,>=3.7"
 
 [package.dependencies]
 isodate = "*"
@@ -513,7 +513,7 @@ websockets = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "89480ba05152200ffc248628bd024f4baad2d92760b912498a373707315962ef"
+content-hash = "26427fdc492d187b768452004938bf4e1530c7d5e24e7433f3dce6a1435f4596"
 
 [metadata.files]
 atomicwrites = [
@@ -1071,10 +1071,10 @@ stevedore = [
     {file = "stevedore-4.0.0.tar.gz", hash = "sha256:f82cc99a1ff552310d19c379827c2c64dd9f85a38bcd5559db2470161867b786"},
 ]
 streamlink = [
-    {file = "streamlink-3.2.0-py3-none-any.whl", hash = "sha256:334449ca2bfea4a1a925f31b9e6fed2f29fcecd024a8cfb69e50c1b0dfb70a73"},
-    {file = "streamlink-3.2.0-py3-none-win32.whl", hash = "sha256:980a5a6616df603408966ae2f382c5a1c83ed412f1e0b89fc29fdd9b85922bf6"},
-    {file = "streamlink-3.2.0-py3-none-win_amd64.whl", hash = "sha256:a9b7244ba198b4dcb505f392a2542d52b5c8c5a170e8f1b84e9da6912a2be4f0"},
-    {file = "streamlink-3.2.0.tar.gz", hash = "sha256:9770d2d83844c5378a73e14130dcb760abc856566caa0a41fc5b97a0ded5d926"},
+    {file = "streamlink-4.3.0-py3-none-any.whl", hash = "sha256:31a14451a47405ec385d10a404bb796be2995c3f8e4b7642d2fb74de117be1fa"},
+    {file = "streamlink-4.3.0-py3-none-win32.whl", hash = "sha256:d5a70f0341f2ae1de150766b94172167bb76080efbf2aefea99eb29f69968547"},
+    {file = "streamlink-4.3.0-py3-none-win_amd64.whl", hash = "sha256:2d055483007238d73c8c2dc9f534dfabe83e46794c83e0fddc1ee77f95d76327"},
+    {file = "streamlink-4.3.0.tar.gz", hash = "sha256:49ab4f38f11308656e8cd241dff85fcc224bc2ff184e263ddbf6c74243f67d1f"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
