@@ -18,4 +18,4 @@ ffmpeg-python = "^0.2.0"
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-black = "^21.12b0"
+black = "^22.1"
