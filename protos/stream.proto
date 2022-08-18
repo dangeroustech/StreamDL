@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package protos;
+
+option go_package = "dangerous.tech/streamdl;streamdl";
+
+service Stream {
+  rpc GetStream(StreamInfo) returns (StreamResponse);
+}
+
+message StreamInfo {
+  string site = 1;
+  string user = 2;
+  string quality = 3;
+  string output_template = 4;
+}
+
+message StreamResponse {
+  string url = 1;
+  int32 error = 2;
+}

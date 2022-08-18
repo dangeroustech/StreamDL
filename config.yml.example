@@ -1,5 +1,10 @@
-twitch.tv:
-  - kaypealol
-  - day9tv
-mixer.com:
-  - ninja
+- site: twitch.tv
+  channels:
+  - name: kaypealol
+    quality: best
+  - name: day9tv
+    quality: worst
+- mixer.com:
+  channels:
+  - name: ninja
+    quality: 720p

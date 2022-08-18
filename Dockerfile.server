@@ -1,0 +1,25 @@
+# Export packages from poetry and save
+# to venv to avoid building them later
+FROM python:3.10-bullseye as deps
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+COPY . .
+RUN pip install poetry==1.1.14
+RUN poetry export --without-hashes -o requirements.txt
+RUN pip install -r requirements.txt
+
+# Python Protobuf Server
+FROM python:3.10-slim-bullseye as server
+WORKDIR /app
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+ENV PATH="/opt/venv/bin:$PATH"
+# Copy venv
+COPY --from=deps /opt/venv /opt/venv
+# Copy in app files
+COPY --from=deps streamdl_proto_srv.py .
+COPY --from=deps stream_pb2.py .
+COPY --from=deps stream_pb2_grpc.py .
+COPY --from=deps entrypoint_server.sh .
+ENTRYPOINT ["/bin/sh", "/app/entrypoint_server.sh"]

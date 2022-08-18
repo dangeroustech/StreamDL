@@ -2,6 +2,15 @@
 
 # TODO: Figure out what to do with pids/processes as you probably don't need both
 
+# TODO: Make a `streamers` class to load the config YAML into so that it's easier to pass to functions
+# Should contain things like name, website, quality, maybe even per-user frequency?
+
+###################
+##### Write a cron timer in Go which parses the YAML and holds the structs etc
+##### Python should be running as a fastapi thingy that Golang can curl when the timer is up
+##### This means a separate process will run for each download and remove the python recursion bug too
+##################
+
 import logging
 from logging.handlers import RotatingFileHandler
 import argparse
