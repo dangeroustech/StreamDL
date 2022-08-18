@@ -22,11 +22,14 @@ jobs:
       - run: |
           python -m pip install poetry bandit
           python -m poetry install
-          python -m poetry run pytest -v
-          python -m poetry run bandit -ll -c .bandit.yml streamdl.py
+          python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv
   Docker_Test:
     name: Docker Build Test
     runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ["client", "server"]
     steps:
       - uses: actions/checkout@v2
       - name: Docker Build
@@ -34,6 +37,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.example
+          file: Dockerfile.${{ matrix.component }}
           load: true
-          tags: dangeroustech/streamdl:ci_test
+          tags: dangeroustech/streamdl_${{ matrix.component }}:ci_test

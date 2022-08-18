@@ -7,7 +7,7 @@ import grpc
 
 
 def get_stream(stub):
-    res = stub.GetStream(pb.StatusCheck(site="site", user="hottubchick"))
+    res = stub.GetStream(pb.StatusCheck(site="twitch.tv", user="monstercat"))
     res.error if res.error else print(f"Status Check for {res.user} was {res.active}")
 
 
