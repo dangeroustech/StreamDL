@@ -15,7 +15,9 @@ services:
         - /media/downloads/complete:/app/out # completed downloads location
         - ./config.yml:/app/config.yml # config file
     environment:
-      - TICK_TIME=10 # time to repeat, in minutes
+      - TICK_TIME=10 # time to repeat, in seconds
       - LOG_LEVEL=INFO # log level
       - STREAMDL_GRPC_ADDR=server
       - STREAMDL_GRPC_PORT=50051
+    depends_on:
+      - server
