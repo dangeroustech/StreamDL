@@ -1,3 +1,26 @@
+### [3.0.1](https://github.com/dangeroustech/StreamDL/compare/v3.0.0...v3.0.1) (2022-08-19)
+
+
+### ✍ Chore
+
+* cleanup deps ([9c679d3](https://github.com/dangeroustech/StreamDL/commit/9c679d3e0ff84c8aa784476720767ec528d54e39))
+* deps update ([e5afde3](https://github.com/dangeroustech/StreamDL/commit/e5afde3eda4d739ba63613fc59eafb696b6b31cd))
+* file cleanup ([73ef694](https://github.com/dangeroustech/StreamDL/commit/73ef694522cce9802d42bb3e5beaff6b7ef328b5))
+
+
+### 🐛 Bug Fixes
+
+* correct default tick_time ([924fcb1](https://github.com/dangeroustech/StreamDL/commit/924fcb184fa81ad3a64a3aceb221161302246d29))
+* properly parse log_level from env ([650bbdd](https://github.com/dangeroustech/StreamDL/commit/650bbdd3119f99f84823243180125ff0b5a9d1ac))
+* update ci to publish fixes ([5de7e6e](https://github.com/dangeroustech/StreamDL/commit/5de7e6e8083df3bfd8cb385721a07c5c3c9c2645))
+
+
+### 📚 Documentation
+
+* :memo: correct docs around tick_time ([a9d4802](https://github.com/dangeroustech/StreamDL/commit/a9d4802f92788e877f63bd3efb6a2be5b6442acc))
+* update badges ([ea8f168](https://github.com/dangeroustech/StreamDL/commit/ea8f1686c66dbef03118743ec9f9a987a840c16c))
+* update SECURITY.md ([4a5ab25](https://github.com/dangeroustech/StreamDL/commit/4a5ab25f4dcb642b084d43d40e237ec485926ac8))
+
 ## [3.0.0](https://github.com/dangeroustech/StreamDL/compare/v2.3.0...v3.0.0) (2022-08-18)
 
 
