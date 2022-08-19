@@ -28,10 +28,15 @@ func main() {
 	confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
 	control := make(chan bool, len(config[0].Streamers))
 	response := make(chan bool, len(config[0].Streamers))
+	ll, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
 
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
-	log.SetLevel(log.TraceLevel)
+	if err != nil {
+		log.SetLevel(ll)
+	} else {
+		log.SetLevel(log.TraceLevel)
+	}
 	log.Infof("Starting StreamDL...")
 	log.Tracef("Config: %v", config)
 
