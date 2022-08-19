@@ -2,8 +2,6 @@
 
 import logging
 import os
-from yt_dlp import YoutubeDL as ytdl
-from yt_dlp import utils as ytdl_utils
 from streamlink import Streamlink, PluginError, NoPluginError
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
