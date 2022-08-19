@@ -2,7 +2,9 @@
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/5145a4b986526fa4573b/maintainability)](https://codeclimate.com/github/dangeroustech/StreamDL/maintainability)
 
-![Build and Push](https://github.com/dangeroustech/streamdl/actions/workflows/deploy-workflow.yml/badge.svg)
+![Master](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_master.yml/badge.svg)
+![Staging](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_staging.yml/badge.svg)
+
 ![CodeQL Analysis](https://github.com/dangeroustech/streamdl/actions/workflows/codeql-analysis.yml/badge.svg)
 
 Monitor and Download Streams from a Variety of Websites
@@ -71,9 +73,14 @@ _Make sure to rebuild the container with `docker-compose build` after editing th
 Basic YAML format. See config.yaml.example for a couple of test sites.
 
 ```yaml
-twitch.tv:
-  - kaypealol
-  - day9tv
-mixer.com:
-  - ninja
+- site: twitch.tv
+  channels:
+  - name: kaypealol
+    quality: best
+  - name: day9tv
+    quality: worst
+- site: mixer.com
+  channels:
+  - name: ninja
+    quality: best
 ```
