@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-grpcio = "^1.43.0"
+grpcio = "^1.48.1"
 protobuf = "^3.19.4"
 streamlink = "^4.3.0"
 
