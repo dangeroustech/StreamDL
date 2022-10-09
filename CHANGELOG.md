@@ -1,3 +1,113 @@
+### [3.0.2](https://github.com/dangeroustech/StreamDL/compare/v3.0.1...v3.0.2) (2022-10-09)
+
+
+### ✍ Chore
+
+* **deps:** bump protobuf from 3.20.1 to 3.20.2 ([76d2a9d](https://github.com/dangeroustech/StreamDL/commit/76d2a9d26e468db3d8417ce703e75914451a0747))
+
+### [3.0.1](https://github.com/dangeroustech/StreamDL/compare/v3.0.0...v3.0.1) (2022-08-19)
+
+
+### ✍ Chore
+
+* cleanup deps ([9c679d3](https://github.com/dangeroustech/StreamDL/commit/9c679d3e0ff84c8aa784476720767ec528d54e39))
+* deps update ([e5afde3](https://github.com/dangeroustech/StreamDL/commit/e5afde3eda4d739ba63613fc59eafb696b6b31cd))
+* file cleanup ([73ef694](https://github.com/dangeroustech/StreamDL/commit/73ef694522cce9802d42bb3e5beaff6b7ef328b5))
+
+
+### 🐛 Bug Fixes
+
+* correct default tick_time ([924fcb1](https://github.com/dangeroustech/StreamDL/commit/924fcb184fa81ad3a64a3aceb221161302246d29))
+* properly parse log_level from env ([650bbdd](https://github.com/dangeroustech/StreamDL/commit/650bbdd3119f99f84823243180125ff0b5a9d1ac))
+* update ci to publish fixes ([5de7e6e](https://github.com/dangeroustech/StreamDL/commit/5de7e6e8083df3bfd8cb385721a07c5c3c9c2645))
+
+
+### 📚 Documentation
+
+* :memo: correct docs around tick_time ([a9d4802](https://github.com/dangeroustech/StreamDL/commit/a9d4802f92788e877f63bd3efb6a2be5b6442acc))
+* update badges ([ea8f168](https://github.com/dangeroustech/StreamDL/commit/ea8f1686c66dbef03118743ec9f9a987a840c16c))
+* update SECURITY.md ([4a5ab25](https://github.com/dangeroustech/StreamDL/commit/4a5ab25f4dcb642b084d43d40e237ec485926ac8))
+
+## [3.0.0](https://github.com/dangeroustech/StreamDL/compare/v2.3.0...v3.0.0) (2022-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* v3 publication :tada:
+
+### 📚 Documentation
+
+* :sparkles: update docs for v3 ([056eede](https://github.com/dangeroustech/StreamDL/commit/056eede02441d9fa114833af1e33bd3b7db47e36))
+
+## [2.3.0](https://github.com/dangeroustech/StreamDL/compare/v2.2.1...v2.3.0) (2022-08-18)
+
+
+### 🔥 Style
+
+* plans for refactor ([34e7b80](https://github.com/dangeroustech/StreamDL/commit/34e7b80a84afddb87360915ef443ff2f7dbaf4a0))
+
+
+### 🎉 New Features
+
+* add proper logging ([139054b](https://github.com/dangeroustech/StreamDL/commit/139054b60850768bdda80b146e5f43f582fc130e))
+* add relevant flags ([3da9c2f](https://github.com/dangeroustech/StreamDL/commit/3da9c2f0921d8775538abd43096ffa11898ca486))
+* **app:** add protobuf server implementation ([70d0c1b](https://github.com/dangeroustech/StreamDL/commit/70d0c1b3e2fac129e7b754ee14691bc2cf35dbe4))
+* **app:** WIP - golang grpc client implementation ([2f2c046](https://github.com/dangeroustech/StreamDL/commit/2f2c0462f008f5aeaa5e62603c404de64fc067f5))
+* initial ffmpeg download ([e2d0211](https://github.com/dangeroustech/StreamDL/commit/e2d0211854ce017ad57a868a4fe6591ed622cce8))
+* yaml parsing ([47fd5ec](https://github.com/dangeroustech/StreamDL/commit/47fd5ec41224969a1155fab2044b13fee81c80fa))
+
+
+### ✍ Chore
+
+* add error conditions ([78248cb](https://github.com/dangeroustech/StreamDL/commit/78248cbb7dfc1df25342a95a3260be9737f4a3ed))
+* add some logging ([c4ffd88](https://github.com/dangeroustech/StreamDL/commit/c4ffd888db36776dc6377b6e265d585cf789a764))
+* better logging ([8b56aa1](https://github.com/dangeroustech/StreamDL/commit/8b56aa12bde0d7a4b07a33bd8a7a7c59bcb6c2e4))
+* bump poetry deps ([fb34276](https://github.com/dangeroustech/StreamDL/commit/fb3427678e2578fe23932c9070f9e8528172a14c))
+* bump python version for pattern matching ([432a6f8](https://github.com/dangeroustech/StreamDL/commit/432a6f85a7ea7594226a5589046cfc1bc1981e81))
+* bump yaml version ([4581d1b](https://github.com/dangeroustech/StreamDL/commit/4581d1bbe65ff1a2dd7d95209386c5ece9462c78))
+* bump yaml version to v3 ([e56ccbf](https://github.com/dangeroustech/StreamDL/commit/e56ccbf8974ef048e2460eafc327a54c7b9505f3))
+* log type changes ([8792099](https://github.com/dangeroustech/StreamDL/commit/879209978fb09ae6e45c32dbab466e944599cfe3))
+* reorganise functions ([591735f](https://github.com/dangeroustech/StreamDL/commit/591735f4c9d0228b022f5a42971be07f8d5d7d45))
+* sensible file naming ([c124efa](https://github.com/dangeroustech/StreamDL/commit/c124efa6f5c285ec4217d5e0834d55e0d96c1314))
+* upgrade yaml package version ([f4d93c5](https://github.com/dangeroustech/StreamDL/commit/f4d93c5fec4bc66d6a62c60ea85c1d620dffeddf))
+
+
+### 🐛 Bug Fixes
+
+* add 200 code on success ([5469931](https://github.com/dangeroustech/StreamDL/commit/54699316b7651219a8514f88bd0c755989cafa77))
+* correct deprecated option ([8fae1a1](https://github.com/dangeroustech/StreamDL/commit/8fae1a161d60f56f6cfcb3cdf03367dbc384874b))
+* correct error flow ([8ae0997](https://github.com/dangeroustech/StreamDL/commit/8ae0997dfbe9ce0bcd3db3e12c0212b77911f418))
+* correct example mappings ([5efc7e6](https://github.com/dangeroustech/StreamDL/commit/5efc7e6e965da092464ad1f34bf250e3be833a12))
+* correct example yaml keys ([1173aac](https://github.com/dangeroustech/StreamDL/commit/1173aac4e0340f04cbf19436732a180ca28d8ee6))
+* every condition besides ctrl c works fine... ([17b45a5](https://github.com/dangeroustech/StreamDL/commit/17b45a5bb46076f2114e8fa254a988f5f4016ed9))
+* minor docker retooling ([e82a902](https://github.com/dangeroustech/StreamDL/commit/e82a902c4621d3c7a6bf271ee95432a6188e8432))
+* proper gRPC error handling ([952b945](https://github.com/dangeroustech/StreamDL/commit/952b9456d9fdc6849072504270fa2e5032d7a30a))
+* pull grpc socket stuff from env ([1800481](https://github.com/dangeroustech/StreamDL/commit/1800481738fde5dd575d8ee3ca93b690feb963bf))
+* rename entrypoint scripts ([8d6b460](https://github.com/dangeroustech/StreamDL/commit/8d6b460f1e3a8c6063a9a34d46534a5c0e866335))
+* sensible yaml keys ([5df3907](https://github.com/dangeroustech/StreamDL/commit/5df39077164f758153f3a84b2aa2655765a7b23b))
+* tidied up docker build ([58f23ef](https://github.com/dangeroustech/StreamDL/commit/58f23ef39aa4b35f5679e60c85a0e4c8a7fd70ea))
+
+
+### 📚 Documentation
+
+* correct example to pull from dockerhub ([ed028b3](https://github.com/dangeroustech/StreamDL/commit/ed028b369c93800e8f8e5ab5d394b1628bbdb007))
+* remove old example dockerfile ([a09ed95](https://github.com/dangeroustech/StreamDL/commit/a09ed95bb2b1b3038383966acc20fcd2f92a1509))
+* update example config file ([928116e](https://github.com/dangeroustech/StreamDL/commit/928116ee740cd473e43d5d7b944a48f5027aa2b3))
+* update example docker-compose ([53a700f](https://github.com/dangeroustech/StreamDL/commit/53a700f892136b8d33da8d70f44a4ac6046fdf5c))
+
+
+### 🧪 Tests
+
+* correct file name ([25834cc](https://github.com/dangeroustech/StreamDL/commit/25834cccb26680f4e4e1d984f7ed22b28d3ff18a))
+* deprecate python 3.9 ([46b04a0](https://github.com/dangeroustech/StreamDL/commit/46b04a04a8a493ad892249a2ff3b449a9892f35b))
+* testing changes ([644e4d0](https://github.com/dangeroustech/StreamDL/commit/644e4d09f87ffac6c89d28f8cf7d6c2f375656d7))
+
+
+### 🤖 CI/CD
+
+* fix dockerhub typos ([097a5ed](https://github.com/dangeroustech/StreamDL/commit/097a5ed91030e273e72046d6a5c74ff81d58d40c))
+* update ci jobs for multi container builds ([d9da9e2](https://github.com/dangeroustech/StreamDL/commit/d9da9e2dea00eba3411b621ad84894d9caceba26))
+
 ### [2.2.1](https://github.com/dangeroustech/StreamDL/compare/v2.2.0...v2.2.1) (2022-03-10)
 
 
