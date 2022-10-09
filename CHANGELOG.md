@@ -1,3 +1,19 @@
+### [3.0.3](https://github.com/dangeroustech/StreamDL/compare/v3.0.2...v3.0.3) (2022-10-09)
+
+
+### 🐛 Bug Fixes
+
+* no longer using python for client operations ([cdd4da0](https://github.com/dangeroustech/StreamDL/commit/cdd4da06bd394270bfeabcb9fac13c241f902099))
+* regen protoc files for protobuf v4 bump ([fd0b282](https://github.com/dangeroustech/StreamDL/commit/fd0b2823fb9f837ca8e69aa974ccbdb311d03487))
+* remove --twitch-disable-hosting usage ([7b13fc7](https://github.com/dangeroustech/StreamDL/commit/7b13fc77c9a59579830ca89a24131887fc1f2f55))
+* use latest image version in example compose ([b95d1a3](https://github.com/dangeroustech/StreamDL/commit/b95d1a3f2e44177f98bff8aaa6df81ce863c8259))
+
+
+### ✍ Chore
+
+* fix linting issue ([ee1f607](https://github.com/dangeroustech/StreamDL/commit/ee1f607e0280ee0f58f20cbe58994470ca106b80))
+* poetry update ([0b0b330](https://github.com/dangeroustech/StreamDL/commit/0b0b3309fd95646ee3ee71a1d842dc5c9b0f9113))
+
 ### [3.0.2](https://github.com/dangeroustech/StreamDL/compare/v3.0.1...v3.0.2) (2022-10-09)
 
 
