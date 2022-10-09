@@ -1,3 +1,10 @@
+### [3.0.2](https://github.com/dangeroustech/StreamDL/compare/v3.0.1...v3.0.2) (2022-10-09)
+
+
+### ✍ Chore
+
+* **deps:** bump protobuf from 3.20.1 to 3.20.2 ([76d2a9d](https://github.com/dangeroustech/StreamDL/commit/76d2a9d26e468db3d8417ce703e75914451a0747))
+
 ### [3.0.1](https://github.com/dangeroustech/StreamDL/compare/v3.0.0...v3.0.1) (2022-08-19)
 
 
