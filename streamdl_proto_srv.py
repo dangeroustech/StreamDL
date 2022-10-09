@@ -46,7 +46,6 @@ def get_stream(r):
     session = Streamlink()
     session.set_plugin_option("twitch", "twitch-disable-ads", True)
     session.set_plugin_option("twitch", "twitch-disable-reruns", True)
-    session.set_plugin_option("twitch", "twitch-disable-hosting", True)
 
     try:
         stream = session.streams(url=(r.site + "/" + r.user))
