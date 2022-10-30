@@ -1,3 +1,10 @@
+## [3.1.0](https://github.com/dangeroustech/StreamDL/compare/v3.0.4...v3.1.0) (2022-10-30)
+
+
+### 🎉 New Features
+
+* sec: add snyk checks to staging ([1ff4e9d](https://github.com/dangeroustech/StreamDL/commit/1ff4e9d64f4ff82b805b826174a701ba4695d6e1))
+
 ### [3.0.4](https://github.com/dangeroustech/StreamDL/compare/v3.0.3...v3.0.4) (2022-10-30)
 
 ### [3.0.3](https://github.com/dangeroustech/StreamDL/compare/v3.0.2...v3.0.3) (2022-10-09)
