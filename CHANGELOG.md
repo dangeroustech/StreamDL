@@ -1,3 +1,17 @@
+### [3.1.1](https://github.com/dangeroustech/StreamDL/compare/v3.1.0...v3.1.1) (2022-10-30)
+
+
+### 🐛 Bug Fixes
+
+* bump debian version for less vulns ([9b3491b](https://github.com/dangeroustech/StreamDL/commit/9b3491b9c4adc35d1c359a2997fd19946f194137))
+* remove vulnerable go1.16 deps ([50e0dbe](https://github.com/dangeroustech/StreamDL/commit/50e0dbe1f1b05b314d883d0a159928148355569f))
+* specific staging tag for staging scan ([b131dfe](https://github.com/dangeroustech/StreamDL/commit/b131dfe79332302f6389f9813309ec0fe2907c4e))
+
+
+### 🤖 CI/CD
+
+* add Snyk scan to master CI ([13f8e7b](https://github.com/dangeroustech/StreamDL/commit/13f8e7be2b9ac6fa52caddb42f1c9cb381ff7dbf))
+
 ## [3.1.0](https://github.com/dangeroustech/StreamDL/compare/v3.0.4...v3.1.0) (2022-10-30)
 
 
