@@ -1,3 +1,5 @@
+### [3.0.4](https://github.com/dangeroustech/StreamDL/compare/v3.0.3...v3.0.4) (2022-10-30)
+
 ### [3.0.3](https://github.com/dangeroustech/StreamDL/compare/v3.0.2...v3.0.3) (2022-10-09)
 
 
