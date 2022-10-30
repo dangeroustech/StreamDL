@@ -89,3 +89,18 @@ jobs:
             dangeroustech/streamdl:${{ matrix.component }}_latest
             dangeroustech/streamdl:${{ matrix.component }}_stable
             dangeroustech/streamdl:${{ matrix.component }}_${{ steps.tag.outputs.tag }}
+
+      - name: Snyk Scan
+        id: snyk_scan
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: dangeroustech/streamdl:${{ matrix.component }}_stable
+          args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
+      
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
