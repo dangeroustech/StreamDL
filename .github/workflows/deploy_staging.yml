@@ -56,7 +56,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: dangeroustech/streamdl:${{ matrix.component }}_latest
+          image: dangeroustech/streamdl:${{ matrix.component }}_staging
           args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
       
       - name: Upload result to GitHub Code Scanning
