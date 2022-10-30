@@ -1,6 +1,6 @@
 # Export packages from poetry and save
 # to venv to avoid building them later
-FROM python:3.10-slim-buster as deps
+FROM python:3.10-slim-bullseye as deps
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -10,7 +10,7 @@ RUN poetry export --without-hashes -o requirements.txt
 RUN pip install -r requirements.txt
 
 # Python Protobuf Server
-FROM python:3.10-slim-buster as server
+FROM python:3.10-slim-bullseye as server
 WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
