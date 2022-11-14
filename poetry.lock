@@ -371,7 +371,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "5.0.1"
+version = "5.1.0"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
@@ -384,6 +384,7 @@ pycountry = "*"
 pycryptodome = ">=3.4.3,<4"
 PySocks = ">=1.5.6,<1.5.7 || >1.5.7"
 requests = ">=2.26.0,<3.0"
+urllib3 = ">=1.26.0"
 websocket-client = ">=1.2.1,<2.0"
 
 [[package]]
@@ -423,7 +424,7 @@ test = ["websockets"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "fe208274364ea5ecd735ff04bdb0b550f59dc2680447736b8397147fb8af9fa4"
+content-hash = "e0bc5dfcf9e84337fca6732e34f028d2c79ac724d8e296313706be329198410c"
 
 [metadata.files]
 attrs = [
@@ -767,10 +768,10 @@ stevedore = [
     {file = "stevedore-4.0.0.tar.gz", hash = "sha256:f82cc99a1ff552310d19c379827c2c64dd9f85a38bcd5559db2470161867b786"},
 ]
 streamlink = [
-    {file = "streamlink-5.0.1-py3-none-any.whl", hash = "sha256:17a7adf50d83fec0a785f7045ed3a59dfcc62fc8a28333bcefd01cde57b60c25"},
-    {file = "streamlink-5.0.1-py3-none-win32.whl", hash = "sha256:b03b9f71183cd681deca0e4578ee31581ba828bdbae0929f4da61ca088df7faf"},
-    {file = "streamlink-5.0.1-py3-none-win_amd64.whl", hash = "sha256:d81dbc47083e6b4ab583c04d1c07281c848798e13b0f3129aebb72597777603b"},
-    {file = "streamlink-5.0.1.tar.gz", hash = "sha256:3ca462a0f0614d5ea2ddc91081c2ae850166a41bd4404e28dc52de8fcab1e263"},
+    {file = "streamlink-5.1.0-py3-none-any.whl", hash = "sha256:c905ffcd5aa21ac5047b6cac9c7c855725013f66ae1f677422c4e30a356f9eb4"},
+    {file = "streamlink-5.1.0-py3-none-win32.whl", hash = "sha256:791f1ae9f5ab3bcda0c10af8def7d872be8ca1d0de1fbb28f39473833948a188"},
+    {file = "streamlink-5.1.0-py3-none-win_amd64.whl", hash = "sha256:daa3bc091e25c9386e038e8bc2e1ea30682589ec380b8ce40c3259c91e4f7164"},
+    {file = "streamlink-5.1.0.tar.gz", hash = "sha256:950f81602e26d796aa0d0d3fcb3cfb9e069ee884c3857cc2d1e4d54a5bc13fdf"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
