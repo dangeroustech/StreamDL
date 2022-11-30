@@ -354,19 +354,21 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "5.0.1"
+version = "5.1.1"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
 python-versions = "<4,>=3.7"
 
 [package.dependencies]
+certifi = "*"
 isodate = "*"
 lxml = ">=4.6.4,<5.0"
 pycountry = "*"
 pycryptodome = ">=3.4.3,<4"
 PySocks = ">=1.5.6,<1.5.7 || >1.5.7"
 requests = ">=2.26.0,<3.0"
+urllib3 = ">=1.26.0"
 websocket-client = ">=1.2.1,<2.0"
 
 [[package]]
@@ -398,7 +400,7 @@ test = ["websockets"]
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.11"
-content-hash = "413401924e47b621a39c44dbd2f02d83d541171935be39d9a7565b5184b1d2f1"
+content-hash = "9f8b4877108f08b39e18b20eecc4c5a6a422ff68cd38b7444fd3bd951da94219"
 
 [metadata.files]
 attrs = [
@@ -741,10 +743,10 @@ stevedore = [
     {file = "stevedore-4.0.0.tar.gz", hash = "sha256:f82cc99a1ff552310d19c379827c2c64dd9f85a38bcd5559db2470161867b786"},
 ]
 streamlink = [
-    {file = "streamlink-5.0.1-py3-none-any.whl", hash = "sha256:17a7adf50d83fec0a785f7045ed3a59dfcc62fc8a28333bcefd01cde57b60c25"},
-    {file = "streamlink-5.0.1-py3-none-win32.whl", hash = "sha256:b03b9f71183cd681deca0e4578ee31581ba828bdbae0929f4da61ca088df7faf"},
-    {file = "streamlink-5.0.1-py3-none-win_amd64.whl", hash = "sha256:d81dbc47083e6b4ab583c04d1c07281c848798e13b0f3129aebb72597777603b"},
-    {file = "streamlink-5.0.1.tar.gz", hash = "sha256:3ca462a0f0614d5ea2ddc91081c2ae850166a41bd4404e28dc52de8fcab1e263"},
+    {file = "streamlink-5.1.1-py3-none-any.whl", hash = "sha256:8285e90c2b6a77a47951de2e5c9578bf8221c3ee81e898c095ff94bb47b5423f"},
+    {file = "streamlink-5.1.1-py3-none-win32.whl", hash = "sha256:466652c6867645afb284389e82eeffffc9736d03cdb02611aa62db4f0789b248"},
+    {file = "streamlink-5.1.1-py3-none-win_amd64.whl", hash = "sha256:7a4d28097f128db0e5166bdb1a0e8c3c2f54c41586d881a6b8719dcf1d81ca23"},
+    {file = "streamlink-5.1.1.tar.gz", hash = "sha256:232b00199a4884abe32df6cb9a09f4678c2db37d192937ecea44b65ccaef5ee3"},
 ]
 urllib3 = [
     {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},
