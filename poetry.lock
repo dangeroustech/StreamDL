@@ -44,6 +44,7 @@ click = ">=8.0.0"
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0"
 platformdirs = ">=2"
+tomli = {version = ">=1.1.0", markers = "python_full_version < \"3.11.0a7\""}
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
@@ -88,6 +89,17 @@ description = "Cross-platform colored terminal text."
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
+name = "exceptiongroup"
+version = "1.0.4"
+description = "Backport of PEP 654 (exception groups)"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+test = ["pytest (>=6)"]
 
 [[package]]
 name = "gitdb"
@@ -279,9 +291,11 @@ python-versions = ">=3.7"
 [package.dependencies]
 attrs = ">=19.2.0"
 colorama = {version = "*", markers = "sys_platform == \"win32\""}
+exceptiongroup = {version = ">=1.0.0rc8", markers = "python_version < \"3.11\""}
 iniconfig = "*"
 packaging = "*"
 pluggy = ">=0.12,<2.0"
+tomli = {version = ">=1.0.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
@@ -354,7 +368,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "5.1.1"
+version = "5.1.2"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 category = "main"
 optional = false
@@ -370,6 +384,14 @@ PySocks = ">=1.5.6,<1.5.7 || >1.5.7"
 requests = ">=2.26.0,<3.0"
 urllib3 = ">=1.26.0"
 websocket-client = ">=1.2.1,<2.0"
+
+[[package]]
+name = "tomli"
+version = "2.0.1"
+description = "A lil' TOML parser"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
 
 [[package]]
 name = "urllib3"
@@ -399,8 +421,8 @@ test = ["websockets"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = "~3.11"
-content-hash = "9f8b4877108f08b39e18b20eecc4c5a6a422ff68cd38b7444fd3bd951da94219"
+python-versions = "^3.10"
+content-hash = "af497018b4c062d06c3320dfeba67f35b271be568092b42e0ae094f29c75fdec"
 
 [metadata.files]
 attrs = [
@@ -449,6 +471,10 @@ click = [
 colorama = [
     {file = "colorama-0.4.5-py2.py3-none-any.whl", hash = "sha256:854bf444933e37f5824ae7bfc1e98d5bce2ebe4160d46b5edf346a89358e99da"},
     {file = "colorama-0.4.5.tar.gz", hash = "sha256:e6c6b4334fc50988a639d9b98aa429a0b57da6e17b9a44f0451f930b6967b7a4"},
+]
+exceptiongroup = [
+    {file = "exceptiongroup-1.0.4-py3-none-any.whl", hash = "sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828"},
+    {file = "exceptiongroup-1.0.4.tar.gz", hash = "sha256:bd14967b79cd9bdb54d97323216f8fdf533e278df937aa2a90089e7d6e06e5ec"},
 ]
 gitdb = [
     {file = "gitdb-4.0.9-py3-none-any.whl", hash = "sha256:8033ad4e853066ba6ca92050b9df2f89301b8fc8bf7e9324d412a63f8bf1a8fd"},
@@ -743,10 +769,14 @@ stevedore = [
     {file = "stevedore-4.0.0.tar.gz", hash = "sha256:f82cc99a1ff552310d19c379827c2c64dd9f85a38bcd5559db2470161867b786"},
 ]
 streamlink = [
-    {file = "streamlink-5.1.1-py3-none-any.whl", hash = "sha256:8285e90c2b6a77a47951de2e5c9578bf8221c3ee81e898c095ff94bb47b5423f"},
-    {file = "streamlink-5.1.1-py3-none-win32.whl", hash = "sha256:466652c6867645afb284389e82eeffffc9736d03cdb02611aa62db4f0789b248"},
-    {file = "streamlink-5.1.1-py3-none-win_amd64.whl", hash = "sha256:7a4d28097f128db0e5166bdb1a0e8c3c2f54c41586d881a6b8719dcf1d81ca23"},
-    {file = "streamlink-5.1.1.tar.gz", hash = "sha256:232b00199a4884abe32df6cb9a09f4678c2db37d192937ecea44b65ccaef5ee3"},
+    {file = "streamlink-5.1.2-py3-none-any.whl", hash = "sha256:8cb27b9072775aca1c244a4e955c02207970004f09816c9b5ae4e061a76580e1"},
+    {file = "streamlink-5.1.2-py3-none-win32.whl", hash = "sha256:2ebd752a0196292a8c41388849ddad1d8bc2181da0074696bacee8240b27268d"},
+    {file = "streamlink-5.1.2-py3-none-win_amd64.whl", hash = "sha256:1aa7f6f044fe5dd854e75934ac680e604c4c9ed70dfe54dea24107e237353f55"},
+    {file = "streamlink-5.1.2.tar.gz", hash = "sha256:501f604d3dbfad05d5d50ed4432c041e51810890cc0e65eea43f27608238767a"},
+]
+tomli = [
+    {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
+    {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 urllib3 = [
     {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},

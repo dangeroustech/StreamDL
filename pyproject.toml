@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.10"
 grpcio = "^1.51.1"
 protobuf = "^4.21.9"
-streamlink = "^5.1.1"
+streamlink = "^5.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
