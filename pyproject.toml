@@ -14,4 +14,4 @@ streamlink = "^5.1.2"
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-black = "^22.10"
+black = "^22.12"
