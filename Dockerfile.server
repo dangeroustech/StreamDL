@@ -5,7 +5,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY . .
-RUN pip install poetry==1.1.14
+RUN pip install poetry==1.4.0
 RUN poetry export --without-hashes -o requirements.txt
 RUN pip install -r requirements.txt
 
