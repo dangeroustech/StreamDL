@@ -2,6 +2,7 @@
 # to venv to avoid building them later
 FROM python:3.11-slim-bullseye as deps
 ENV VIRTUAL_ENV=/opt/venv
+RUN "apt install -y build-essentials"
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY . .
