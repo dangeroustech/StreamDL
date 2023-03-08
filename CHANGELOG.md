@@ -1,3 +1,10 @@
+### [3.1.2](https://github.com/dangeroustech/StreamDL/compare/v3.1.1...v3.1.2) (2023-03-08)
+
+
+### ✍ Chore
+
+* **deps:** bump golang.org/x/crypto ([790abac](https://github.com/dangeroustech/StreamDL/commit/790abac11e3071b1758cb8e52781d71b6dbb7319))
+
 ### [3.1.1](https://github.com/dangeroustech/StreamDL/compare/v3.1.0...v3.1.1) (2022-10-30)
 
 
