@@ -1,14 +1,14 @@
 FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
 
 # Go Binary Builder
-FROM golang:alpine3.16 as go-build
+FROM golang:alpine3.17 as go-build
 WORKDIR /app
 COPY . .
 RUN go get -v
 RUN go build -o streamdl
 
 # Golang Protobuf Client and Logic
-FROM golang:alpine3.16 as client
+FROM golang:1.20.2-alpine3.17 as client
 WORKDIR /app
 RUN mkdir -p /app/dl /app/out
 # Copy FFMPEG Binaries

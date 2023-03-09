@@ -5,7 +5,9 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY . .
-RUN pip install poetry==1.1.14
+# RUN apt update && apt install -y build-essential
+# RUN pip install --upgrade pip
+RUN pip install poetry==1.4.0
 RUN poetry export --without-hashes -o requirements.txt
 RUN pip install -r requirements.txt
 
@@ -18,8 +20,5 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy venv
 COPY --from=deps /opt/venv /opt/venv
 # Copy in app files
-COPY --from=deps streamdl_proto_srv.py .
-COPY --from=deps stream_pb2.py .
-COPY --from=deps stream_pb2_grpc.py .
-COPY --from=deps entrypoint_server.sh .
+COPY --from=deps streamdl_proto_srv.py stream_pb2.py stream_pb2_grpc.py entrypoint_server.sh ./
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_server.sh"]
