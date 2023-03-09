@@ -1,6 +1,6 @@
 module dangerous.tech/streamdl
 
-go 1.17
+go 1.20
 
 require (
 	github.com/modfy/fluent-ffmpeg v0.1.0
