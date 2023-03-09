@@ -36,9 +36,9 @@ jobs:
       - name: Docker Build
         id: docker_build
         uses: docker/build-push-action@v2
-        platforms: linux/amd64
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}
+          platforms: linux/amd64
           load: true
           tags: dangeroustech/streamdl_${{ matrix.component }}:ci_test
