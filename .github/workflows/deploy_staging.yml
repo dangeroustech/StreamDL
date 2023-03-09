@@ -37,7 +37,7 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
-          # load: true
+          load: true
           tags: streamdl:${{ matrix.component }}_local
 
       - name: Docker Scan
