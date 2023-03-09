@@ -64,7 +64,6 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
-          load: true
           push: true
           tags: |
             dangeroustech/streamdl:${{ matrix.component }}_staging
