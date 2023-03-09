@@ -1,3 +1,30 @@
+### [3.1.3](https://github.com/dangeroustech/StreamDL/compare/v3.1.2...v3.1.3) (2023-03-09)
+
+
+### 🧪 Tests
+
+* fix: yaml formatting ([37396dd](https://github.com/dangeroustech/StreamDL/commit/37396dd845376bbc2c637844270e99affbc9905d))
+* update pr tests ([dd5caa6](https://github.com/dangeroustech/StreamDL/commit/dd5caa6b2a7b8719cfc518d03d758bb480d9d06e))
+
+
+### 🐛 Bug Fixes
+
+* cannot push and load because reasons ([1fc974c](https://github.com/dangeroustech/StreamDL/commit/1fc974c5aabef2191b5f9688008da821b135dd50))
+* go deps update ([c41e54b](https://github.com/dangeroustech/StreamDL/commit/c41e54b56af238a54ee78fb5a554b6843483777a))
+* testing manual pprof import ([bc98995](https://github.com/dangeroustech/StreamDL/commit/bc989956295d432c894fdcbb4f3d817327797f0c))
+* version pin golang properly ([d4ac670](https://github.com/dangeroustech/StreamDL/commit/d4ac6702ca22835b5f5fb7ee8325230570ab1a99))
+
+
+### 🤖 CI/CD
+
+* build on issue* PRs ([3fee9cc](https://github.com/dangeroustech/StreamDL/commit/3fee9cc3ea041943bff39fba9a76a55a2daa4255))
+* continue on error if there's no code scanning ([b7fe857](https://github.com/dangeroustech/StreamDL/commit/b7fe857ca7d5e61ed3c88c0574a500bc537ee359))
+* deprecate arm64 staging builds ([aea3a1c](https://github.com/dangeroustech/StreamDL/commit/aea3a1cdd35e2e5cddcca1a8f9b5cbe16e31bafd))
+* fix: base needs to be staging for PRs ([ad8e96a](https://github.com/dangeroustech/StreamDL/commit/ad8e96a3875bad7b3b3e8d4e00a5a0229fa54a30))
+* just work, we'll fix the protobuf thing later ([a5d12eb](https://github.com/dangeroustech/StreamDL/commit/a5d12eb2d7fb8403a055c4b7410cb5dd8f936f37))
+* load doesn't load... ([6350937](https://github.com/dangeroustech/StreamDL/commit/6350937eaf335e90f6779398ec197c7b6ad461b6))
+* remove org flag from local image ([cd050b2](https://github.com/dangeroustech/StreamDL/commit/cd050b26d75247b35b3d0e5b6b277e8abf82e999))
+
 ### [3.1.2](https://github.com/dangeroustech/StreamDL/compare/v3.1.1...v3.1.2) (2023-03-09)
 
 
