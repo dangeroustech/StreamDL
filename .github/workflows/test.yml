@@ -1,4 +1,4 @@
-name: "Test"
+name: "Pull Request Tests"
 
 on:
   pull_request:
@@ -25,10 +25,11 @@ jobs:
           python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv.py
   Docker_Test:
     name: Docker Build Test
-    runs-on: "ubuntu-latest"
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
+        os: ["ubuntu-20.04", "ubuntu-latest"]
         component: ["client", "server"]
     steps:
       - uses: actions/checkout@v2
@@ -38,5 +39,6 @@ jobs:
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}
+          platforms: linux/amd64
           load: true
           tags: dangeroustech/streamdl_${{ matrix.component }}:ci_test
