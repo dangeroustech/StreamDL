@@ -4,7 +4,7 @@ on:
   push:
     branches: [ staging ]
   pull_request:
-    branches: [ issue* ]
+    branches: [ staging ]
 
 jobs:
   docker:
