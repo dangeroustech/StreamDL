@@ -1,3 +1,38 @@
+### [3.1.2](https://github.com/dangeroustech/StreamDL/compare/v3.1.1...v3.1.2) (2023-03-09)
+
+
+### ✍ Chore
+
+* add build-essentials to container ([2d6c7cd](https://github.com/dangeroustech/StreamDL/commit/2d6c7cd9171c9a58df81f739223a5df12e99ab3e))
+* bump poetry version in Dockerfile ([ebcfe66](https://github.com/dangeroustech/StreamDL/commit/ebcfe668ad3b7d687872f42c9a3ae7c56818d6d0))
+* **deps:** bump certifi from 2022.9.24 to 2022.12.7 ([faf1d22](https://github.com/dangeroustech/StreamDL/commit/faf1d22eb49bd8b24796504be2941412c3bb662b))
+* **deps:** bump golang.org/x/net from 0.1.0 to 0.7.0 ([d61d5af](https://github.com/dangeroustech/StreamDL/commit/d61d5afbf0e3267e1d02bea3ac5f30c2d273db6d))
+* **deps:** bump golang.org/x/net from 0.1.0 to 0.7.0 ([743f4ad](https://github.com/dangeroustech/StreamDL/commit/743f4adf8876e185c6c134b551ded7038d802ef5))
+* **deps:** bump setuptools from 65.3.0 to 65.5.1 ([ca44107](https://github.com/dangeroustech/StreamDL/commit/ca44107ae72b6dc133a0c7cc53fdb3b7c4b7c621))
+* fully roll back ffmpeg ([0fe3828](https://github.com/dangeroustech/StreamDL/commit/0fe3828663cd1b002b6e909ded4a29517c5d6856))
+* roll back to python 3.10 ([de7fa61](https://github.com/dangeroustech/StreamDL/commit/de7fa61d38bf400b28529734a7d7718b6ddcafe9))
+* slightly roll ffmpeg back ([da9b408](https://github.com/dangeroustech/StreamDL/commit/da9b408fbec96a5d3d9c878794a878345821eb1b))
+* update .gitignore ([d6d9d8f](https://github.com/dangeroustech/StreamDL/commit/d6d9d8f167e5f894ff065c11436ac8370cc6962a))
+* update docker underlying OS ([e73cae3](https://github.com/dangeroustech/StreamDL/commit/e73cae38d64e1f25eb395759437a049fd4bb1c82))
+* update ffmpeg version ([fa440c8](https://github.com/dangeroustech/StreamDL/commit/fa440c8b2d799277735161d6dd527f2458507a48))
+* update poetry deps ([0869e05](https://github.com/dangeroustech/StreamDL/commit/0869e0525fc897f3691f6bbef27a8068a1b1c2c5))
+* upgrade pip ([9fec876](https://github.com/dangeroustech/StreamDL/commit/9fec876e2d1565277092847bec7f453b72fd2378))
+
+
+### 🐛 Bug Fixes
+
+* better version pinning for golang ([b58850f](https://github.com/dangeroustech/StreamDL/commit/b58850f1f3df7237f00ced0ba956f5eaf7f7970e))
+* combine file copies into one layer ([81fd0d2](https://github.com/dangeroustech/StreamDL/commit/81fd0d2345f0a032b93b5963048188e7e3842302))
+* hippy hop ([35ddf18](https://github.com/dangeroustech/StreamDL/commit/35ddf18d9d85f4ad316776bccb8200a24dc034e9))
+* idk rewind ([8d3cdb1](https://github.com/dangeroustech/StreamDL/commit/8d3cdb14a25a287ca6a0bd9ffd96bf4459810cc8))
+* install build-essential ([b42a27b](https://github.com/dangeroustech/StreamDL/commit/b42a27ba365702d51603cac0726ea25c4bfe0b1d))
+* pip upgrade breaks things ([40cd5d3](https://github.com/dangeroustech/StreamDL/commit/40cd5d3c1a4e3b813fa5ef2fdc8c534513ca16ce))
+* revert ([dc28c5a](https://github.com/dangeroustech/StreamDL/commit/dc28c5a7ab6d223f341436ddeb592f6c4d8d4a18))
+* see if adding wheel speeds up build time ([9212df7](https://github.com/dangeroustech/StreamDL/commit/9212df72c6a52f6a43742cd203c7852fe32547b9))
+* thicc python ([4201767](https://github.com/dangeroustech/StreamDL/commit/4201767e163ae8186afde31449e2c58e28baed86))
+* this builds locally... ([a9a6704](https://github.com/dangeroustech/StreamDL/commit/a9a6704ae752b35bfd0a2a793bf08e4eccee9e6c))
+* update go mod ([f9fe66c](https://github.com/dangeroustech/StreamDL/commit/f9fe66c2d118208b2c6571b81b7e88e63b28604e))
+
 ### [3.1.1](https://github.com/dangeroustech/StreamDL/compare/v3.1.0...v3.1.1) (2022-10-30)
 
 
