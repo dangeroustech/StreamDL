@@ -38,7 +38,7 @@ jobs:
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
           # load: true
-          tags: dangeroustech/streamdl:${{ matrix.component }}_local
+          tags: streamdl:${{ matrix.component }}_local
 
       - name: Docker Scan
         id: docker_scan
@@ -47,7 +47,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: dangeroustech/streamdl:${{ matrix.component }}_local
+          image: streamdl:${{ matrix.component }}_local
           args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
       
       - name: Upload result to GitHub Code Scanning
