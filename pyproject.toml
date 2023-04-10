@@ -15,4 +15,4 @@ wheel = "^0.38.4"
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-black = "^23.1"
+black = "^23.3"
