@@ -1,3 +1,11 @@
+### [3.1.4](https://github.com/dangeroustech/StreamDL/compare/v3.1.3...v3.1.4) (2023-04-30)
+
+
+### ✍ Chore
+
+* **deps:** bump google.golang.org/protobuf from 1.29.0 to 1.29.1 ([48570b5](https://github.com/dangeroustech/StreamDL/commit/48570b521e450a91661801ad4022c6ad899ea697))
+* update docker login-action to v2 ([80ccd32](https://github.com/dangeroustech/StreamDL/commit/80ccd32dd3df070135ab4e902465371889dc93aa))
+
 ### [3.1.3](https://github.com/dangeroustech/StreamDL/compare/v3.1.2...v3.1.3) (2023-03-09)
 
 
