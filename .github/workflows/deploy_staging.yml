@@ -3,7 +3,7 @@ name: "Dockerhub Build - Staging"
 on:
   push:
     branches: [ staging ]
-  pull_request:
+  pull_request_target:
     branches: [ staging ]
 
 jobs:
