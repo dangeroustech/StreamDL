@@ -7,9 +7,8 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	google.golang.org/grpc v1.53.0
-	google.golang.org/protobuf v1.29.0
+	google.golang.org/protobuf v1.29.1
 	gopkg.in/yaml.v3 v3.0.1
-	github.com/google/pprof v0.0.0-20230228050547-1710fef4ab10
 )
 
 require (
