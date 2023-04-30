@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.10"
 grpcio = "^1.51.3"
 protobuf = "^4.22.1"
-streamlink = "^5.3.1"
+streamlink = "^5.4.0"
 wheel = "^0.40.0"
 
 [tool.poetry.dev-dependencies]
