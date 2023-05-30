@@ -1,3 +1,17 @@
+### [3.1.5](https://github.com/dangeroustech/StreamDL/compare/v3.1.4...v3.1.5) (2023-05-30)
+
+
+### 🤖 CI/CD
+
+* allow code scan to fail ([5e8026e](https://github.com/dangeroustech/StreamDL/commit/5e8026ecf04e5dc868e85fdb1f750a64f16aade7))
+* switch to building on pull request target ([aac8344](https://github.com/dangeroustech/StreamDL/commit/aac834464ec09de35f995291d01806d0250793ec))
+
+
+### ✍ Chore
+
+* bump various ci tool versions ([e1dcde8](https://github.com/dangeroustech/StreamDL/commit/e1dcde86c7fa69371514996305c0078637380d55))
+* **deps:** bump requests from 2.28.2 to 2.31.0 ([149dd80](https://github.com/dangeroustech/StreamDL/commit/149dd802a7f74a53032787d8136e7f3fd998c517))
+
 ### [3.1.4](https://github.com/dangeroustech/StreamDL/compare/v3.1.3...v3.1.4) (2023-04-30)
 
 
