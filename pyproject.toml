@@ -7,12 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-grpcio = "^1.54.2"
-protobuf = "^4.23.2"
+grpcio = "^1.56.2"
+protobuf = "^4.23.4"
 streamlink = "^5.5.1"
-wheel = "^0.40.0"
+wheel = "^0.41.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
 bandit = "*"
-black = "^23.3"
+black = "^23.7"
