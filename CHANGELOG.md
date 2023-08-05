@@ -1,3 +1,15 @@
+### [3.1.6](https://github.com/dangeroustech/StreamDL/compare/v3.1.5...v3.1.6) (2023-08-05)
+
+
+### 🐛 Bug Fixes
+
+* Dockerfile.client to reduce vulnerabilities ([c15f8d9](https://github.com/dangeroustech/StreamDL/commit/c15f8d9357995be4571703c09bdc5a25e719e608))
+
+
+### ✍ Chore
+
+* **deps:** bump certifi from 2022.12.7 to 2023.7.22 ([b7322cb](https://github.com/dangeroustech/StreamDL/commit/b7322cb0974723dc4add4eb5d6fcab8e50051f14))
+
 ### [3.1.5](https://github.com/dangeroustech/StreamDL/compare/v3.1.4...v3.1.5) (2023-05-30)
 
 
