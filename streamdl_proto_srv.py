@@ -2,7 +2,10 @@
 
 import logging
 import os
-from streamlink import Streamlink, PluginError, NoPluginError
+
+from streamlink.exceptions import PluginError, NoPluginError
+from streamlink.session import Streamlink
+from streamlink.options import Options
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
 from concurrent import futures
@@ -44,11 +47,12 @@ def serve():
 
 def get_stream(r):
     session = Streamlink()
-    session.set_plugin_option("twitch", "twitch-disable-ads", True)
-    session.set_plugin_option("twitch", "twitch-disable-reruns", True)
+    options = Options()
+    options.set("twitch", "twitch-disable-ads", True)
+    options.set("twitch", "twitch-disable-reruns", True)
 
     try:
-        stream = session.streams(url=(r.site + "/" + r.user))
+        stream = session.streams(url=(r.site + "/" + r.user), options=options)
 
         if not stream:
             # logger.warning(f"No streams found for user {user}")
