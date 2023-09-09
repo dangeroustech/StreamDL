@@ -11,6 +11,15 @@ from concurrent import futures
 import grpc
 
 
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
+    format="%(asctime)s: |%(levelname)s| %(message)s",
+)
+
+logger = logging.getLogger("StreamDL")
+logger.debug("StreamDL Starting...")
+
+
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
         res = get_stream(request)
@@ -47,8 +56,8 @@ def serve():
 def get_stream(r):
     session = Streamlink()
     options = Options()
-    options.set("twitch", "twitch-disable-ads", True)
-    options.set("twitch", "twitch-disable-reruns", True)
+    options.set("twitch", "twitch-disable-ads")
+    options.set("twitch", "twitch-disable-reruns")
 
     try:
         stream = session.streams(url=(r.site + "/" + r.user), options=options)
@@ -75,10 +84,3 @@ if __name__ == "__main__":
         serve()
     except KeyboardInterrupt as e:
         print("\nClosing Due To Keyboard Interrupt...")
-
-logging.basicConfig(
-    level=getattr(logging, os.environ.get("LOG_LEVEL", "DEBUG").lower()),
-    format="%(asctime)s| %(name)s - %(levelname)s - %(message)s",
-)
-
-logger = logging.getLogger(__name__)
