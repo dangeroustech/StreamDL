@@ -1,3 +1,12 @@
+### [3.1.10](https://github.com/dangeroustech/StreamDL/compare/v3.1.9...v3.1.10) (2023-09-09)
+
+
+### 🐛 Bug Fixes
+
+* migrate release action away from deprecated ([e1503bf](https://github.com/dangeroustech/StreamDL/commit/e1503bfe174f1c9a69c50aa7bfcc62402ac855a0))
+* upgrade actions/setup-python to v4 ([e0d2971](https://github.com/dangeroustech/StreamDL/commit/e0d297149962e77e106114ebced2cb114f812267))
+* upgrade checkout and setup-node deps ([5aedd65](https://github.com/dangeroustech/StreamDL/commit/5aedd6511663ab32b8850a911c6db68a62f29aaf))
+
 ### [3.1.9](https://github.com/dangeroustech/StreamDL/compare/v3.1.8...v3.1.9) (2023-09-09)
 
 
