@@ -11,8 +11,8 @@ services:
     image: dangeroustech/streamdl:client_latest
     restart: always
     volumes:
-        - /media/downloads/incomplete:/app/dl # in-progress downloads location
-        - /media/downloads/complete:/app/out # completed downloads location
+        - ./downloads/incomplete:/app/dl # in-progress downloads location
+        - ./downloads/complete:/app/out # completed downloads location
         - ./config.yml:/app/config.yml # config file
     environment:
       - TICK_TIME=10 # time to repeat, in seconds
