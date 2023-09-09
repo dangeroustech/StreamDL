@@ -1,3 +1,10 @@
+### [3.1.8](https://github.com/dangeroustech/StreamDL/compare/v3.1.7...v3.1.8) (2023-09-09)
+
+
+### ✍ Chore
+
+* **deps-dev:** bump gitpython from 3.1.31 to 3.1.35 ([61dde00](https://github.com/dangeroustech/StreamDL/commit/61dde00fb71c25e2838440f74f479fa4f3b13ca1))
+
 ### [3.1.7](https://github.com/dangeroustech/StreamDL/compare/v3.1.6...v3.1.7) (2023-09-09)
 
 
