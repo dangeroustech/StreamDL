@@ -2,7 +2,6 @@
 
 import logging
 import os
-
 from streamlink.exceptions import PluginError, NoPluginError
 from streamlink.session import Streamlink
 from streamlink.options import Options
@@ -55,25 +54,31 @@ def get_stream(r):
         stream = session.streams(url=(r.site + "/" + r.user), options=options)
 
         if not stream:
-            # logger.warning(f"No streams found for user {user}")
+            logger.warning(f"No streams found for user {r.user}")
             return {"error": 404}
         else:
             try:
                 return {"url": stream[r.quality if r.quality else "best"].url}
             except KeyError:
-                # logger.critical("Stream quality not found - exiting")
+                logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        # logger.warning(f"Streamlink is unable to handle the {url}")
+        logger.warning(f"Streamlink is unable to handle the {r.url}")
         return {"error": 101}
     except PluginError as err:
-        # logger.warning(f"Plugin error: {err}")
+        logger.warning(f"Plugin error: {err}")
         return {"error": 102}
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
     try:
         serve()
     except KeyboardInterrupt as e:
         print("\nClosing Due To Keyboard Interrupt...")
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "DEBUG"),
+    format="%(asctime)s| %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
