@@ -2,6 +2,11 @@
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/5145a4b986526fa4573b/maintainability)](https://codeclimate.com/github/dangeroustech/StreamDL/maintainability)
 
+![Master](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_master.yml/badge.svg)
+![Staging](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_staging.yml/badge.svg)
+
+![CodeQL Analysis](https://github.com/dangeroustech/streamdl/actions/workflows/codeql-analysis.yml/badge.svg)
+
 Monitor and Download Streams from a Variety of Websites
 
 ## Why This Exists
@@ -30,6 +35,8 @@ Why not get some use out of it? Archivists everywhere, rejoice!
                                 Config file to use
   -r    REPEAT,     --repeat    REPEAT
                                 Time to repetitively check users, in minutes
+  -q    QUALITY,    --quality   Quality of stream to download
+                                (best, 1080p, >720p)
 ```
 
 ## Install
@@ -46,14 +53,14 @@ Edit the Environment variables in `docker-compose.yml.example` to modify script 
 Otherwise, just rename it to `docker-compose.yml` and run `docker-compose up -d`.
 
 Logs are piped to stdout by default so that `docker-compose logs` works.
-*If you know what you're doing, you can change this value in `entrypoint.sh`.*
-*Make sure to rebuild the container with `docker-compose build` after editing this.*
+_If you know what you're doing, you can change this value in `entrypoint.sh`._
+_Make sure to rebuild the container with `docker-compose build` after editing this._
 
 ### Bare Metal
 
-- Python 3.8 or newer
+- Python 3.9 or newer
 - ffmpeg
-- poetry (`pip install poetry` *or* `pip3 install poetry` *depending on your system*)
+- poetry (`pip install poetry` _or_ `pip3 install poetry` _depending on your system_)
 
 #### Example Run
 
@@ -66,9 +73,14 @@ Logs are piped to stdout by default so that `docker-compose logs` works.
 Basic YAML format. See config.yaml.example for a couple of test sites.
 
 ```yaml
-twitch.tv:
-- kaypealol
-- day9tv
-mixer.com:
-- ninja
+- site: twitch.tv
+  channels:
+  - name: kaypealol
+    quality: best
+  - name: day9tv
+    quality: worst
+- site: mixer.com
+  channels:
+  - name: ninja
+    quality: best
 ```

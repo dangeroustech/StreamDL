@@ -2,13 +2,22 @@
 version: '3'
 
 services:
-  streamdl:
-    image: dangeroustech/streamdl:stable
+  server:
+    image: dangeroustech/streamdl:server_latest
+    restart: always
+    environment:
+      - STREAMDL_GRPC_PORT=50051
+  client:
+    image: dangeroustech/streamdl:client_latest
     restart: always
     volumes:
-      - /media/downloads/incomplete:/app/dl # in-progress downloads location
-      - /media/downloads/complete:/app/out # completed downloads location
-      - ./config.yml:/app/config.yml # config file
+        - ./downloads/incomplete:/app/dl # in-progress downloads location
+        - ./downloads/complete:/app/out # completed downloads location
+        - ./config.yml:/app/config.yml # config file
     environment:
-      - REPEAT_TIME=5 # time to repeat, in minutes
+      - TICK_TIME=10 # time to repeat, in seconds
       - LOG_LEVEL=INFO # log level
+      - STREAMDL_GRPC_ADDR=server
+      - STREAMDL_GRPC_PORT=50051
+    depends_on:
+      - server

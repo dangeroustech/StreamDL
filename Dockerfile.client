@@ -1,0 +1,20 @@
+FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
+
+# Go Binary Builder
+FROM golang:1.21.0-alpine3.17 as go-build
+WORKDIR /app
+COPY . .
+RUN go get -v
+RUN go build -o streamdl
+
+# Golang Protobuf Client and Logic
+FROM golang:1.21.0-alpine3.17 as client
+WORKDIR /app
+RUN mkdir -p /app/dl /app/out
+# Copy FFMPEG Binaries
+COPY --from=ffmpeg /ffmpeg /usr/local/bin/
+COPY --from=ffmpeg /ffprobe /usr/local/bin/
+COPY --from=ffmpeg /qt-faststart /usr/local/bin/
+COPY --from=go-build /app/streamdl .
+COPY entrypoint_client.sh .
+ENTRYPOINT ["/bin/sh", "/app/entrypoint_client.sh"]
