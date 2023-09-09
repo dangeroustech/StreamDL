@@ -77,7 +77,7 @@ if __name__ == "__main__":
         print("\nClosing Due To Keyboard Interrupt...")
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "DEBUG"),
+    level=getattr(logging, os.environ.get("LOG_LEVEL", "DEBUG").lower()),
     format="%(asctime)s| %(name)s - %(levelname)s - %(message)s",
 )
 
