@@ -1,3 +1,17 @@
+### [3.1.7](https://github.com/dangeroustech/StreamDL/compare/v3.1.6...v3.1.7) (2023-09-09)
+
+
+### 📚 Documentation
+
+* use local reference for example compose file ([3a4136a](https://github.com/dangeroustech/StreamDL/commit/3a4136aac20f33a8ab65718d097dd8c41f7a64be))
+
+
+### 🐛 Bug Fixes
+
+* correct log level specification ([590e641](https://github.com/dangeroustech/StreamDL/commit/590e64166e65d1570dcc3915109ddc14a521d2d7))
+* correct logging implementation ([485f585](https://github.com/dangeroustech/StreamDL/commit/485f585be59b5dc88bb92637bf7566300839d97a))
+* migrate to new streamlink options format ([acb8229](https://github.com/dangeroustech/StreamDL/commit/acb8229cc162d67c443074ba3a5c7660f08edf23))
+
 ### [3.1.6](https://github.com/dangeroustech/StreamDL/compare/v3.1.5...v3.1.6) (2023-08-05)
 
 
