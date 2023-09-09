@@ -1,3 +1,10 @@
+### [3.1.9](https://github.com/dangeroustech/StreamDL/compare/v3.1.8...v3.1.9) (2023-09-09)
+
+
+### 🐛 Bug Fixes
+
+* Dockerfile.client to reduce vulnerabilities ([d686d83](https://github.com/dangeroustech/StreamDL/commit/d686d835baf1c58a8e6e5eb742a259a0e7df5429))
+
 ### [3.1.8](https://github.com/dangeroustech/StreamDL/compare/v3.1.7...v3.1.8) (2023-09-09)
 
 
