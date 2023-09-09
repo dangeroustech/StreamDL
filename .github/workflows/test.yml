@@ -15,7 +15,7 @@ jobs:
         os: ["ubuntu-20.04", "ubuntu-latest"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: "x64"
