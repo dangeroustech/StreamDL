@@ -47,13 +47,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: false
-      - name: Run Local Server
-        uses: addnab/docker-run-action@v3
-        with:
-          image: local_streamdl_server:latest
-          options: -e STREAMDL_GRPC_PORT=50051 -p 50051:50051
-          run: python streamdl_proto_srv.py
       - run: |
+          docker run local_streamdl_server:latest -e STREAMDL_GRPC_PORT=50051 -p 50051:50051 -d
           go test -v -count=1 ./...
   Docker_Tests:
     name: Docker Build Test
