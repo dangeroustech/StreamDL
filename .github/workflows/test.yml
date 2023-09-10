@@ -52,6 +52,7 @@ jobs:
         with:
           image: local_streamdl_server:latest
           options: -e STREAMDL_GRPC_PORT=50051 -p 50051:50051
+          run: python streamdl_proto_srv.py
       - run: |
           go test -v -count=1 ./...
   Docker_Tests:
