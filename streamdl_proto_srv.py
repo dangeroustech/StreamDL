@@ -72,10 +72,10 @@ def get_stream(r):
                 logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        logger.warning(f"Streamlink is unable to handle the {r.url}")
+        logger.error(f"Streamlink is unable to find a plugin for {r.site}")
         return {"error": 101}
     except PluginError as err:
-        logger.warning(f"Plugin error: {err}")
+        logger.error(f"Plugin error: {err}")
         return {"error": 102}
 
 
