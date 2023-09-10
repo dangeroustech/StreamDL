@@ -36,6 +36,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
+      - uses: docker/setup-buildx-action@v2
       - name: Build Local Server
         uses: docker/build-push-action@v4
         with:
