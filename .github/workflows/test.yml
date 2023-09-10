@@ -36,6 +36,21 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
+      - name: Build Local Server
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: "Dockerfile.server"
+          tags: local_streamdl_server:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: false
+      - name: Run Local Server
+        uses: addnab/docker-run-action@v3
+        with:
+          image: local_streamdl_server:latest
+          options: -e STREAMDL_GRPC_PORT=50051 -p 50051:50051
       - run: |
           go test -v -count=1 ./...
   Docker_Tests:
