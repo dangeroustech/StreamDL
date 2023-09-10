@@ -8,7 +8,7 @@ import (
 // TODO: Figure out a way to pull a definitely active Twitch stream for a 200 test
 // TODO: Add more websites to test with
 
-func TestGetStream404(t *testing.T) {
+func TestGetStreamTwitch404(t *testing.T) {
 	// would be good to actually return a status code
 	// from getStream so that we can actually
 	// match to the status code when testing
