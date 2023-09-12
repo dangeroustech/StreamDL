@@ -15,4 +15,4 @@
 
 Please always submit PRs to the Staging branch, never to Master.
 
-Features will be moved to master once they have been adequately tested in Staging.
+Features will be moved to Master once they have been adequately tested in Staging.
