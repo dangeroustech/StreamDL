@@ -1,3 +1,52 @@
+### [3.1.11](https://github.com/dangeroustech/StreamDL/compare/v3.1.10...v3.1.11) (2023-09-12)
+
+
+### ✍ Chore
+
+* add todo ([663db81](https://github.com/dangeroustech/StreamDL/commit/663db81248984c46cba86fdb05cbdbef20cf139e))
+* bump poetry version to 1.6.1 ([c3ba4d2](https://github.com/dangeroustech/StreamDL/commit/c3ba4d2301daac2b27f6dd5ca7616230870d60a2))
+* rename test to be twitch specific ([a66bcda](https://github.com/dangeroustech/StreamDL/commit/a66bcda8e93f85497e8be9e28062f54023a33566))
+* update to new ubuntu and python versions ([7169e8d](https://github.com/dangeroustech/StreamDL/commit/7169e8dce335e0aa1eaca356981d3c2238557a28))
+
+
+### 📚 Documentation
+
+* fix indentation ([cb67e7c](https://github.com/dangeroustech/StreamDL/commit/cb67e7c43b45aafe20cb7a87a9b7909541db40b8))
+* update wording around default log level ([5481c39](https://github.com/dangeroustech/StreamDL/commit/5481c39291a89216fd2789715aa9f712a4e75666))
+
+
+### 🤖 CI/CD
+
+* add docker buildx setup to support caching ([9250619](https://github.com/dangeroustech/StreamDL/commit/925061957f1969e2cfad534100feb14a6d2c162f))
+* add explicit run step ([45429f2](https://github.com/dangeroustech/StreamDL/commit/45429f2d2c51efaa8176e50c7ac7e1ca1a27a725))
+* add golang testing stage ([8c23f39](https://github.com/dangeroustech/StreamDL/commit/8c23f3962a2416b55b66f656dfb31163835510bf))
+* add local server build to test workflow ([af037b8](https://github.com/dangeroustech/StreamDL/commit/af037b883f304988106a0dd8a8c468159de75a51))
+* pass env var as a string ([bc3a508](https://github.com/dangeroustech/StreamDL/commit/bc3a5087418500260ca70f50b05303b36e6e287e))
+* run docker action inline and background ([4ee4148](https://github.com/dangeroustech/StreamDL/commit/4ee4148e2229c001af8effbaad8abcb9f638d0b2))
+
+
+### 🐛 Bug Fixes
+
+* correct logging ([919c4ed](https://github.com/dangeroustech/StreamDL/commit/919c4ed0d72d3193ac545300554250b239109e21))
+* properly raise errors for PluginNotFound ([faef870](https://github.com/dangeroustech/StreamDL/commit/faef8705434bd757b3f6ba9bcf9e83422203197e))
+* test: correct python version ([02bb7f9](https://github.com/dangeroustech/StreamDL/commit/02bb7f901b2bd1e2bf81412cbcc1d05091ce1ecb))
+* test: directly run the python? ([07353e2](https://github.com/dangeroustech/StreamDL/commit/07353e2b2c71cbc5c0f904508a64d693118f6016))
+* test: install deps ([b56d21e](https://github.com/dangeroustech/StreamDL/commit/b56d21eb95581baf868218c7bf75336d2930a9b5))
+* test: typo ([b9ce052](https://github.com/dangeroustech/StreamDL/commit/b9ce0520a57fba7eee3201033dc4f7a4d96f0a2e))
+
+
+### 🧪 Tests
+
+* actually remember how poetry is used ([bcc4ae7](https://github.com/dangeroustech/StreamDL/commit/bcc4ae7af826f6781a2d0f554de3e4e376d242b3))
+* add 404 client test ([de568bd](https://github.com/dangeroustech/StreamDL/commit/de568bd1256aaffa64a5d4bc4f0885002620ce97))
+* add comments ([5a2d7c7](https://github.com/dangeroustech/StreamDL/commit/5a2d7c7405547bbd5eda80456ad65f28d1d28a4f))
+* add tests for more sites ([ff595a4](https://github.com/dangeroustech/StreamDL/commit/ff595a43b699e85564dbf8c77aa713d1b4c1173c))
+* fully deprecate test pid killer ([9f9461e](https://github.com/dangeroustech/StreamDL/commit/9f9461e7a95dc7ac0391faf8fefd242014fd7fe3))
+* just run the server inline ([a3e368d](https://github.com/dangeroustech/StreamDL/commit/a3e368d5f4e80faa5602f1a8eb29d883e805c9d6))
+* manually govern killing the server ([7de5171](https://github.com/dangeroustech/StreamDL/commit/7de51718d7f6f7957968e4b5db80f34478eee06c))
+* remove pid killing logic ([f3e0d3d](https://github.com/dangeroustech/StreamDL/commit/f3e0d3d21ec917924ef32c40d922671f8247eee7))
+* simplify testing strategy ([31a4db0](https://github.com/dangeroustech/StreamDL/commit/31a4db0203beaffa8d4a4181ff9330ecfde7379b))
+
 ### [3.1.10](https://github.com/dangeroustech/StreamDL/compare/v3.1.9...v3.1.10) (2023-09-09)
 
 
