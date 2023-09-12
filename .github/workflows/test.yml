@@ -23,11 +23,15 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
-      - run: |
+      - name: Install Deps and Run Tests
+        run: |
+          # Install Python Deps
           python -m pip install poetry bandit
           python -m poetry install
+          # Run Python Tests
           python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv.py
           python -m poetry run python streamdl_proto_srv.py &
+          # Run Go Tests
           go test -v -count=1 ./...
         env:
           STREAMDL_GRPC_PORT: "50051"
