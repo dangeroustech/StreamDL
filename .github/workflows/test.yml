@@ -55,7 +55,7 @@ jobs:
           export STREAMDL_GRPC_ADDR='localhost'
           python -m pip install poetry bandit
           python -m poetry install
-          ./entrypoint_server.sh &
+          python streamdl_proto_srv.py &
           pid=$!
           # docker run local_streamdl_server:latest -e STREAMDL_GRPC_PORT='50051' -p 50051:50051 -d
           go test -v -count=1 ./...
