@@ -28,9 +28,7 @@ jobs:
           python -m poetry install
           python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv.py
           python -m poetry run python streamdl_proto_srv.py &
-          # pid=$!
           go test -v -count=1 ./...
-          # kill -9 $pid
         env:
           STREAMDL_GRPC_PORT: "50051"
           STREAMDL_GRPC_ADDR: "localhost"
