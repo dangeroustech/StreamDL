@@ -53,7 +53,7 @@ jobs:
       - run: |
           export STREAMDL_GRPC_PORT='50051'
           export STREAMDL_GRPC_ADDR='localhost'
-          ./entrypoint-server.sh &
+          ./entrypoint_server.sh &
           pid=$!
           # docker run local_streamdl_server:latest -e STREAMDL_GRPC_PORT='50051' -p 50051:50051 -d
           go test -v -count=1 ./...
