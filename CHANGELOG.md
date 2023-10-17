@@ -1,3 +1,10 @@
+### [3.1.14](https://github.com/dangeroustech/StreamDL/compare/v3.1.13...v3.1.14) (2023-10-17)
+
+
+### ✍ Chore
+
+* update actions deps ([84a7481](https://github.com/dangeroustech/StreamDL/commit/84a748131b86a23ae724b4f51c9b65c5053d5fd2))
+
 ### [3.1.13](https://github.com/dangeroustech/StreamDL/compare/v3.1.12...v3.1.13) (2023-10-17)
 
 
