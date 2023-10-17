@@ -1,3 +1,11 @@
+### [3.1.13](https://github.com/dangeroustech/StreamDL/compare/v3.1.12...v3.1.13) (2023-10-17)
+
+
+### ✍ Chore
+
+* **deps-dev:** bump gitpython from 3.1.36 to 3.1.37 ([ae447fe](https://github.com/dangeroustech/StreamDL/commit/ae447fed974a7fa71174c4ae51ba8ff646536e69))
+* **deps:** bump golang.org/x/net from 0.8.0 to 0.17.0 ([787478f](https://github.com/dangeroustech/StreamDL/commit/787478f885961be34937446b2cf8f026b05c1643))
+
 ### [3.1.12](https://github.com/dangeroustech/StreamDL/compare/v3.1.11...v3.1.12) (2023-10-04)
 
 
