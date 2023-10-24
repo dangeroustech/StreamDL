@@ -1,3 +1,10 @@
+### [3.1.16](https://github.com/dangeroustech/StreamDL/compare/v3.1.15...v3.1.16) (2023-10-24)
+
+
+### ✍ Chore
+
+* **deps:** bump urllib3 from 2.0.6 to 2.0.7 ([2b96a25](https://github.com/dangeroustech/StreamDL/commit/2b96a254fad16e91961be25b0a663f3bafda8388))
+
 ### [3.1.15](https://github.com/dangeroustech/StreamDL/compare/v3.1.14...v3.1.15) (2023-10-17)
 
 ### [3.1.14](https://github.com/dangeroustech/StreamDL/compare/v3.1.13...v3.1.14) (2023-10-17)
