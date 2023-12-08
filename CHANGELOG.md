@@ -1,3 +1,10 @@
+### [3.1.20](https://github.com/dangeroustech/StreamDL/compare/v3.1.19...v3.1.20) (2023-12-08)
+
+
+### 🧪 Tests
+
+* update youtube 404 test ([259eb64](https://github.com/dangeroustech/StreamDL/commit/259eb64d754e8aa4ba2bfe0a89f843dc9b956eac))
+
 ### [3.1.19](https://github.com/dangeroustech/StreamDL/compare/v3.1.18...v3.1.19) (2023-12-08)
 
 
