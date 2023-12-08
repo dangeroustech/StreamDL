@@ -31,7 +31,7 @@ func TestGetStreamYouTube404(t *testing.T) {
 	os.Setenv("STREAMDL_GRPC_PORT", "50051")
 	defer os.Unsetenv("STREAMDL_GRPC_PORT")
 
-	url, _ := getStream("youtube.com", "ANonExistentUser", "best")
+	url, _ := getStream("youtube.com", "ANonExistentUser1234", "best")
 
 	if url != "" {
 		t.Errorf("Test should have not received an URL, got %s", url)
