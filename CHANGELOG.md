@@ -1,3 +1,17 @@
+### [3.1.19](https://github.com/dangeroustech/StreamDL/compare/v3.1.18...v3.1.19) (2023-12-08)
+
+
+### 🐛 Bug Fixes
+
+* Dockerfile.client to reduce vulnerabilities ([8c22881](https://github.com/dangeroustech/StreamDL/commit/8c228817d38980eaea46d050e69e3bbc11c649cf))
+
+### [3.1.18](https://github.com/dangeroustech/StreamDL/compare/v3.1.17...v3.1.18) (2023-10-26)
+
+
+### ✍ Chore
+
+* **deps:** bump google.golang.org/grpc from 1.53.0 to 1.56.3 ([d4f6d68](https://github.com/dangeroustech/StreamDL/commit/d4f6d68035235fbc25d4c322691155abe93b47b2))
+
 ### [3.1.17](https://github.com/dangeroustech/StreamDL/compare/v3.1.16...v3.1.17) (2023-10-24)
 
 ### [3.1.16](https://github.com/dangeroustech/StreamDL/compare/v3.1.15...v3.1.16) (2023-10-24)
