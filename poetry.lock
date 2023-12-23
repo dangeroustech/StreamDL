@@ -978,15 +978,15 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "6.4.2"
+version = "6.5.0"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "streamlink-6.4.2-py3-none-any.whl", hash = "sha256:f4ab08e2bd1ad35d8c4fc441a85d2c9aabb81fe637c35fb92cb667aba8a7b049"},
-    {file = "streamlink-6.4.2-py3-none-win32.whl", hash = "sha256:4d06ad2f88dc3b7813758d005789775a4ad6910a7370db68723a7eeec2b7ccc3"},
-    {file = "streamlink-6.4.2-py3-none-win_amd64.whl", hash = "sha256:ead39f8f9b0cc1dde63736de36492040bc76818c078a7a4990f67602c560ebf0"},
-    {file = "streamlink-6.4.2.tar.gz", hash = "sha256:b5fb719f4251a692c88788a1d46e2cd0fa2231960c52b281cb8210871c722e76"},
+    {file = "streamlink-6.5.0-py3-none-any.whl", hash = "sha256:bf6884446dceefea2de8d49e71e0376e7fb65a994ff0b7747c339ecaef4e7fa8"},
+    {file = "streamlink-6.5.0-py3-none-win32.whl", hash = "sha256:863bb7e138a327f3bf2bded78e181494359330b01cc64c95e9496451457ec5ae"},
+    {file = "streamlink-6.5.0-py3-none-win_amd64.whl", hash = "sha256:dcbd1f0d373a72865521beae298d8e03783a00591c76cebf4f06b766dc41ddb4"},
+    {file = "streamlink-6.5.0.tar.gz", hash = "sha256:8f4d61593bcce10f8d5e84ca956aac4fa639c0a349e7df379834373a883966ed"},
 ]
 
 [package.dependencies]
@@ -1125,4 +1125,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e0d0ea3abc17ad4300b1589c6268e55a52f228fc7db27eba54679930bd240a4e"
+content-hash = "fcaaebb23cdd606b651971b0a3a7bfda089d81641bcb0123e1ae5f4978e8f470"
