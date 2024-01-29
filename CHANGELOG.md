@@ -1,3 +1,10 @@
+### [3.1.22](https://github.com/dangeroustech/StreamDL/compare/v3.1.21...v3.1.22) (2024-01-29)
+
+
+### ✍ Chore
+
+* **deps:** bump pycryptodome from 3.18.0 to 3.19.1 ([66c9ca3](https://github.com/dangeroustech/StreamDL/commit/66c9ca36cb2456cfbc2be06b63ab9f09cc9096b3))
+
 ### [3.1.21](https://github.com/dangeroustech/StreamDL/compare/v3.1.20...v3.1.21) (2024-01-29)
 
 ### [3.1.20](https://github.com/dangeroustech/StreamDL/compare/v3.1.19...v3.1.20) (2023-12-08)
