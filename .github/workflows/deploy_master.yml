@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: '16'
           check-latest: true
@@ -21,7 +21,7 @@ jobs:
         run: npm install conventional-changelog-conventionalcommits
 
       - name: Changelog
-        uses: TriPSs/conventional-changelog-action@v4
+        uses: TriPSs/conventional-changelog-action@v5
         id: changelog
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -101,7 +101,7 @@ jobs:
           args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
       
       - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
