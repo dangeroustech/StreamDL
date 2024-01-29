@@ -1,3 +1,10 @@
+### [3.1.23](https://github.com/dangeroustech/StreamDL/compare/v3.1.22...v3.1.23) (2024-01-29)
+
+
+### 🤖 CI/CD
+
+* update action versions ([1280229](https://github.com/dangeroustech/StreamDL/commit/1280229c8612518dae98e3a43ef619436eed57b0))
+
 ### [3.1.22](https://github.com/dangeroustech/StreamDL/compare/v3.1.21...v3.1.22) (2024-01-29)
 
 
