@@ -10,7 +10,7 @@ python = "^3.10"
 grpcio = "^1.62.1"
 protobuf = "^4.25.3"
 streamlink = "^6.6.2"
-wheel = "^0.42.0"
+wheel = "^0.43.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
