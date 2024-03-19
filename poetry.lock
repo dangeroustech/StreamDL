@@ -2,21 +2,22 @@
 
 [[package]]
 name = "attrs"
-version = "23.1.0"
+version = "23.2.0"
 description = "Classes Without Boilerplate"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "attrs-23.1.0-py3-none-any.whl", hash = "sha256:1f28b4522cdc2fb4256ac1a020c78acf9cba2c6b461ccd2c126f3aa8e8335d04"},
-    {file = "attrs-23.1.0.tar.gz", hash = "sha256:6279836d581513a26f1bf235f9acd333bc9115683f14f7e8fae46c98fc50e015"},
+    {file = "attrs-23.2.0-py3-none-any.whl", hash = "sha256:99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1"},
+    {file = "attrs-23.2.0.tar.gz", hash = "sha256:935dc3b529c262f6cf76e50877d35a4bd3c1de194fd41f47a2b7ae8f19971f30"},
 ]
 
 [package.extras]
 cov = ["attrs[tests]", "coverage[toml] (>=5.3)"]
-dev = ["attrs[docs,tests]", "pre-commit"]
+dev = ["attrs[tests]", "pre-commit"]
 docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-towncrier", "towncrier", "zope-interface"]
 tests = ["attrs[tests-no-zope]", "zope-interface"]
-tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
+tests-mypy = ["mypy (>=1.6)", "pytest-mypy-plugins"]
+tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "pytest (>=4.3.0)", "pytest-xdist[psutil]"]
 
 [[package]]
 name = "bandit"
@@ -938,26 +939,27 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "streamlink"
-version = "6.7.0"
+version = "6.7.1"
 description = "Streamlink is a command-line utility that extracts streams from various services and pipes them into a video player of choice."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "streamlink-6.7.0-py3-none-any.whl", hash = "sha256:a25e1370811bff480d45aaace78498e5d4c18b655d7c88beedec3739d242e2dc"},
-    {file = "streamlink-6.7.0-py3-none-win32.whl", hash = "sha256:aaa6a9678580cdee4617458ffda6b85d0cba9d736d55b1bb857f07c3035623a9"},
-    {file = "streamlink-6.7.0-py3-none-win_amd64.whl", hash = "sha256:2740d450ea9d564d622bb86f9c59059ab67c6024d04a924a166b775ae638a510"},
-    {file = "streamlink-6.7.0.tar.gz", hash = "sha256:923ac327f40271c5b144b110d2f8ab01d9b44cbc4de4f9ad3bf66cfb835cd4c3"},
+    {file = "streamlink-6.7.1-py3-none-any.whl", hash = "sha256:2864ffbaef0f2650aab12ea9da5ac20570b27bb2a615ad015ff1bd1b5d8864a5"},
+    {file = "streamlink-6.7.1-py3-none-win32.whl", hash = "sha256:9e14607337fa1c5efe96b2939a5b39dcb7711bac8b00e77c6df423f30cbf74d2"},
+    {file = "streamlink-6.7.1-py3-none-win_amd64.whl", hash = "sha256:e604d198b0691e0ba83649c640040f7bd66dd786660da9e0f09077ec32cd1cce"},
+    {file = "streamlink-6.7.1.tar.gz", hash = "sha256:711b36368d79cce01176f8af5f2b1615122e919cfe5d5ca6104cf814c5e2c12e"},
 ]
 
 [package.dependencies]
 certifi = "*"
+exceptiongroup = "*"
 isodate = "*"
 lxml = ">=4.6.4,<6"
 pycountry = "*"
 pycryptodome = ">=3.4.3,<4"
 PySocks = ">=1.5.6,<1.5.7 || >1.5.7"
 requests = ">=2.26.0,<3"
-trio = ">=0.22.0,<1"
+trio = ">=0.25.0,<1"
 trio-websocket = ">=0.9.0,<1"
 typing-extensions = ">=4.0.0"
 urllib3 = ">=1.26.0,<3"
@@ -976,22 +978,22 @@ files = [
 
 [[package]]
 name = "trio"
-version = "0.22.2"
+version = "0.25.0"
 description = "A friendly Python library for async concurrency and I/O"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "trio-0.22.2-py3-none-any.whl", hash = "sha256:f43da357620e5872b3d940a2e3589aa251fd3f881b65a608d742e00809b1ec38"},
-    {file = "trio-0.22.2.tar.gz", hash = "sha256:3887cf18c8bcc894433420305468388dac76932e9668afa1c49aa3806b6accb3"},
+    {file = "trio-0.25.0-py3-none-any.whl", hash = "sha256:e6458efe29cc543e557a91e614e2b51710eba2961669329ce9c862d50c6e8e81"},
+    {file = "trio-0.25.0.tar.gz", hash = "sha256:9b41f5993ad2c0e5f62d0acca320ec657fdb6b2a2c22b8c7aed6caf154475c4e"},
 ]
 
 [package.dependencies]
-attrs = ">=20.1.0"
+attrs = ">=23.2.0"
 cffi = {version = ">=1.14", markers = "os_name == \"nt\" and implementation_name != \"pypy\""}
-exceptiongroup = {version = ">=1.0.0rc9", markers = "python_version < \"3.11\""}
+exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
 idna = "*"
 outcome = "*"
-sniffio = "*"
+sniffio = ">=1.3.0"
 sortedcontainers = "*"
 
 [[package]]
@@ -1085,4 +1087,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "46cab1541fd78d279938c0fc3e3a613d1816d2ccdb24a20e49fe17a7c9d0b58a"
+content-hash = "e3bb103121045a7b019b9903af5183c15b61c80c3bbc3248a820adb4f4109fcb"
