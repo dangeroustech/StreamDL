@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
 	"sort"
@@ -49,7 +50,10 @@ func main() {
 	go func() {
 		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Errorf("Error writing response: %v", err)
+			}
 		})
 
 		log.Fatal(http.ListenAndServe(":8080", nil))
