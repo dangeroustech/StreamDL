@@ -1,3 +1,5 @@
+//TODO: Allow users to specify naming format for downloaded files
+
 package main
 
 import (
