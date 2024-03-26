@@ -1,4 +1,3 @@
-# trunk-ignore-all(terrascan/AC_DOCKER_0047)
 FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
 
 # Go Binary Builder
