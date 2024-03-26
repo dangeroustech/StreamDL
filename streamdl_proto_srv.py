@@ -12,6 +12,8 @@ from streamlink.session import Streamlink
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
 
+import yt_dlp
+
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
     format="%(asctime)s: |%(levelname)s| %(message)s",
@@ -73,8 +75,16 @@ def get_stream(r):
                 logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        logger.error(f"Streamlink is unable to find a plugin for {r.site}")
-        return {"error": 101}
+        logger.warn(f"Streamlink is unable to find a plugin for {r.site}")
+        logger.warn("Falling back to yt_dlp")
+        # Fallback to yt_dlp
+        try:
+            with yt_dlp.YoutubeDL({}) as ydl:
+                info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
+                return {"url": info_dict.get('url', '')}
+        except Exception as e:
+            logger.error(f"yt_dlp error: {e}")
+            return {"error": 101}
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
         return {"error": 102}
