@@ -64,7 +64,7 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 		log.Debugf("Moving file to %v", moveLoc)
 		oldPath := filepath.Join(outLoc, user+"-"+t+".mp4")
 		newPath := filepath.Join(moveLoc, user+"-"+t+".mp4")
-		err := os.Rename(oldPath, newPath)
+		err := moveFile(oldPath, newPath)
 		if err != nil {
 			log.Errorf("Failed to move file: %v", err)
 		} else {
