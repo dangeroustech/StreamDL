@@ -2,7 +2,7 @@
 name = "StreamDL"
 version = "3.1.25"
 description = "Monitor and Download Streams from a Variety of Websites"
-authors = [ "biodrone <biodrone@dangerous.tech>" ]
+authors = ["biodrone <biodrone@dangerous.tech>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
