@@ -1,5 +1,4 @@
 # This is an example of the necessary docker-compose config
-version: '3'
 
 services:
   server:
