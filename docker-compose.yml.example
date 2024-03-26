@@ -4,10 +4,14 @@ services:
 
   server:
     image: dangeroustech/streamdl:server_stable
+    env_file:
+      - .env
     restart: always
 
   client:
     image: dangeroustech/streamdl:client_stable
+    env_file:
+      - .env
     restart: always
     volumes:
       - ./downloads/incomplete:/app/dl # in-progress downloads location
