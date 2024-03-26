@@ -78,7 +78,9 @@ def get_stream(r):
         logger.warning("Falling back to yt_dlp")
         # Fallback to yt_dlp
         try:
-            with yt_dlp.YoutubeDL({}) as ydl:
+            with yt_dlp.YoutubeDL(
+                {"format": r.quality if r.quality else "best"}
+            ) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
         except Exception as e:
