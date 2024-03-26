@@ -1,3 +1,52 @@
+## [3.2.0](https://github.com/dangeroustech/StreamDL/compare/v3.1.25...v3.2.0) (2024-03-26)
+
+
+### 🎉 New Features
+
+* add ability for user to specify yt_dlp quality ([0c6473e](https://github.com/dangeroustech/StreamDL/commit/0c6473e04bd0778a6cdfebc59d2afe027a5a5405))
+
+
+### 🐛 Bug Fixes
+
+* add docker healthcheck ([45b1ba9](https://github.com/dangeroustech/StreamDL/commit/45b1ba95a97edd8421af7814aeaa3be6e292ee18))
+* add yt_dlp for fallback ([9059652](https://github.com/dangeroustech/StreamDL/commit/9059652008ac229d32a43927dbad09770b4a54fa))
+* better error logging with yt_dlp ([19b832e](https://github.com/dangeroustech/StreamDL/commit/19b832e146413fa1dc3807c1755f4c7ebe837179))
+* correct formatting and sorting on the users array ([28a29d6](https://github.com/dangeroustech/StreamDL/commit/28a29d62dbe1f7b729bead1619eefa6e5ba30a29))
+* deprecated compose config ([81a01f3](https://github.com/dangeroustech/StreamDL/commit/81a01f3b71a1f9942b63db57f0844f2013f816f1))
+* formatting ([45a37df](https://github.com/dangeroustech/StreamDL/commit/45a37df748471d908bdd735a5d218b1417443015))
+* incorrect config example ([eb8117b](https://github.com/dangeroustech/StreamDL/commit/eb8117bfcf892a1a9caa16dae02ac3359d460482))
+* lint linter config ([ed39266](https://github.com/dangeroustech/StreamDL/commit/ed392665a0af8339a6f58a52beed85f863e30d9f))
+* warn is deprecated ([a033b15](https://github.com/dangeroustech/StreamDL/commit/a033b1538c80406d55e6ea4451e26f53f2bdd0e3))
+
+
+### 📚 Documentation
+
+* add more sensible examples ([08b8fcc](https://github.com/dangeroustech/StreamDL/commit/08b8fcca49961c6e59bb06bee6e2d758bcec7898))
+* add paragraph on .env usage ([d91f75d](https://github.com/dangeroustech/StreamDL/commit/d91f75d4defbe4caeacfe363395bc76ddd6a1c06))
+* use stable tag in example compose file ([35ef24a](https://github.com/dangeroustech/StreamDL/commit/35ef24a8efad8cf6fdd217b84dd546354394ec8c))
+
+
+### 📃 Refactor
+
+* fix deps ([7373b02](https://github.com/dangeroustech/StreamDL/commit/7373b027b96c6e1efe080f68f7867ab8e00e64e6))
+* gofmt ([775ac32](https://github.com/dangeroustech/StreamDL/commit/775ac3265837852e359dd201a96ded49052d2922))
+* linting ([e9269fa](https://github.com/dangeroustech/StreamDL/commit/e9269fa281fa9f5a1fcd2ca6c1e3e1834dda81bf))
+* move file code in another file ([5c6cf36](https://github.com/dangeroustech/StreamDL/commit/5c6cf36a5413d8e3b869688311bd5f56634c33d7))
+* need a better way of doing this healthcheck ([af68237](https://github.com/dangeroustech/StreamDL/commit/af682375fcae91d7efc2ef30626665bb49887871))
+* remove env vars in favour of the .env file method ([8535755](https://github.com/dangeroustech/StreamDL/commit/85357557219e34b9fd41f33729d604489b3a3d8f))
+
+
+### ✍ Chore
+
+* add example .env file ([8ff0a2b](https://github.com/dangeroustech/StreamDL/commit/8ff0a2be4a0326c07b8a014e43db29f9543823f3))
+* add todo ([9d9bd89](https://github.com/dangeroustech/StreamDL/commit/9d9bd8900572623d327d079531ba534c2e35d079))
+* **deps:** bump google.golang.org/protobuf from 1.30.0 to 1.33.0 ([f7aa4c4](https://github.com/dangeroustech/StreamDL/commit/f7aa4c4092ab449e748b382e78794c2c2b940ace))
+* error check ([6a9d6c2](https://github.com/dangeroustech/StreamDL/commit/6a9d6c2a0b542910f156fc9f840b52c072a52566))
+* formatting ([b822e43](https://github.com/dangeroustech/StreamDL/commit/b822e438a2015091cb42fa830729b046eec057bb))
+* linting idk ([d069605](https://github.com/dangeroustech/StreamDL/commit/d069605947b53b955be7c78ad286d9cfc79874d8))
+* remove duplicated env var ([baf9371](https://github.com/dangeroustech/StreamDL/commit/baf9371e31c75cc2d0efda22b1d873c8a3f0c628))
+* remove todo ([3f4fab6](https://github.com/dangeroustech/StreamDL/commit/3f4fab6eb1fd252c0ba7216fc3725de083167f5d))
+
 ### [3.1.25](https://github.com/dangeroustech/StreamDL/compare/v3.1.24...v3.1.25) (2024-03-26)
 
 ### [3.1.24](https://github.com/dangeroustech/StreamDL/compare/v3.1.23...v3.1.24) (2024-01-29)
