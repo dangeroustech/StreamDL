@@ -75,8 +75,8 @@ def get_stream(r):
                 logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        logger.warn(f"Streamlink is unable to find a plugin for {r.site}")
-        logger.warn("Falling back to yt_dlp")
+        logger.warning(f"Streamlink is unable to find a plugin for {r.site}")
+        logger.warning("Falling back to yt_dlp")
         # Fallback to yt_dlp
         try:
             with yt_dlp.YoutubeDL({}) as ydl:
