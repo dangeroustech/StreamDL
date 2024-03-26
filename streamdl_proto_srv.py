@@ -2,14 +2,15 @@
 
 import logging
 import os
-from streamlink.exceptions import PluginError, NoPluginError
-from streamlink.session import Streamlink
+from concurrent import futures
+
+import grpc
+from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
+from streamlink.session import Streamlink
+
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
-from concurrent import futures
-import grpc
-
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
