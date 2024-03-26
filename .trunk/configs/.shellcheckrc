@@ -1,0 +1,5 @@
+# Shellcheck Configuration
+
+enable=all
+source-path=SCRIPTDIR
+disable=SC2154

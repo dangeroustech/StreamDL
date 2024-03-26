@@ -2,14 +2,16 @@
 
 import logging
 import os
-from streamlink.exceptions import PluginError, NoPluginError
-from streamlink.session import Streamlink
+from concurrent import futures
+
+import grpc
+import yt_dlp
+from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
+from streamlink.session import Streamlink
+
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
-from concurrent import futures
-import grpc
-
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
@@ -72,8 +74,33 @@ def get_stream(r):
                 logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        logger.error(f"Streamlink is unable to find a plugin for {r.site}")
-        return {"error": 101}
+        logger.warning(f"Streamlink is unable to find a plugin for {r.site}")
+        logger.warning("Falling back to yt_dlp")
+        # Fallback to yt_dlp
+        try:
+            with yt_dlp.YoutubeDL(
+                {"format": r.quality if r.quality else "best"}
+            ) as ydl:
+                info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
+                return {"url": info_dict.get("url", "")}
+        except yt_dlp.utils.DownloadError as e:
+            logger.error(f"Download error: {e}")
+            return {"error": "DownloadError"}
+        except yt_dlp.utils.ExtractorError as e:
+            logger.error(f"Extractor error: {e}")
+            return {"error": "ExtractorError"}
+        except yt_dlp.utils.GeoRestrictedError as e:
+            logger.error(f"Geo-restricted error: {e}")
+            return {"error": "GeoRestrictedError"}
+        except yt_dlp.utils.AgeRestrictedError as e:
+            logger.error(f"Age-restricted error: {e}")
+            return {"error": "AgeRestrictedError"}
+        except yt_dlp.utils.UnavailableVideoError as e:
+            logger.error(f"Unavailable video error: {e}")
+            return {"error": "UnavailableVideoError"}
+        except Exception as e:
+            logger.error(f"yt_dlp error: {e}")
+            return {"error": "UnknownError"}
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
         return {"error": 102}

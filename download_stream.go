@@ -1,4 +1,4 @@
-//TODO: Add move dir functionality
+//TODO: Allow users to specify naming format for downloaded files
 
 package main
 
@@ -64,6 +64,14 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	case <-naturalFinish:
 		log.Debugf("Stream For %v Ended", user)
 		log.Debugf("Moving file to %v", moveLoc)
+		oldPath := filepath.Join(outLoc, user+"-"+t+".mp4")
+		newPath := filepath.Join(moveLoc, user+"-"+t+".mp4")
+		err := moveFile(oldPath, newPath)
+		if err != nil {
+			log.Errorf("Failed to move file: %v", err)
+		} else {
+			log.Debugf("Moved file to %v", newPath)
+		}
 		delete(urls, user)
 	}
 }

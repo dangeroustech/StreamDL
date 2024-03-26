@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -44,6 +47,18 @@ func main() {
 		log.Fatalf("Config Error: %v", confErr)
 	}
 
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Errorf("Error writing response: %v", err)
+			}
+		})
+
+		log.Fatal(http.ListenAndServe(":8080", nil))
+	}()
+
 	for {
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
@@ -62,7 +77,8 @@ func main() {
 		for user := range urls {
 			users = append(users, user)
 		}
-		log.Debugf("Currently Live Users: %v", users)
+		sort.Strings(users)
+		log.Debugf("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
 
 		select {
