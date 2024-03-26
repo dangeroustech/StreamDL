@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"io"
 	"os"
-	"path/filepath"
-	"syscall"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
