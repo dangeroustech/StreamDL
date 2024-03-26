@@ -5,14 +5,13 @@ import os
 from concurrent import futures
 
 import grpc
+import yt_dlp
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
 
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
-
-import yt_dlp
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
@@ -81,7 +80,7 @@ def get_stream(r):
         try:
             with yt_dlp.YoutubeDL({}) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
-                return {"url": info_dict.get('url', '')}
+                return {"url": info_dict.get("url", "")}
         except Exception as e:
             logger.error(f"yt_dlp error: {e}")
             return {"error": 101}
