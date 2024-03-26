@@ -1,3 +1,4 @@
+# trunk-ignore-all(terrascan/AC_DOCKER_0047)
 FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
 
 # Go Binary Builder
@@ -17,4 +18,5 @@ COPY --from=ffmpeg /ffprobe /usr/local/bin/
 COPY --from=ffmpeg /qt-faststart /usr/local/bin/
 COPY --from=go-build /app/streamdl .
 COPY entrypoint_client.sh .
+HEALTHCHECK --interval=60s --timeout=15s --start-period=5s --retries=3 CMD curl --fail http://localhost:8080/health || exit 1
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_client.sh"]

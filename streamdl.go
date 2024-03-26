@@ -46,6 +46,15 @@ func main() {
 		log.Fatalf("Config Error: %v", confErr)
 	}
 
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+
+		log.Fatal(http.ListenAndServe(":8080", nil))
+	}()
+
 	for {
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
