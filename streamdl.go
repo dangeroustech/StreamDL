@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"strings"
+	"sort"
 
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -62,7 +64,8 @@ func main() {
 		for user := range urls {
 			users = append(users, user)
 		}
-		log.Debugf("Currently Live Users: %v", users)
+		sort.Strings(users)
+		log.Debugf("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
 
 		select {
