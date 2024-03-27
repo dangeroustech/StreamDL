@@ -2,40 +2,54 @@ name: "Pull Request Tests"
 
 on:
   pull_request:
-    branches: [ master, staging ]
+    branches: [master, staging]
 
 jobs:
-  Software_Test:
+  Software_Tests:
     name: Software Tests
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10"]
-        os: ["ubuntu-20.04", "ubuntu-latest"]
+        python-version: ["3.10", "3.12"]
+        go-version: ["1.20", "1.22.1"]
+        os: ["ubuntu-22.04", "ubuntu-latest"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: "x64"
-      - run: |
+          allow-prereleases: true
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install Deps and Run Tests
+        run: |
+          # Install Python Deps
           python -m pip install poetry bandit
           python -m poetry install
+          # Run Python Tests
           python -m poetry run bandit -ll -c .bandit.yml streamdl_proto_srv.py
-  Docker_Test:
+          python -m poetry run python streamdl_proto_srv.py &
+          # Run Go Tests
+          go test -v -count=1 ./...
+        env:
+          STREAMDL_GRPC_PORT: "50051"
+          STREAMDL_GRPC_ADDR: "localhost"
+  Docker_Tests:
     name: Docker Build Test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
-        os: ["ubuntu-20.04", "ubuntu-latest"]
+        os: ["ubuntu-22.04", "ubuntu-latest"]
         component: ["client", "server"]
     steps:
       - uses: actions/checkout@v4
       - name: Docker Build
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}

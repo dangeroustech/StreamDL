@@ -4,7 +4,7 @@
     quality: best
   - name: day9tv
     quality: worst
-- mixer.com:
+- site: mixer.com
   channels:
   - name: ninja
     quality: 720p

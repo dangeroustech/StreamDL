@@ -50,15 +50,15 @@ If you'd like to tweak individual parameters, the Dockerfile provided can be use
 
 Edit the Environment variables in `docker-compose.yml.example` to modify script functionality.
 
-Otherwise, just rename it to `docker-compose.yml` and run `docker-compose up -d`.
+Otherwise, just rename it to `docker-compose.yml` and run `docker compose up -d`.
 
-Logs are piped to stdout by default so that `docker-compose logs` works.
+Logs are piped to stdout by default so that `docker compose logs` works.
 _If you know what you're doing, you can change this value in `entrypoint.sh`._
-_Make sure to rebuild the container with `docker-compose build` after editing this._
+_Make sure to rebuild the container with `docker compose build` after editing this._
 
 ### Bare Metal
 
-- Python 3.9 or newer
+- Python 3.10 or newer
 - ffmpeg
 - poetry (`pip install poetry` _or_ `pip3 install poetry` _depending on your system_)
 
@@ -70,7 +70,7 @@ _Make sure to rebuild the container with `docker-compose build` after editing th
 
 ## Config File
 
-Basic YAML format. See config.yaml.example for a couple of test sites.
+Basic YAML format. See `config.yaml.example` for a couple of test sites.
 
 ```yaml
 - site: twitch.tv
@@ -84,3 +84,13 @@ Basic YAML format. See config.yaml.example for a couple of test sites.
   - name: ninja
     quality: best
 ```
+
+## Env File
+
+To use the `.env` file:
+
+1. Locate the `.env.example` file.
+2. Rename it to `.env` and confirm that the variables are to your liking.
+For instance, `STREAMDL_GRPC_PORT=50051` sets the gRPC port for the StreamDL service.
+3. To modify any variable, open the `.env` file, change the value, and save the file.
+For example, to change the gRPC port, you might modify the line to `STREAMDL_GRPC_PORT=50052`.
