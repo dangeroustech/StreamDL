@@ -66,11 +66,11 @@ _Make sure to rebuild the container with `docker compose build` after editing th
 
 - `user@box$: git clone https://github.com/dangeroustech/streamdl && cd streamdl`
 - `user@box$: poetry install`
-- `user@box$: poetry run python streamdl.py -c config.yml -r 5`
+- `user@box$: poetry run python streamdl.py -c ./cofnig/config.yml -r 5`
 
 ## Config File
 
-Basic YAML format. See `config.yaml.example` for a couple of test sites.
+Basic YAML format. See `config/config.yaml.example` for a couple of test sites.
 
 ```yaml
 - site: twitch.tv
