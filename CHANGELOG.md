@@ -1,3 +1,16 @@
+### [3.2.1](https://github.com/dangeroustech/StreamDL/compare/v3.2.0...v3.2.1) (2024-03-27)
+
+
+### 🐛 Bug Fixes
+
+* bump upper limits of python/go versions tested ([2639259](https://github.com/dangeroustech/StreamDL/commit/2639259064f3d442e4e55f40ba4330aeff83395e))
+
+
+### 🤖 CI/CD
+
+* raise snyk threshold to address error ([50f4c5b](https://github.com/dangeroustech/StreamDL/commit/50f4c5b2e1be764b7a0ede6eed4582f9a3e3f0cf))
+* update release action ([57f962d](https://github.com/dangeroustech/StreamDL/commit/57f962dbd21e1b2b490ef6d8871d7d142fc97983))
+
 ## [3.2.0](https://github.com/dangeroustech/StreamDL/compare/v3.1.25...v3.2.0) (2024-03-26)
 
 
