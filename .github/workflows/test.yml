@@ -59,4 +59,4 @@ jobs:
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
           push: true
-          tags: dangeroustech/streamdl_${{ matrix.component }}_unstable
+          tags: dangeroustech/streamdl:${{ matrix.component }}_unstable
