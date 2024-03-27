@@ -1,3 +1,12 @@
+### [3.2.2](https://github.com/dangeroustech/StreamDL/compare/v3.2.1...v3.2.2) (2024-03-27)
+
+
+### 🐛 Bug Fixes
+
+* bump setup-go action to v5 for node16 deprecation ([b654621](https://github.com/dangeroustech/StreamDL/commit/b654621a89f8fadeefb469d1a67dacbcfa983977))
+* drop python from 3.13 to 3.12 ([66d515b](https://github.com/dangeroustech/StreamDL/commit/66d515b7f14dbabdc871116c3318bd5f33f0812e))
+* formatting to trigger some testing ([d59b9ab](https://github.com/dangeroustech/StreamDL/commit/d59b9ab9d796f218edcf991ddaab16e27e1900aa))
+
 ### [3.2.1](https://github.com/dangeroustech/StreamDL/compare/v3.2.0...v3.2.1) (2024-03-27)
 
 
