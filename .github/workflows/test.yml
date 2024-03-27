@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: ["ubuntu-22.04", "ubuntu-latest"]
+        os: ["ubuntu-latest"]
         component: ["client", "server"]
     steps:
       - uses: actions/checkout@v4
