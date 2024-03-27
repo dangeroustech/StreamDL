@@ -29,7 +29,7 @@ func main() {
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
 	var config []Config
 	confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
-	control := make(chan bool, len(config[0].Streamers))
+	control := make(chan bool, len(config[0].Streamers)) //might need to move these into the main loop
 	response := make(chan bool, len(config[0].Streamers))
 	ll, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
 
@@ -60,6 +60,12 @@ func main() {
 	}()
 
 	for {
+		//Update config for each tick
+		confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
+		if confErr != nil {
+			log.Fatalf("Config Error: %v", confErr)
+		}
+
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
 				_, exists := urls[streamer.User]
