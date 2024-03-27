@@ -21,7 +21,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: "x64"
           allow-prereleases: true
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - name: Install Deps and Run Tests
