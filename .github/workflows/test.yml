@@ -39,11 +39,10 @@ jobs:
           STREAMDL_GRPC_ADDR: "localhost"
   Docker_Tests:
     name: Docker Build Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        os: ["ubuntu-latest"]
         component: ["client", "server"]
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +51,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Docker Build
-        id: docker_build
+      - name: Docker Build and Push Unstable
+        id: docker_build_push_unstable
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
           push: true
-          tags: dangeroustech/streamdl_${{ matrix.component }}:unstable
+          tags: dangeroustech/streamdl_${{ matrix.component }}_unstable
