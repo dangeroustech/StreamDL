@@ -16,7 +16,7 @@ import (
 func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
-	t := time.Now().Format("2006-01-02 15:04:05")
+	t := time.Now().Format("2006_01_02-15_04_05")
 	if subfolder {
 		outLoc = filepath.Join(outLoc, user)
 		os.MkdirAll(outLoc, os.ModePerm)
