@@ -54,5 +54,5 @@ jobs:
           context: .
           file: Dockerfile.${{ matrix.component }}
           platforms: linux/amd64
-          load: true
-          tags: dangeroustech/streamdl_${{ matrix.component }}:ci_test
+          push: true
+          tags: dangeroustech/streamdl_${{ matrix.component }}:unstable
