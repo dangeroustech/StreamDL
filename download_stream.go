@@ -16,7 +16,7 @@ import (
 func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
-	t := time.Now().Format("2006-01-02 15:04:05")
+	t := time.Now().Format("2006-01-02_15-04-05")
 	if subfolder {
 		outLoc = filepath.Join(outLoc, user)
 		os.MkdirAll(outLoc, os.ModePerm)
@@ -25,14 +25,14 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	}
 	log.Tracef("out: %s", outLoc)
 	log.Tracef("move: %s", moveLoc)
-	log.Tracef("full: %s", filepath.Join(outLoc, user+"-"+t+".mp4"))
+	log.Tracef("full: %s", filepath.Join(outLoc, user+"_"+t+".mp4"))
 	log.Tracef("Starting Download for %v", user)
 	buf := &bytes.Buffer{}
 	cmd := fluentffmpeg.
 		NewCommand("").
 		InputPath(url).
 		OutputFormat("mp4").
-		OutputPath(filepath.Join(outLoc, user+"-"+t+".mp4")).
+		OutputPath(filepath.Join(outLoc, user+"_"+t+".mp4")).
 		OutputLogs(buf).
 		Build()
 
@@ -64,8 +64,8 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	case <-naturalFinish:
 		log.Debugf("Stream For %v Ended", user)
 		log.Debugf("Moving file to %v", moveLoc)
-		oldPath := filepath.Join(outLoc, user+"-"+t+".mp4")
-		newPath := filepath.Join(moveLoc, user+"-"+t+".mp4")
+		oldPath := filepath.Join(outLoc, user+"_"+t+".mp4")
+		newPath := filepath.Join(moveLoc, user+"_"+t+".mp4")
 		err := moveFile(oldPath, newPath)
 		if err != nil {
 			log.Errorf("Failed to move file: %v", err)
