@@ -1,3 +1,13 @@
+### [3.2.4](https://github.com/dangeroustech/StreamDL/compare/v3.2.3...v3.2.4) (2024-03-30)
+
+
+### 🐛 Bug Fixes
+
+* correct logging output ([7afcd18](https://github.com/dangeroustech/StreamDL/commit/7afcd183aea613e67378bf1244227a0a5565d472))
+* log format errors ([27c538c](https://github.com/dangeroustech/StreamDL/commit/27c538c753bb50d6640c47e58679f6a172b4e89e))
+* typo ([0e367ac](https://github.com/dangeroustech/StreamDL/commit/0e367ac9bfc000d3cff395b538d7b58699ec83ab))
+* typo ([3291c91](https://github.com/dangeroustech/StreamDL/commit/3291c91b4505ad5949f6d971619b2a3a84f751f2))
+
 ### [3.2.3](https://github.com/dangeroustech/StreamDL/compare/v3.2.2...v3.2.3) (2024-03-30)
 
 
