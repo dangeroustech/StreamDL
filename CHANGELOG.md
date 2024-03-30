@@ -1,3 +1,23 @@
+### [3.2.3](https://github.com/dangeroustech/StreamDL/compare/v3.2.2...v3.2.3) (2024-03-30)
+
+
+### 🤖 CI/CD
+
+* fix tag ([c9e97db](https://github.com/dangeroustech/StreamDL/commit/c9e97db33c38ade9a566b67ce67ac669f878efab))
+* fix tag v2 ([99578e3](https://github.com/dangeroustech/StreamDL/commit/99578e3bdc980823b8f7df1dabdaf343f43bf880))
+* must login to dockerhub ([f1782d8](https://github.com/dangeroustech/StreamDL/commit/f1782d8f4f8e3465fd2f2a0a70c63c84a44b3938))
+* push tagged unstable container builds for testing ([8de2da7](https://github.com/dangeroustech/StreamDL/commit/8de2da7bd5a686b92a32e3d25957974e8657ecf4))
+* we don't need to build on 2 different host OSes ([b0a0f08](https://github.com/dangeroustech/StreamDL/commit/b0a0f084d7ef4065499668e20a156cc1ebe226ec))
+
+
+### 🐛 Bug Fixes
+
+* correct timestamp because windows doesn't like colons ([68529da](https://github.com/dangeroustech/StreamDL/commit/68529daed1722d862b35ad061ff6070c04c98571))
+* read config on each loop ([d3b398f](https://github.com/dangeroustech/StreamDL/commit/d3b398f16f8d862b0dc41a031e286b21ca719acf))
+* set config location to a dir so the files updates automatically ([da5e1d0](https://github.com/dangeroustech/StreamDL/commit/da5e1d09ae2188fb4043ba8a70e1103c6cfe6cda))
+* should use unbuffered channels now, config file can change in size ([9b44e3d](https://github.com/dangeroustech/StreamDL/commit/9b44e3debcfabae83b03d266ed0b81528c505acc))
+* use common output separators ([ed427be](https://github.com/dangeroustech/StreamDL/commit/ed427be089ac75207b984ca42d6575c56e7a981f))
+
 ### [3.2.2](https://github.com/dangeroustech/StreamDL/compare/v3.2.1...v3.2.2) (2024-03-27)
 
 
