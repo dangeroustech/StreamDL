@@ -86,7 +86,7 @@ def get_stream(r):
         except yt_dlp.utils.DownloadError as e:
             error_message = str(e.exc_info[1])
             if 'Requested format not available' in error_message:
-                logger.error("Requested format not available")
+                logger.error("Requested format is not available")
 
                 # List available formats
                 formats = info_dict.get('formats', [])
