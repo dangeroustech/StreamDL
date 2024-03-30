@@ -84,8 +84,19 @@ def get_stream(r):
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
         except yt_dlp.utils.DownloadError as e:
-            logger.error(f"Download error: {e}")
-            return {"error": "DownloadError"}
+            error_message = str(e.exc_info[1])
+            if 'Requested format not available' in error_message:
+                logger.error("Requested format not available")
+
+                # List available formats
+                formats = info_dict.get('formats', [])
+                for f in formats:
+                    logger.error(f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}, format: {f['format']}")
+
+                return {"error": "FormatNotAvailableError"}
+            else:
+                logger.error(f"Download error: {e}")
+                return {"error": "DownloadError"}
         except yt_dlp.utils.ExtractorError as e:
             logger.error(f"Extractor error: {e}")
             return {"error": "ExtractorError"}
