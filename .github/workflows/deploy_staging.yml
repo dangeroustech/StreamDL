@@ -1,10 +1,13 @@
-name: "Dockerhub Build - Staging"
+name: Dockerhub Build - Staging
 
 on:
   push:
-    branches: [ staging ]
+    branches: [staging]
   pull_request_target:
-    branches: [ staging ]
+    branches: [staging]
+
+permissions:
+  contents: read
 
 jobs:
   docker:
@@ -13,7 +16,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        component: ["client", "server"]
+        component: [client, server]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,7 +52,7 @@ jobs:
         with:
           image: streamdl:${{ matrix.component }}_local
           args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
-      
+
       - name: Upload result to GitHub Code Scanning
         id: snyk_results_upload
         uses: github/codeql-action/upload-sarif@v3
