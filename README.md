@@ -66,7 +66,7 @@ _Make sure to rebuild the container with `docker compose build` after editing th
 
 - `user@box$: git clone https://github.com/dangeroustech/streamdl && cd streamdl`
 - `user@box$: poetry install`
-- `user@box$: poetry run python streamdl.py -c ./cofnig/config.yml -r 5`
+- `user@box$: poetry run python streamdl.py -c ./config/config.yml -r 5`
 
 ## Config File
 
@@ -75,14 +75,14 @@ Basic YAML format. See `config/config.yaml.example` for a couple of test sites.
 ```yaml
 - site: twitch.tv
   channels:
-  - name: kaypealol
-    quality: best
-  - name: day9tv
-    quality: worst
+    - name: kaypealol
+      quality: best
+    - name: day9tv
+      quality: worst
 - site: mixer.com
   channels:
-  - name: ninja
-    quality: best
+    - name: ninja
+      quality: best
 ```
 
 ## Env File
@@ -91,6 +91,6 @@ To use the `.env` file:
 
 1. Locate the `.env.example` file.
 2. Rename it to `.env` and confirm that the variables are to your liking.
-For instance, `STREAMDL_GRPC_PORT=50051` sets the gRPC port for the StreamDL service.
+   For instance, `STREAMDL_GRPC_PORT=50051` sets the gRPC port for the StreamDL service.
 3. To modify any variable, open the `.env` file, change the value, and save the file.
-For example, to change the gRPC port, you might modify the line to `STREAMDL_GRPC_PORT=50052`.
+   For example, to change the gRPC port, you might modify the line to `STREAMDL_GRPC_PORT=50052`.
