@@ -1,3 +1,10 @@
+### [3.2.8](https://github.com/dangeroustech/StreamDL/compare/v3.2.7...v3.2.8) (2024-10-29)
+
+
+### ✍ Chore
+
+* **deps:** bump golang.org/x/net from 0.17.0 to 0.23.0 ([434fadd](https://github.com/dangeroustech/StreamDL/commit/434fadd7759652a23a1e11545ef5a96a170ee4f9))
+
 ### [3.2.7](https://github.com/dangeroustech/StreamDL/compare/v3.2.6...v3.2.7) (2024-10-29)
 
 
