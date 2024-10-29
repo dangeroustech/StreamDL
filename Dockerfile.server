@@ -1,9 +1,6 @@
 # Export packages from poetry and save
 # to venv to avoid building them later
 FROM python:3.13-slim-bookworm AS deps
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /app
 COPY . .
 RUN pip install --no-cache-dir uv==0.4.28 && \
@@ -14,7 +11,6 @@ FROM python:3.13-slim-bookworm AS server
 WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir uv==0.4.28 && \
     uv sync
 # Copy in app files
