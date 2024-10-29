@@ -1050,13 +1050,13 @@ files = [
 
 [[package]]
 name = "requests"
-version = "2.31.0"
+version = "2.32.3"
 description = "Python HTTP for Humans."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "requests-2.31.0-py3-none-any.whl", hash = "sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f"},
-    {file = "requests-2.31.0.tar.gz", hash = "sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1"},
+    {file = "requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6"},
+    {file = "requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760"},
 ]
 
 [package.dependencies]
@@ -1364,13 +1364,13 @@ h11 = ">=0.9.0,<1"
 
 [[package]]
 name = "yt-dlp"
-version = "2024.3.10"
-description = "A youtube-dl fork with additional features and patches"
+version = "2024.7.7"
+description = "A feature-rich command-line audio/video downloader"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "yt_dlp-2024.3.10-py3-none-any.whl", hash = "sha256:bbe66b9a3aa23b6378ccca3ea20f5aadf385fa21a993513a105d73c827a86ed4"},
-    {file = "yt_dlp-2024.3.10.tar.gz", hash = "sha256:6e74cb14a69dbeb872c8ef4e0b8bbed2ee846ec633513cf3124a74c1faedc07b"},
+    {file = "yt_dlp-2024.7.7-py3-none-any.whl", hash = "sha256:2e90abeadc0199c787b1b4a3e0a1c8ed9d7c9f824f58da88467a1b30ed745e07"},
+    {file = "yt_dlp-2024.7.7.tar.gz", hash = "sha256:2a0f89423d25d47db949925db5bd2c6f651960ae93dbbf5b3ed61cf3a4078ce5"},
 ]
 
 [package.dependencies]
@@ -1379,18 +1379,21 @@ brotlicffi = {version = "*", markers = "implementation_name != \"cpython\""}
 certifi = "*"
 mutagen = "*"
 pycryptodomex = "*"
-requests = ">=2.31.0,<3"
+requests = ">=2.32.2,<3"
 urllib3 = ">=1.26.17,<3"
 websockets = ">=12.0"
 
 [package.extras]
-build = ["build", "hatchling", "pip", "wheel"]
-dev = ["flake8", "isort", "pytest"]
+build = ["build", "hatchling", "pip", "setuptools", "wheel"]
+curl-cffi = ["curl-cffi (==0.5.10)"]
+dev = ["autopep8 (>=2.0,<3.0)", "pre-commit", "pytest (>=8.1,<9.0)", "ruff (>=0.5.0,<0.6.0)"]
 py2exe = ["py2exe (>=0.12)"]
-pyinstaller = ["pyinstaller (>=6.3)"]
+pyinstaller = ["pyinstaller (>=6.7.0)"]
 secretstorage = ["cffi", "secretstorage"]
+static-analysis = ["autopep8 (>=2.0,<3.0)", "ruff (>=0.5.0,<0.6.0)"]
+test = ["pytest (>=8.1,<9.0)"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "40eb24990c3a30981eb88a1d8a1b232ce7c80534f0e15bcf1dd7a4a6c7846fc2"
+content-hash = "b8ce4462dbb3b9c1c11df082aa650a572c89d785befd863e6ea14ad62d667556"
