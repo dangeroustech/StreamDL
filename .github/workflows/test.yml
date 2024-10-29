@@ -31,7 +31,7 @@ jobs:
           uv sync --all-extras --dev
         env:
           STREAMDL_GRPC_PORT: "50051"
-          STREAMDL_GRPC_ADDR: localhost
+          STREAMDL_GRPC_ADDR: "localhost"
       - name: Run Python Tests
         run: |
           uv run bandit -ll -c .bandit.yml streamdl_proto_srv.py
