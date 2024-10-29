@@ -6,9 +6,8 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /app
 COPY . .
-RUN pip install --no-cache-dir poetry==1.8.2 && \
-    poetry export --without-hashes -o requirements.txt && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir uv==0.4.28 && \
+    uv sync --all-extras --dev
 
 # Python Protobuf Server
 FROM python:3.13-slim-bookworm AS server
@@ -16,8 +15,8 @@ WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV PATH="/opt/venv/bin:$PATH"
-# Copy venv
-COPY --from=deps /opt/venv /opt/venv
+RUN pip install --no-cache-dir uv==0.4.28 && \
+    uv sync
 # Copy in app files
 COPY --from=deps /app/streamdl_proto_srv.py /app/streamdl_proto_srv.py
 COPY --from=deps /app/stream_pb2.py /app/stream_pb2.py
