@@ -1,6 +1,6 @@
 # Export packages from poetry and save
 # to venv to avoid building them later
-FROM python:3.12.7-slim-bullseye as deps
+FROM python:3.13-slim-bookworm AS deps
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir poetry==1.8.2 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Python Protobuf Server
-FROM python:3.12.7-slim-bullseye as server
+FROM python:3.13-slim-bookworm AS server
 WORKDIR /app
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
