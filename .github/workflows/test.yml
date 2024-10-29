@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: ["3.12", "3.13"]
         go-version: [1.22, 1.23]
-        os: [ubuntu-22.04, ubuntu-latest]
+        os: [ubuntu-24.04, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
