@@ -1,3 +1,10 @@
+### [3.2.5](https://github.com/dangeroustech/StreamDL/compare/v3.2.4...v3.2.5) (2024-10-29)
+
+
+### 🐛 Bug Fixes
+
+* Dockerfile.server to reduce vulnerabilities ([3f8aa92](https://github.com/dangeroustech/StreamDL/commit/3f8aa925022ff2857ccb91a3a10c720e42aba8cf))
+
 ### [3.2.4](https://github.com/dangeroustech/StreamDL/compare/v3.2.3...v3.2.4) (2024-03-30)
 
 
