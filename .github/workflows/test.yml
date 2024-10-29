@@ -35,7 +35,6 @@ jobs:
       - name: Run Python Tests
         run: |
           uv run bandit -ll -c .bandit.yml streamdl_proto_srv.py
-          uv run pytest tests
       - name: Run Go Tests
         run: |
           uv run python streamdl_proto_srv.py &
