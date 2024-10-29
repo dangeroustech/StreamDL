@@ -4,8 +4,8 @@ FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
 FROM golang:1.21.4-alpine3.17 as go-build
 WORKDIR /app
 COPY . .
-RUN go get -v
-RUN go build -o streamdl
+RUN go get -v && \
+    go build -o streamdl
 
 # Golang Protobuf Client and Logic
 FROM golang:1.21.4-alpine3.17 as client
