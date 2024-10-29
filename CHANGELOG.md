@@ -1,3 +1,10 @@
+### [3.2.13](https://github.com/dangeroustech/StreamDL/compare/v3.2.12...v3.2.13) (2024-10-29)
+
+
+### 📚 Documentation
+
+* correct typo ([d0bafd7](https://github.com/dangeroustech/StreamDL/commit/d0bafd775853395d8785b5083464ea67696c649d))
+
 ### [3.2.12](https://github.com/dangeroustech/StreamDL/compare/v3.2.11...v3.2.12) (2024-10-29)
 
 ### [3.2.11](https://github.com/dangeroustech/StreamDL/compare/v3.2.10...v3.2.11) (2024-10-29)
