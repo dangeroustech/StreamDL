@@ -1,19 +1,21 @@
-[tool.poetry]
+[tool.uv]
+dev-dependencies = ["pytest", "bandit", "black<25.0,>=24.3"]
+
+[project]
+authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
+requires-python = "<4.0,>=3.10"
+dependencies = [
+  "grpcio<2.0.0,>=1.62.1",
+  "protobuf<6.0.0,>=5.26.0",
+  "streamlink<7.0.0,>=6.7.2",
+  "wheel<1.0.0,>=0.43.0",
+  "yt-dlp<2025.0.0,>=2024.3.10",
+]
 name = "StreamDL"
 version = "3.2.9"
 description = "Monitor and Download Streams from a Variety of Websites"
-authors = ["biodrone <biodrone@dangerous.tech>"]
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-grpcio = "^1.62.1"
-protobuf = "^5.26.0"
-streamlink = "^6.7.2"
-wheel = "^0.43.0"
-yt-dlp = "^2024.3.10"
-
-[tool.poetry.dev-dependencies]
-pytest = "*"
-bandit = "*"
-black = "^24.3"
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
