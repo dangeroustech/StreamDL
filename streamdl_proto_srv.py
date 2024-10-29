@@ -124,5 +124,5 @@ def get_stream(r):
 if __name__ == "__main__":
     try:
         serve()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         print("\nClosing Due To Keyboard Interrupt...")
