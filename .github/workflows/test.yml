@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [master, staging]
 
+permissions:
+  contents: read
+
 jobs:
   Software_Tests:
     name: Software Tests
