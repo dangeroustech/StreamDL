@@ -1,3 +1,10 @@
+### [3.2.7](https://github.com/dangeroustech/StreamDL/compare/v3.2.6...v3.2.7) (2024-10-29)
+
+
+### ✍ Chore
+
+* **deps:** bump idna from 3.6 to 3.7 ([f30e245](https://github.com/dangeroustech/StreamDL/commit/f30e2452d98685a0c228540223c1cd1a0195c549))
+
 ### [3.2.6](https://github.com/dangeroustech/StreamDL/compare/v3.2.5...v3.2.6) (2024-10-29)
 
 ### [3.2.5](https://github.com/dangeroustech/StreamDL/compare/v3.2.4...v3.2.5) (2024-10-29)
