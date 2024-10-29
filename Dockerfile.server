@@ -19,5 +19,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy venv
 COPY --from=deps /opt/venv /opt/venv
 # Copy in app files
-COPY --from=deps streamdl_proto_srv.py stream_pb2.py stream_pb2_grpc.py entrypoint_server.sh ./
+COPY --from=deps /app/streamdl_proto_srv.py /app/streamdl_proto_srv.py
+COPY --from=deps /app/stream_pb2.py /app/stream_pb2.py
+COPY --from=deps /app/stream_pb2_grpc.py /app/stream_pb2_grpc.py
+COPY --from=deps /app/entrypoint_server.sh /app/entrypoint_server.sh
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_server.sh"]
