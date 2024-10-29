@@ -1,3 +1,37 @@
+### [3.2.11](https://github.com/dangeroustech/StreamDL/compare/v3.2.10...v3.2.11) (2024-10-29)
+
+
+### 📃 Refactor
+
+* move to uv for deps ([dfc7826](https://github.com/dangeroustech/StreamDL/commit/dfc78260baaf2f7337dd91a88f086307b7f1a2e0))
+
+
+### ✍ Chore
+
+* fix linter ([1ebcc48](https://github.com/dangeroustech/StreamDL/commit/1ebcc4866ac510a61f30ce1f4ce82542cc587bc8))
+* fix linter errors ([878734b](https://github.com/dangeroustech/StreamDL/commit/878734b5198cc129e908a255583ff41a2fd90229))
+* update software versions ([25037d6](https://github.com/dangeroustech/StreamDL/commit/25037d60b83ef18ebc9a09143dec3d88375648f3))
+
+
+### 🧪 Tests
+
+* update go versions ([8a16b5d](https://github.com/dangeroustech/StreamDL/commit/8a16b5d49971f454d523dabf01a931a5785aa4b2))
+* update lts ubuntu version ([5021e14](https://github.com/dangeroustech/StreamDL/commit/5021e14f94d258558a13dfa58f9035a58629a5de))
+
+
+### 🐛 Bug Fixes
+
+* add more uv ([6301e9d](https://github.com/dangeroustech/StreamDL/commit/6301e9df76f61ecd9b289eed1a957f59e265b05a))
+* add uv to dockerfile ([9ca9a23](https://github.com/dangeroustech/StreamDL/commit/9ca9a2380c4d9ce493700e6db65ba881c52b15e5))
+* allow changelog job to write ([6df0485](https://github.com/dangeroustech/StreamDL/commit/6df04858af9eae5e65b7762dbe3a5d00a5d9d27e))
+* deps file copy ([373337f](https://github.com/dangeroustech/StreamDL/commit/373337f7880cc6a58aec701dd6d6f275088e2b14))
+* docker server build ([b4c9b28](https://github.com/dangeroustech/StreamDL/commit/b4c9b281b045229df61a3b8ac73b46d260015bd2))
+* env vars ([e689690](https://github.com/dangeroustech/StreamDL/commit/e68969032fd1f2ca2dff2932c8b93e50e49b5a76))
+* no pytest ([c83d70d](https://github.com/dangeroustech/StreamDL/commit/c83d70dc29ccd0ed6e688d1913094197037f96ec))
+* quote localhost ([9b4988e](https://github.com/dangeroustech/StreamDL/commit/9b4988edce0ac27b20bed4be0f07f7ffda0646f7))
+* reduce python versions by 1 ([931b13f](https://github.com/dangeroustech/StreamDL/commit/931b13f3286c34addc92e00b1ab4054bc41daf4f))
+* update changelog release ([6c860ec](https://github.com/dangeroustech/StreamDL/commit/6c860ec62240546a4f8f214ddd740fbd1f261727))
+
 ### [3.2.10](https://github.com/dangeroustech/StreamDL/compare/v3.2.9...v3.2.10) (2024-10-29)
 
 
