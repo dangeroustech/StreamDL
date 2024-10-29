@@ -1,3 +1,10 @@
+### [3.2.10](https://github.com/dangeroustech/StreamDL/compare/v3.2.9...v3.2.10) (2024-10-29)
+
+
+### ✍ Chore
+
+* consolidate container layers ([c186f94](https://github.com/dangeroustech/StreamDL/commit/c186f94aeffce1a0a243cd89436ce6b6491f13e4))
+
 ### [3.2.9](https://github.com/dangeroustech/StreamDL/compare/v3.2.8...v3.2.9) (2024-10-29)
 
 
