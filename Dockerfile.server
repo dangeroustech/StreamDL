@@ -5,17 +5,18 @@ WORKDIR /app
 COPY . .
 RUN pip install --no-cache-dir uv==0.4.28 && \
     uv sync --all-extras --dev
+RUN which uv
 
 # Python Protobuf Server
 FROM python:3.13-slim-bookworm AS server
 WORKDIR /app
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-RUN pip install --no-cache-dir uv==0.4.28 && \
-    uv sync
 # Copy in app files
+COPY --from=deps /app/pyproject.toml /app/pyproject.toml
+COPY --from=deps /app/README.md /app/README.md
 COPY --from=deps /app/streamdl_proto_srv.py /app/streamdl_proto_srv.py
 COPY --from=deps /app/stream_pb2.py /app/stream_pb2.py
 COPY --from=deps /app/stream_pb2_grpc.py /app/stream_pb2_grpc.py
 COPY --from=deps /app/entrypoint_server.sh /app/entrypoint_server.sh
+RUN pip install --no-cache-dir uv==0.4.28 && \
+    uv sync
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_server.sh"]
