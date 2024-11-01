@@ -1,3 +1,15 @@
+### [3.2.14](https://github.com/dangeroustech/StreamDL/compare/v3.2.13...v3.2.14) (2024-11-01)
+
+
+### ✍ Chore
+
+* update uv build version ([9d1b305](https://github.com/dangeroustech/StreamDL/commit/9d1b3051fe6777f49c245423a2c850f841af93b7))
+
+
+### 🐛 Bug Fixes
+
+* add HTTP 429 error handling and backoff ([925519f](https://github.com/dangeroustech/StreamDL/commit/925519febf76292df5bd5a9a05d2833004dc7734))
+
 ### [3.2.13](https://github.com/dangeroustech/StreamDL/compare/v3.2.12...v3.2.13) (2024-10-29)
 
 
