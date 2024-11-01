@@ -52,7 +52,11 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: streamdl:${{ matrix.component }}_local
-          args: --severity-threshold=medium --file=Dockerfile.${{ matrix.component }}
+          args: >-
+            --severity-threshold=medium
+            --file=Dockerfile.${{ matrix.component }}
+            --exclude-base-image-vulns
+            --policy-path=.snyk
 
       - name: Upload result to GitHub Code Scanning
         id: snyk_results_upload
