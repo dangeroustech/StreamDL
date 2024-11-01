@@ -2,6 +2,7 @@
 
 import logging
 import os
+import time
 from concurrent import futures
 
 import grpc
@@ -98,6 +99,10 @@ def get_stream(r):
                             f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}"
                         )
                     return {"error": "FormatNotAvailableError"}
+            elif "HTTP Error 429: Too Many Requests " in str(e):
+                logger.error("Too many requests - sleeping for 30 seconds")
+                time.sleep(30)
+                return {"error": "TooManyRequestsError"}
             else:
                 logger.error(f"Download error: {e}")
                 return {"error": "DownloadError"}
@@ -113,6 +118,9 @@ def get_stream(r):
         except yt_dlp.utils.UnavailableVideoError as e:
             logger.error(f"Unavailable video error: {e}")
             return {"error": "UnavailableVideoError"}
+        except yt_dlp.utils.YoutubeDLError as e:
+            logger.error(f"yt_dlp error: {e}")
+            return {"error": "YoutubeDLError"}
         except Exception as e:
             logger.error(f"yt_dlp error: {e}")
             return {"error": "UnknownError"}
@@ -124,5 +132,5 @@ def get_stream(r):
 if __name__ == "__main__":
     try:
         serve()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         print("\nClosing Due To Keyboard Interrupt...")
