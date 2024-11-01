@@ -7,7 +7,8 @@ on:
     branches: [staging]
 
 permissions:
-  contents: read
+  contents: write
+  security-events: write
 
 jobs:
   docker:

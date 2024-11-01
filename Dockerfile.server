@@ -1,5 +1,3 @@
-# Export packages from poetry and save
-# to venv to avoid building them later
 FROM python:3.13-slim-bookworm AS deps
 WORKDIR /app
 COPY . .
