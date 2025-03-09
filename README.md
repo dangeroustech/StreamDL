@@ -18,25 +18,28 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 
 ## Usage
 
-```shell
-  usage: Monitor and Download Streams from a Variety of Websites
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-h`, `--help` | Show this help message and exit | - |
+| `-config` | Location of config file (full path inc filename) | `config.yml` |
+| `-out` | Location of output file (folder only) | Current directory |
+| `-move` | Location to move completed downloads to | - |
+| `-time` | Time interval to check for streams (in seconds) | `10` |
+| `-subfolder` | Add streams to a subfolder with the channel name | `false` |
 
-  optional arguments:
-  -h,               --help      show this help message and exit
-  -l    LOGPATH,    --logpath   LOGPATH
-                                Logfile to use (defaults to working dir)
-  -ll   LOGLEVEL,   --loglevel  Log level to set (defaults to INFO)
-  -o    OUTDIR,     --outdir    OUTDIR
-                                Output file location without trailing slash
-                                (defaults to working dir)
-  -m    MOVEDIR,    --movedir   MOVEDIR
-                                Directory to move files to after downloading
-  -c    CONFIG,     --config    CONFIG
-                                Config file to use
-  -r    REPEAT,     --repeat    REPEAT
-                                Time to repetitively check users, in minutes
-  -q    QUALITY,    --quality   Quality of stream to download
-                                (best, 1080p, >720p)
+```shell
+usage: Monitor and Download Streams from a Variety of Websites
+
+optional arguments:
+-h,            --help       show this help message and exit
+-config                     Location of config file (full path inc filename)
+                            defaults to config.yml
+-out                        Location of output file (folder only)
+-move                       Location to move completed downloads to
+-time                       Time interval to check for streams (in seconds)
+                            defaults to 10 seconds
+-subfolder                  Add streams to a subfolder with the channel name
+                            defaults to false
 ```
 
 ## Install
