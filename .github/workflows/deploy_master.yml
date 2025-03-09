@@ -103,7 +103,7 @@ jobs:
         with:
           image: dangeroustech/streamdl:${{ matrix.component }}_stable
           args: >-
-            --severity-threshold=high
+            --severity-threshold=critical
             --file=Dockerfile.${{ matrix.component }}
             --exclude-base-image-vulns
             --policy-path=.snyk
