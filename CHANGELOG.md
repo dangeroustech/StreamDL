@@ -1,3 +1,10 @@
+## [3.3.0](https://github.com/dangeroustech/StreamDL/compare/v3.2.21...v3.3.0) (2025-03-09)
+
+
+### 🎉 New Features
+
+* version bumping to align to SECURITY.md ([774528c](https://github.com/dangeroustech/StreamDL/commit/774528c27980ac0087255059871d4d0ad2307908))
+
 ### [3.2.21](https://github.com/dangeroustech/StreamDL/compare/v3.2.20...v3.2.21) (2025-03-09)
 
 

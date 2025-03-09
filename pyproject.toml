@@ -12,7 +12,7 @@ dependencies = [
   "yt-dlp>=2025.2.19",
 ]
 name = "StreamDL"
-version = "3.2.21"
+version = "3.3.0"
 description = "Monitor and Download Streams from a Variety of Websites"
 readme = "README.md"
 
