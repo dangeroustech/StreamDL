@@ -1,3 +1,23 @@
+### [3.2.18](https://github.com/dangeroustech/StreamDL/compare/v3.2.17...v3.2.18) (2025-03-09)
+
+
+### ✍ Chore
+
+* bump go deps ([95c17d0](https://github.com/dangeroustech/StreamDL/commit/95c17d0da773186851bcdf8b55becd6dcd9183aa))
+* further bump go deps ([923f6ca](https://github.com/dangeroustech/StreamDL/commit/923f6cabc4d2bb0c2bb4ec9575e69310f1674bdd))
+* go mod tidy ([9e42ddb](https://github.com/dangeroustech/StreamDL/commit/9e42ddbc986fc07dad089df66533e1e2c76e0c5a))
+* update uv deps ([6fdae6b](https://github.com/dangeroustech/StreamDL/commit/6fdae6b97bb3ec4b28490a7838ead8a864753aa3))
+
+
+### 🐛 Bug Fixes
+
+* bump go version in client dockerfile ([809c98a](https://github.com/dangeroustech/StreamDL/commit/809c98ab4878acb1083011110b61d87925e7f7cb))
+
+
+### 🧪 Tests
+
+* update go PR test versions ([1c40468](https://github.com/dangeroustech/StreamDL/commit/1c40468416d17845e8ba6191647cd762fc8b8614))
+
 ### [3.2.17](https://github.com/dangeroustech/StreamDL/compare/v3.2.16...v3.2.17) (2025-03-09)
 
 
