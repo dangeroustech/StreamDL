@@ -1,3 +1,10 @@
+### [3.3.1](https://github.com/dangeroustech/StreamDL/compare/v3.3.0...v3.3.1) (2025-03-09)
+
+
+### 🏭 Build
+
+* attempt to reduce number of SARIF scans to allow successful upload ([d2e16c2](https://github.com/dangeroustech/StreamDL/commit/d2e16c257c93f992b9992936fcc4d29a0baa771b))
+
 ## [3.3.0](https://github.com/dangeroustech/StreamDL/compare/v3.2.21...v3.3.0) (2025-03-09)
 
 
