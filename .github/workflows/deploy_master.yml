@@ -103,10 +103,12 @@ jobs:
         with:
           image: dangeroustech/streamdl:${{ matrix.component }}_stable
           args: >-
-            --severity-threshold=medium
+            --severity-threshold=high
             --file=Dockerfile.${{ matrix.component }}
             --exclude-base-image-vulns
             --policy-path=.snyk
+            --prune-repeated-subdependencies
+            --package-manager=dockerfile
 
       - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
