@@ -30,21 +30,6 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 | `-time` | Time interval to check for streams (in seconds) | `10` |
 | `-subfolder` | Add streams to a subfolder with the channel name | `false` |
 
-```shell
-usage: Monitor and Download Streams from a Variety of Websites
-
-optional arguments:
--h,            --help       show this help message and exit
--config                     Location of config file (full path inc filename)
-                            defaults to config.yml
--out                        Location of output file (folder only)
--move                       Location to move completed downloads to
--time                       Time interval to check for streams (in seconds)
-                            defaults to 10 seconds
--subfolder                  Add streams to a subfolder with the channel name
-                            defaults to false
-```
-
 ## Install
 
 ### Docker
