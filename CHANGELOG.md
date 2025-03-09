@@ -1,3 +1,10 @@
+### [3.2.19](https://github.com/dangeroustech/StreamDL/compare/v3.2.18...v3.2.19) (2025-03-09)
+
+
+### ✍ Chore
+
+* dependabot not working with uv yet so manually updatring core deps ([81e8438](https://github.com/dangeroustech/StreamDL/commit/81e84385d1b3c6e0cdce47eab90e4f94afd1c9d4))
+
 ### [3.2.18](https://github.com/dangeroustech/StreamDL/compare/v3.2.17...v3.2.18) (2025-03-09)
 
 
