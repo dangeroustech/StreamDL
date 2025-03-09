@@ -1,3 +1,17 @@
+### [3.2.17](https://github.com/dangeroustech/StreamDL/compare/v3.2.16...v3.2.17) (2025-03-09)
+
+
+### ✍ Chore
+
+* key syntax update ([72f34c3](https://github.com/dangeroustech/StreamDL/commit/72f34c380dcee17035dc399497c486c5981b7df9))
+
+
+### 📚 Documentation
+
+* remove old usage content ([ddade70](https://github.com/dangeroustech/StreamDL/commit/ddade70b93c114c3ef5a4c3ab59fcee4de2c3841))
+* update for uv usage ([bb4261a](https://github.com/dangeroustech/StreamDL/commit/bb4261a15dcc770162c790032d725b591500b8a6))
+* update README with current flags ([8497faa](https://github.com/dangeroustech/StreamDL/commit/8497faaed0db643e5cf679eb5d47090a51b52ebd))
+
 ### [3.2.16](https://github.com/dangeroustech/StreamDL/compare/v3.2.15...v3.2.16) (2024-11-01)
 
 ### [3.2.15](https://github.com/dangeroustech/StreamDL/compare/v3.2.14...v3.2.15) (2024-11-01)
