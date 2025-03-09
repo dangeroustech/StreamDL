@@ -1,3 +1,10 @@
+### [3.3.2](https://github.com/dangeroustech/StreamDL/compare/v3.3.1...v3.3.2) (2025-03-09)
+
+
+### 🏭 Build
+
+* further SARIF test changes ([46ee9e6](https://github.com/dangeroustech/StreamDL/commit/46ee9e6da9a4329412e3ed883da07dc7031cb4fa))
+
 ### [3.3.1](https://github.com/dangeroustech/StreamDL/compare/v3.3.0...v3.3.1) (2025-03-09)
 
 
