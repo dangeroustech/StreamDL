@@ -11,3 +11,5 @@
 ## Reporting a Vulnerability
 
 Please file an issue using the SECURITY template, giving as much detail as possible.
+
+Please feel free to also submit a PR to fix the issue.
