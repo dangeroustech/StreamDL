@@ -1,3 +1,10 @@
+### [3.2.20](https://github.com/dangeroustech/StreamDL/compare/v3.2.19...v3.2.20) (2025-03-09)
+
+
+### 📚 Documentation
+
+* update SECURITY.md to deprecate support for non-3.x.x versions ([48a6d20](https://github.com/dangeroustech/StreamDL/commit/48a6d201f9c44ea94fda67bbe7dd299803de840e))
+
 ### [3.2.19](https://github.com/dangeroustech/StreamDL/compare/v3.2.18...v3.2.19) (2025-03-09)
 
 
