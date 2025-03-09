@@ -12,8 +12,11 @@ Monitor and Download Streams from a Variety of Websites
 ## Why This Exists
 
 Because there are certain streaming websites that don't store historic VODs.
+
 This is sad.
-As a nerd, you probably have terabytes of storage somewhere, right?
+
+As a datahoarder, you probably have terabytes of storage somewhere, right?
+
 Why not get some use out of it? Archivists everywhere, rejoice!
 
 ## Usage
