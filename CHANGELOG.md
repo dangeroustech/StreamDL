@@ -1,3 +1,10 @@
+### [3.2.21](https://github.com/dangeroustech/StreamDL/compare/v3.2.20...v3.2.21) (2025-03-09)
+
+
+### 🐛 Bug Fixes
+
+* correct security version support following latest round of dep updates ([19293d8](https://github.com/dangeroustech/StreamDL/commit/19293d84d1c292f2bc1bdf2a692a35077c8d3413))
+
 ### [3.2.20](https://github.com/dangeroustech/StreamDL/compare/v3.2.19...v3.2.20) (2025-03-09)
 
 
