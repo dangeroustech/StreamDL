@@ -1,3 +1,18 @@
+### [3.3.4](https://github.com/dangeroustech/StreamDL/compare/v3.3.3...v3.3.4) (2025-03-15)
+
+
+### 🐛 Bug Fixes
+
+* add default to TICK_TIME in entrypoint script ([98cbf5a](https://github.com/dangeroustech/StreamDL/commit/98cbf5a89e3f24fbc8a8a3cf54569859d10d66e6))
+* proper yaml package import ([eb1d01e](https://github.com/dangeroustech/StreamDL/commit/eb1d01e7fb8eb63e892a4a2ebb8821686d221fa9))
+* properly add log-level to flags ([c1379cc](https://github.com/dangeroustech/StreamDL/commit/c1379cc5634f89c38d02b1ce85966c4811b8c4fd))
+
+
+### ✍ Chore
+
+* fix line length linter error ([e1ddfda](https://github.com/dangeroustech/StreamDL/commit/e1ddfdaa3dc366568ce579f76f902149f60ea5f6))
+* more consistent logging ([6ccf783](https://github.com/dangeroustech/StreamDL/commit/6ccf783f4598592f47b267ad5f74addb51c79872))
+
 ### [3.3.3](https://github.com/dangeroustech/StreamDL/compare/v3.3.2...v3.3.3) (2025-03-12)
 
 
