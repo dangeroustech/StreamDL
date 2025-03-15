@@ -87,7 +87,7 @@ func main() {
 			users = append(users, user)
 		}
 		sort.Strings(users)
-		log.Debugf("Currently Live Users: %v", strings.Join(users, ", "))
+		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
 
 		select {

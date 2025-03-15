@@ -28,7 +28,8 @@ func getStream(site string, user string, quality string) (string, error) {
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
 			statusCode := e.Code()
-			log.Debugf("Failed to Get Stream for %v: %v", user, statusCode)
+			statusMessage := e.Message()
+			log.Errorf("Failed to Get Stream for %v: %v", user, statusMessage)
 
 			switch statusCode {
 			case codes.NotFound:

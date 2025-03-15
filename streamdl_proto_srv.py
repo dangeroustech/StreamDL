@@ -23,12 +23,19 @@ import stream_pb2_grpc as pb_grpc
 
 # Configure root logger first to capture all logs
 logging.basicConfig(
-    level=os.environ.get("SERVER_LOG_LEVEL", "ERROR").lower(),
+    level=os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower(),
     format="%(asctime)s: |%(levelname)s| %(message)s",
 )
 
 # Create a null handler to completely silence loggers
 null_handler = logging.NullHandler()
+
+# Set up our application logger first
+logger = logging.getLogger("StreamDL")
+# Make sure our logger's level matches the environment setting
+logger.setLevel(os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower())
+# Ensure our logger propagates to the root logger (which has the console handler)
+logger.propagate = True
 
 # Silence other loggers
 streamlink_logger = logging.getLogger("streamlink")
@@ -44,22 +51,19 @@ yt_dlp_logger.propagate = False
 # Silence any other third-party loggers that might be noisy
 for logger_name in logging.root.manager.loggerDict:
     if logger_name != "StreamDL":
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging.CRITICAL)
-        logger.addHandler(null_handler)
-        logger.propagate = False
+        third_party_logger = logging.getLogger(logger_name)
+        third_party_logger.setLevel(logging.CRITICAL)
+        third_party_logger.addHandler(null_handler)
+        third_party_logger.propagate = False
 
-# Set up our application logger
-logger = logging.getLogger("StreamDL")
 logger.debug("StreamDL Server Starting...")
-logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "ERROR"))
+logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "CRITICAL"))
 logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
 
 # Configure yt-dlp logging to match our log level
 yt_dlp.utils.std_headers["User-Agent"] = "streamdl"
 yt_dlp.utils.bug_reports_message = lambda: ""
-log_level = os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower()
 # Always set these to True to prevent direct console output
 yt_dlp_quiet = True
 yt_dlp_no_warnings = True
@@ -71,28 +75,42 @@ class StreamServicer(pb_grpc.Stream):
             context.set_code(grpc.StatusCode.OK)
             return pb.StreamResponse(url=res["url"])
         else:
-            match res["error"]:
+            error_code = res["error"]
+            match error_code:
                 case 400:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                    context.set_details(f"{res['error']} - Invalid request")
                 case 403:
                     context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+                    context.set_details(f"{res['error']} - Unauthenticated")
                 case 404:
-                    context.set_code(grpc.StatusCode.DATA_LOSS)
+                    context.set_code(grpc.StatusCode.NOT_FOUND)
+                    context.set_details(f"{res['error']} - Not found")
                 case 408:
                     context.set_code(grpc.StatusCode.DEADLINE_EXCEEDED)
+                    context.set_details(f"{res['error']} - Deadline exceeded")
                 case 412:
                     context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
+                    context.set_details(f"{res['error']} - Failed precondition")
                 case 415:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                    context.set_details(f"{res['error']} - Invalid format")
                 case 418:
                     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+                    context.set_details(f"{res['error']} - Unimplemented")
                 case 429:
                     context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
+                    context.set_details(f"{res['error']} - Resource exhausted")
+                case 450:
+                    context.set_code(grpc.StatusCode.NOT_FOUND)
+                    context.set_details(f"{res['error']} - User is offline")
                 case 500:
                     context.set_code(grpc.StatusCode.CANCELLED)
+                    context.set_details(f"{res['error']} - Cancelled")
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
-            return pb.StreamResponse()
+                    context.set_details(f"{res['error']} - Unknown error")
+            return pb.StreamResponse(error=error_code)
 
 
 def serve():
@@ -105,10 +123,6 @@ def serve():
 
 def get_stream(r):
     session = Streamlink()
-    # Configure Streamlink session to be quiet
-    session.set_loglevel("critical")
-    session.set_option("stream-timeout", 60)
-    session.set_option("hls-timeout", 60)
     options = Options()
     options.set("twitch", "twitch-disable-ads")
     options.set("twitch", "twitch-disable-reruns")
@@ -171,9 +185,10 @@ def get_stream(r):
                         )
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):
-                logger.error("Too many requests - sleeping for 30 seconds")
                 time.sleep(30)
                 return {"error": 429}  # Too Many Requests
+            elif "currently offline" in str(e):
+                return {"error": 450}  # offline
             else:
                 logger.error(f"Download error: {e}")
                 return {"error": 500}  # Generic Download Error
