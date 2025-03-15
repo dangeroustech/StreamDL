@@ -26,7 +26,7 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	log.Tracef("out: %s", outLoc)
 	log.Tracef("move: %s", moveLoc)
 	log.Tracef("full: %s", filepath.Join(outLoc, user+"_"+t+".mp4"))
-	log.Tracef("Starting Download for %v", user)
+	log.Infof("Starting Download for %v", user)
 	buf := &bytes.Buffer{}
 	cmd := fluentffmpeg.
 		NewCommand("").

@@ -146,40 +146,43 @@ def get_stream(r):
             with yt_dlp.YoutubeDL(
                 {
                     "format": r.quality if r.quality else "best",
-                    "quiet": True,
-                    "no_warnings": True,
+                    "quiet": yt_dlp_quiet,
+                    "no_warnings": yt_dlp_no_warnings,
                     "verbose": False,
+                    "logger": None,  # Disable yt-dlp's internal logger
                 }
             ) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
         except GeoRestrictedError as e:
-            logger.error(f"Geo-restricted error: {e}")
+            logger.error(f"GeoRestrictedError: {e}")
             return {"error": 403}
         except UnavailableVideoError as e:
-            logger.error(f"Unavailable video error: {e}")
+            logger.error(f"UnavailableVideoError: {e}")
             return {"error": 404}
         except ExtractorError as e:
-            logger.error(f"Extractor error: {e}")
+            logger.error(f"ExtractorError: {e}")
             return {"error": 500}
         except DownloadError as e:
+            logger.error(f"DownloadError: {e}")
             if "Requested format is not available" in str(e):
                 with yt_dlp.YoutubeDL(
                     {
-                        "quiet": True,
-                        "no_warnings": True,
+                        "quiet": yt_dlp_quiet,
+                        "no_warnings": yt_dlp_no_warnings,
                         "verbose": False,
+                        "logger": None,  # Disable yt-dlp's internal logger
                     }
                 ) as ydl_temp:
                     info_dict = ydl_temp.extract_info(
                         r.site + "/" + r.user, download=False
                     )
-                    logger.error("Requested format is not available")
-                    logger.error("Available formats:")
+                    logger.critical("Requested format is not available")
+                    logger.critical("Available formats:")
                     # List available formats
                     formats = info_dict.get("formats", [])
                     for f in formats:
-                        logger.error(
+                        logger.critical(
                             f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}"
                         )
                     return {"error": 415}  # Format Not Available
@@ -188,10 +191,9 @@ def get_stream(r):
             elif "currently offline" in str(e):
                 return {"error": 450}  # offline
             else:
-                logger.error(f"Download error: {e}")
                 return {"error": 500}  # Generic Download Error
         except Exception as e:
-            logger.error(f"yt_dlp error: {e}")
+            logger.error(f"Generic Error: {e}")
             return {"error": 500}  # Generic Error
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
