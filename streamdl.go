@@ -24,6 +24,7 @@ func main() {
 	moveLoc := flag.String("move", "", "Location of move file (folder only, trailing slash)")
 	tickTime := flag.Int("time", 10, "Time to tick (seconds)")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
+	logLevel := flag.String("log-level", "info", "Log level (trace, debug, info, warn, error, fatal, panic)")
 	flag.Parse()
 
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
@@ -31,14 +32,16 @@ func main() {
 	confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
 	control := make(chan bool)
 	response := make(chan bool)
-	ll, err := log.ParseLevel(os.Getenv("LOG_LEVEL"))
 
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
+
+	ll, err := log.ParseLevel(*logLevel)
 	if err != nil {
-		log.SetLevel(ll)
+		log.Warnf("Invalid log level '%s', defaulting to info", *logLevel)
+		log.SetLevel(log.InfoLevel)
 	} else {
-		log.SetLevel(log.TraceLevel)
+		log.SetLevel(ll)
 	}
 	log.Infof("Starting StreamDL...")
 	log.Tracef("Config: %v", config)

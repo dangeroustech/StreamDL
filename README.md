@@ -29,6 +29,7 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 | `-move` | Location to move completed downloads to | - |
 | `-time` | Time interval to check for streams (in seconds) | `10` |
 | `-subfolder` | Add streams to a subfolder with the channel name | `false` |
+| `-log-level` | Set logging level (trace, debug, info, warn, error, fatal, panic) | `info` |
 
 ## Install
 
