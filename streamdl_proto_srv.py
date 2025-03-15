@@ -21,14 +21,38 @@ from yt_dlp.utils import (
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
 
+# Configure root logger first to capture all logs
 logging.basicConfig(
     level=os.environ.get("SERVER_LOG_LEVEL", "ERROR").lower(),
     format="%(asctime)s: |%(levelname)s| %(message)s",
 )
 
+# Create a null handler to completely silence loggers
+null_handler = logging.NullHandler()
+
+# Silence other loggers
+streamlink_logger = logging.getLogger("streamlink")
+streamlink_logger.setLevel(logging.CRITICAL)
+streamlink_logger.addHandler(null_handler)
+streamlink_logger.propagate = False
+
+yt_dlp_logger = logging.getLogger("yt_dlp")
+yt_dlp_logger.setLevel(logging.CRITICAL)
+yt_dlp_logger.addHandler(null_handler)
+yt_dlp_logger.propagate = False
+
+# Silence any other third-party loggers that might be noisy
+for logger_name in logging.root.manager.loggerDict:
+    if logger_name != "StreamDL":
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.CRITICAL)
+        logger.addHandler(null_handler)
+        logger.propagate = False
+
+# Set up our application logger
 logger = logging.getLogger("StreamDL")
 logger.debug("StreamDL Server Starting...")
-logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "CRITICAL"))
+logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "ERROR"))
 logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
 
@@ -36,9 +60,9 @@ logger.debug("Streamlink version: %s", streamlink.__version__)
 yt_dlp.utils.std_headers["User-Agent"] = "streamdl"
 yt_dlp.utils.bug_reports_message = lambda: ""
 log_level = os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower()
-yt_dlp_quiet = log_level in ["error", "critical", "fatal"]
-yt_dlp_no_warnings = log_level in ["error", "critical", "fatal"]
-
+# Always set these to True to prevent direct console output
+yt_dlp_quiet = True
+yt_dlp_no_warnings = True
 
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
@@ -81,6 +105,10 @@ def serve():
 
 def get_stream(r):
     session = Streamlink()
+    # Configure Streamlink session to be quiet
+    session.set_loglevel("critical")
+    session.set_option("stream-timeout", 60)
+    session.set_option("hls-timeout", 60)
     options = Options()
     options.set("twitch", "twitch-disable-ads")
     options.set("twitch", "twitch-disable-reruns")
@@ -105,8 +133,9 @@ def get_stream(r):
             with yt_dlp.YoutubeDL(
                 {
                     "format": r.quality if r.quality else "best",
-                    "quiet": yt_dlp_quiet,
-                    "no_warnings": yt_dlp_no_warnings,
+                    "quiet": True,
+                    "no_warnings": True,
+                    "verbose": False,
                 }
             ) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
@@ -124,8 +153,9 @@ def get_stream(r):
             if "Requested format is not available" in str(e):
                 with yt_dlp.YoutubeDL(
                     {
-                        "quiet": yt_dlp_quiet,
-                        "no_warnings": yt_dlp_no_warnings,
+                        "quiet": True,
+                        "no_warnings": True,
+                        "verbose": False,
                     }
                 ) as ydl_temp:
                     info_dict = ydl_temp.extract_info(
