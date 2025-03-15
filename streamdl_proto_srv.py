@@ -10,18 +10,28 @@ import yt_dlp
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
+import streamlink
 
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "DEBUG").lower(),
+    level=os.environ.get("SERVER_LOG_LEVEL", "ERROR").lower(),
     format="%(asctime)s: |%(levelname)s| %(message)s",
 )
 
 logger = logging.getLogger("StreamDL")
-logger.debug("StreamDL Starting...")
+logger.debug("StreamDL Server Starting...")
+logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "ERROR"))
+logger.debug("YT-DLP version: %s", yt_dlp.__version__)
+logger.debug("Streamlink version: %s", streamlink.__version__)
 
+# Configure yt-dlp logging to match our log level
+yt_dlp.utils.std_headers['User-Agent'] = 'streamdl'
+yt_dlp.utils.bug_reports_message = lambda: ''
+log_level = os.environ.get("SERVER_LOG_LEVEL", "ERROR").lower()
+yt_dlp_quiet = log_level in ["error", "critical", "fatal"]
+yt_dlp_no_warnings = log_level in ["error", "critical", "fatal"]
 
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
@@ -79,14 +89,19 @@ def get_stream(r):
         logger.warning("Falling back to yt_dlp")
         # Fallback to yt_dlp
         try:
-            with yt_dlp.YoutubeDL(
-                {"format": r.quality if r.quality else "best"}
-            ) as ydl:
+            with yt_dlp.YoutubeDL({
+                "format": r.quality if r.quality else "best",
+                "quiet": yt_dlp_quiet,
+                "no_warnings": yt_dlp_no_warnings,
+            }) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
         except yt_dlp.utils.DownloadError as e:
             if "Requested format is not available" in str(e):
-                with yt_dlp.YoutubeDL() as ydl_temp:
+                with yt_dlp.YoutubeDL({
+                    "quiet": yt_dlp_quiet,
+                    "no_warnings": yt_dlp_no_warnings,
+                }) as ydl_temp:
                     info_dict = ydl_temp.extract_info(
                         r.site + "/" + r.user, download=False
                     )
