@@ -1,3 +1,10 @@
+### [3.3.6](https://github.com/dangeroustech/StreamDL/compare/v3.3.5...v3.3.6) (2025-03-15)
+
+
+### 🐛 Bug Fixes
+
+* restructure error handling for yt_dlp ([75a077a](https://github.com/dangeroustech/StreamDL/commit/75a077afb260a79943d5608b781d8c6d64f5ecc8))
+
 ### [3.3.5](https://github.com/dangeroustech/StreamDL/compare/v3.3.4...v3.3.5) (2025-03-15)
 
 
