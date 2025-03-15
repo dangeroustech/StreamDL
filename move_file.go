@@ -8,6 +8,7 @@ import (
 )
 
 func moveFile(oldPath string, newPath string) error {
+	log.Infof("Moving file from %v to %v", oldPath, newPath)
 	// Open original file
 	originalFile, err := os.Open(oldPath)
 	if err != nil {
