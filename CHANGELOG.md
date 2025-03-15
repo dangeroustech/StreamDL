@@ -1,3 +1,31 @@
+## [3.4.0](https://github.com/dangeroustech/StreamDL/compare/v3.3.9...v3.4.0) (2025-03-15)
+
+
+### ✍ Chore
+
+* add comment for later dev ([48511b9](https://github.com/dangeroustech/StreamDL/commit/48511b94b49c25b877a1159b91ba31964fc8e9fb))
+* logging progress ([9db5e86](https://github.com/dangeroustech/StreamDL/commit/9db5e865f3a0e873d50c895e6c7e0a3feacd1c62))
+
+
+### 🐛 Bug Fixes
+
+* error logging ([ed54b50](https://github.com/dangeroustech/StreamDL/commit/ed54b500cd22fb5759a18233ec9703ee3b18af3a))
+* less annoying logs ([6aaed7b](https://github.com/dangeroustech/StreamDL/commit/6aaed7b3ad6c1084e9e1bb331d23d6332d584abf))
+* set default tick time to 60 per docs ([baac56a](https://github.com/dangeroustech/StreamDL/commit/baac56a913570873588c2d08872b220538b7617b))
+* typo in CONTRIBUTING ([3d33653](https://github.com/dangeroustech/StreamDL/commit/3d336532bc8e737953ce787cae4c39d1915335b2))
+
+
+### 📃 Refactor
+
+* more sensible logging ([15df76b](https://github.com/dangeroustech/StreamDL/commit/15df76bb01a27e15dc84426b5a03dc0a8d27af8c))
+* move 429 handling code to client to allow for proper backoff loop ([ccf000c](https://github.com/dangeroustech/StreamDL/commit/ccf000cc66717b19a61009e6efbe2884390f4570))
+* yt_dlp logging structure ([0fc0ba9](https://github.com/dangeroustech/StreamDL/commit/0fc0ba9673a75db5642e23aca5a6e0c454b46054))
+
+
+### 🎉 New Features
+
+* add batch time flag for URL checks and enhance logging ([df63384](https://github.com/dangeroustech/StreamDL/commit/df633845de197296634097387799ac75bebb9016))
+
 ### [3.3.9](https://github.com/dangeroustech/StreamDL/compare/v3.3.8...v3.3.9) (2025-03-15)
 
 
