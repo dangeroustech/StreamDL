@@ -22,7 +22,7 @@ func main() {
 	confLoc := flag.String("config", "config.yml", "Location of config file (full path inc filename)")
 	outLoc := flag.String("out", "", "Location of output file (folder only, trailing slash)")
 	moveLoc := flag.String("move", "", "Location of move file (folder only, trailing slash)")
-	tickTime := flag.Int("time", 10, "Time to tick (seconds)")
+	tickTime := flag.Int("time", 60, "Time to tick (seconds)")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
 	logLevel := flag.String("log-level", "info", "Log level (trace, debug, info, warn, error, fatal, panic)")
 	flag.Parse()
