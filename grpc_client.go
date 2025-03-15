@@ -9,6 +9,7 @@ import (
 	pb "dangerous.tech/streamdl/protos"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
@@ -21,15 +22,31 @@ func getStream(site string, user string, quality string) (string, error) {
 	defer conn.Close()
 	c := pb.NewStreamClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
-			log.Debugf("Failed to Get Stream for %v: %v", user, e.Code())
-			return "", errors.New("failed to get stream")
+			statusCode := e.Code()
+			log.Debugf("Failed to Get Stream for %v: %v", user, statusCode)
+
+			switch statusCode {
+			case codes.NotFound:
+				return "", errors.New("stream not found or offline")
+			case codes.DeadlineExceeded:
+				return "", errors.New("request timed out")
+			case codes.Unavailable:
+				return "", errors.New("service unavailable")
+			default:
+				return "", errors.New("failed to get stream: " + statusCode.String())
+			}
 		}
+		return "", err
 	} else {
+		if msg.GetError() != 0 {
+			log.Debugf("Server returned error code: %d", msg.GetError())
+			return "", errors.New("server error")
+		}
 		log.Tracef("Stream for %v Fetched: %v", user, msg.Url)
 	}
 	return msg.Url, nil

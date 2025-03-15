@@ -6,18 +6,17 @@ import time
 from concurrent import futures
 
 import grpc
+import streamlink
 import yt_dlp
+from streamlink.exceptions import NoPluginError, PluginError
+from streamlink.options import Options
+from streamlink.session import Streamlink
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     GeoRestrictedError,
     UnavailableVideoError,
-    AgeRestrictedError,
 )
-from streamlink.exceptions import NoPluginError, PluginError
-from streamlink.options import Options
-from streamlink.session import Streamlink
-import streamlink
 
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
@@ -29,16 +28,17 @@ logging.basicConfig(
 
 logger = logging.getLogger("StreamDL")
 logger.debug("StreamDL Server Starting...")
-logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "ERROR"))
+logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "CRITICAL"))
 logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
 
 # Configure yt-dlp logging to match our log level
-yt_dlp.utils.std_headers['User-Agent'] = 'streamdl'
-yt_dlp.utils.bug_reports_message = lambda: ''
-log_level = os.environ.get("SERVER_LOG_LEVEL", "ERROR").lower()
+yt_dlp.utils.std_headers["User-Agent"] = "streamdl"
+yt_dlp.utils.bug_reports_message = lambda: ""
+log_level = os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower()
 yt_dlp_quiet = log_level in ["error", "critical", "fatal"]
 yt_dlp_no_warnings = log_level in ["error", "critical", "fatal"]
+
 
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
@@ -53,13 +53,19 @@ class StreamServicer(pb_grpc.Stream):
                 case 403:
                     context.set_code(grpc.StatusCode.UNAUTHENTICATED)
                 case 404:
-                    context.set_code(grpc.StatusCode.NOT_FOUND)
+                    context.set_code(grpc.StatusCode.DATA_LOSS)
                 case 408:
                     context.set_code(grpc.StatusCode.DEADLINE_EXCEEDED)
                 case 412:
                     context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
+                case 415:
+                    context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 case 418:
                     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+                case 429:
+                    context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
+                case 500:
+                    context.set_code(grpc.StatusCode.CANCELLED)
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
             return pb.StreamResponse()
@@ -96,18 +102,17 @@ def get_stream(r):
         logger.warning("Falling back to yt_dlp")
         # Fallback to yt_dlp
         try:
-            with yt_dlp.YoutubeDL({
-                "format": r.quality if r.quality else "best",
-                "quiet": yt_dlp_quiet,
-                "no_warnings": yt_dlp_no_warnings,
-            }) as ydl:
+            with yt_dlp.YoutubeDL(
+                {
+                    "format": r.quality if r.quality else "best",
+                    "quiet": yt_dlp_quiet,
+                    "no_warnings": yt_dlp_no_warnings,
+                }
+            ) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
         except GeoRestrictedError as e:
             logger.error(f"Geo-restricted error: {e}")
-            return {"error": 403}
-        except AgeRestrictedError as e:
-            logger.error(f"Age-restricted error: {e}")
             return {"error": 403}
         except UnavailableVideoError as e:
             logger.error(f"Unavailable video error: {e}")
@@ -117,10 +122,12 @@ def get_stream(r):
             return {"error": 500}
         except DownloadError as e:
             if "Requested format is not available" in str(e):
-                with yt_dlp.YoutubeDL({
-                    "quiet": yt_dlp_quiet,
-                    "no_warnings": yt_dlp_no_warnings,
-                }) as ydl_temp:
+                with yt_dlp.YoutubeDL(
+                    {
+                        "quiet": yt_dlp_quiet,
+                        "no_warnings": yt_dlp_no_warnings,
+                    }
+                ) as ydl_temp:
                     info_dict = ydl_temp.extract_info(
                         r.site + "/" + r.user, download=False
                     )
@@ -132,20 +139,20 @@ def get_stream(r):
                         logger.error(
                             f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}"
                         )
-                    return {"error": "FormatNotAvailableError"}
+                    return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):
                 logger.error("Too many requests - sleeping for 30 seconds")
                 time.sleep(30)
-                return {"error": "TooManyRequestsError"}
+                return {"error": 429}  # Too Many Requests
             else:
                 logger.error(f"Download error: {e}")
-                return {"error": "DownloadError"}
+                return {"error": 500}  # Generic Download Error
         except Exception as e:
             logger.error(f"yt_dlp error: {e}")
-            return {"error": "UnknownError"}
+            return {"error": 500}  # Generic Error
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
-        return {"error": 102}
+        return {"error": 500}  # Generic Plugin Error
 
 
 if __name__ == "__main__":
