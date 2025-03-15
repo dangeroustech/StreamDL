@@ -96,6 +96,18 @@ def get_stream(r):
             }) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
+        except yt_dlp.utils.GeoRestrictedError as e:
+            logger.error(f"Geo-restricted error: {e}")
+            return {"error": "GeoRestrictedError"}
+        except yt_dlp.utils.AgeRestrictedError as e:
+            logger.error(f"Age-restricted error: {e}")
+            return {"error": "AgeRestrictedError"}
+        except yt_dlp.utils.UnavailableVideoError as e:
+            logger.error(f"Unavailable video error: {e}")
+            return {"error": "UnavailableVideoError"}
+        except yt_dlp.utils.ExtractorError as e:
+            logger.error(f"Extractor error: {e}")
+            return {"error": "ExtractorError"}
         except yt_dlp.utils.DownloadError as e:
             if "Requested format is not available" in str(e):
                 with yt_dlp.YoutubeDL({
@@ -121,18 +133,6 @@ def get_stream(r):
             else:
                 logger.error(f"Download error: {e}")
                 return {"error": "DownloadError"}
-        except yt_dlp.utils.ExtractorError as e:
-            logger.error(f"Extractor error: {e}")
-            return {"error": "ExtractorError"}
-        except yt_dlp.utils.GeoRestrictedError as e:
-            logger.error(f"Geo-restricted error: {e}")
-            return {"error": "GeoRestrictedError"}
-        except yt_dlp.utils.AgeRestrictedError as e:
-            logger.error(f"Age-restricted error: {e}")
-            return {"error": "AgeRestrictedError"}
-        except yt_dlp.utils.UnavailableVideoError as e:
-            logger.error(f"Unavailable video error: {e}")
-            return {"error": "UnavailableVideoError"}
         except yt_dlp.utils.YoutubeDLError as e:
             logger.error(f"yt_dlp error: {e}")
             return {"error": "YoutubeDLError"}
