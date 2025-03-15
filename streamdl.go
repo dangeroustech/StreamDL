@@ -69,6 +69,7 @@ func main() {
 			log.Fatalf("Config Error: %v", confErr)
 		}
 
+		// TODO: Probably make a nicer 429 handling to allow for counts, retry queueing, etc.
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
 				_, exists := urls[streamer.User]
