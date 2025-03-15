@@ -1,3 +1,10 @@
+### [3.3.8](https://github.com/dangeroustech/StreamDL/compare/v3.3.7...v3.3.8) (2025-03-15)
+
+
+### 📃 Refactor
+
+* yt_dlp logging structure ([f203a63](https://github.com/dangeroustech/StreamDL/commit/f203a636b3f7d78f2ab76a440299aecf10e1bc3b))
+
 ### [3.3.7](https://github.com/dangeroustech/StreamDL/compare/v3.3.6...v3.3.7) (2025-03-15)
 
 
