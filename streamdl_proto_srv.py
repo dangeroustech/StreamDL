@@ -7,6 +7,13 @@ from concurrent import futures
 
 import grpc
 import yt_dlp
+from yt_dlp.utils import (
+    DownloadError,
+    ExtractorError,
+    GeoRestrictedError,
+    UnavailableVideoError,
+    AgeRestrictedError,
+)
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
@@ -96,19 +103,19 @@ def get_stream(r):
             }) as ydl:
                 info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
                 return {"url": info_dict.get("url", "")}
-        except yt_dlp.utils.GeoRestrictedError as e:
+        except GeoRestrictedError as e:
             logger.error(f"Geo-restricted error: {e}")
-            return {"error": "GeoRestrictedError"}
-        except yt_dlp.utils.AgeRestrictedError as e:
+            return {"error": 403}
+        except AgeRestrictedError as e:
             logger.error(f"Age-restricted error: {e}")
-            return {"error": "AgeRestrictedError"}
-        except yt_dlp.utils.UnavailableVideoError as e:
+            return {"error": 403}
+        except UnavailableVideoError as e:
             logger.error(f"Unavailable video error: {e}")
-            return {"error": "UnavailableVideoError"}
-        except yt_dlp.utils.ExtractorError as e:
+            return {"error": 404}
+        except ExtractorError as e:
             logger.error(f"Extractor error: {e}")
-            return {"error": "ExtractorError"}
-        except yt_dlp.utils.DownloadError as e:
+            return {"error": 500}
+        except DownloadError as e:
             if "Requested format is not available" in str(e):
                 with yt_dlp.YoutubeDL({
                     "quiet": yt_dlp_quiet,
@@ -133,9 +140,6 @@ def get_stream(r):
             else:
                 logger.error(f"Download error: {e}")
                 return {"error": "DownloadError"}
-        except yt_dlp.utils.YoutubeDLError as e:
-            logger.error(f"yt_dlp error: {e}")
-            return {"error": "YoutubeDLError"}
         except Exception as e:
             logger.error(f"yt_dlp error: {e}")
             return {"error": "UnknownError"}
