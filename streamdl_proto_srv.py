@@ -7,7 +7,7 @@ from concurrent import futures
 
 import grpc
 import yt_dlp
-from yt_dlp.utils import (
+from yt_dlp import (
     DownloadError,
     ExtractorError,
     GeoRestrictedError,
