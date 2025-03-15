@@ -1,4 +1,4 @@
-# Contributing to StreamDownloader
+# Contributing to StreamDL
 
 :+1: First off, thanks for taking the time to contribute! :tada:
 
