@@ -38,6 +38,8 @@ func getStream(site string, user string, quality string) (string, error) {
 				return "", errors.New("request timed out")
 			case codes.Unavailable:
 				return "", errors.New("service unavailable")
+			case codes.ResourceExhausted:
+				return "", errors.New("rate limited")
 			default:
 				return "", errors.New("failed to get stream: " + statusCode.String())
 			}

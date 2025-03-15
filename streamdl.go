@@ -77,6 +77,24 @@ func main() {
 					if err == nil {
 						urls[streamer.User] = url
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+					} else if err.Error() == "rate limited" {
+						log.Errorf("Rate Limited, Sleeping for 30 seconds")
+						time.Sleep(time.Second * 30)
+						url, err := getStream(site.Site, streamer.User, streamer.Quality)
+						if err == nil {
+							urls[streamer.User] = url
+							go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+						} else if err.Error() == "rate limited" {
+							log.Errorf("Rate Limited, Sleeping for 60 seconds")
+							time.Sleep(time.Second * 60)
+							url, err := getStream(site.Site, streamer.User, streamer.Quality)
+							if err == nil {
+								urls[streamer.User] = url
+								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+							}
+						} else if err.Error() == "rate limited" {
+							log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+						}
 					}
 				}
 			}

@@ -2,7 +2,6 @@
 
 import logging
 import os
-import time
 from concurrent import futures
 
 import grpc
@@ -185,7 +184,6 @@ def get_stream(r):
                         )
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):
-                time.sleep(30)
                 return {"error": 429}  # Too Many Requests
             elif "currently offline" in str(e):
                 return {"error": 450}  # offline
