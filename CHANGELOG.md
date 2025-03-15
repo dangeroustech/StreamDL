@@ -1,3 +1,10 @@
+### [3.3.9](https://github.com/dangeroustech/StreamDL/compare/v3.3.8...v3.3.9) (2025-03-15)
+
+
+### 🐛 Bug Fixes
+
+* maybe this will sort the yt_dlp errors ([796e259](https://github.com/dangeroustech/StreamDL/commit/796e2593fd399ed257e3aba16bb4d06d549161df))
+
 ### [3.3.8](https://github.com/dangeroustech/StreamDL/compare/v3.3.7...v3.3.8) (2025-03-15)
 
 
