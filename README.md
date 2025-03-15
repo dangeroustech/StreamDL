@@ -28,6 +28,7 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 | `-out` | Location of output file (folder only) | Current directory |
 | `-move` | Location to move completed downloads to | - |
 | `-time` | Time interval to check for streams (in seconds) | `60` |
+| `-batch` | Time betwen URL checks (seconds): increase for rate limiting | `5` |
 | `-subfolder` | Add streams to a subfolder with the channel name | `false` |
 | `-log-level` | Set logging level (debug, info, warn, error, etc) | `info` |
 

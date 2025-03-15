@@ -23,6 +23,7 @@ func main() {
 	outLoc := flag.String("out", "", "Location of output file (folder only, trailing slash)")
 	moveLoc := flag.String("move", "", "Location of move file (folder only, trailing slash)")
 	tickTime := flag.Int("time", 60, "Time to tick (seconds)")
+	batchTime := flag.Int("batch", 5, "Time betwen URL checks (seconds): increase for rate limiting")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
 	logLevel := flag.String("log-level", "info", "Log level (trace, debug, info, warn, error, fatal, panic)")
 	flag.Parse()
@@ -63,6 +64,9 @@ func main() {
 	}()
 
 	for {
+		log.Infof("-----------------------------------------")
+		log.Infof("Running StreamDL at %v", time.Now().Format("2006-01-02 15:04:05"))
+		log.Infof("-----------------------------------------")
 		//Update config for each tick
 		confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
 		if confErr != nil {
@@ -75,6 +79,7 @@ func main() {
 				_, exists := urls[streamer.User]
 				if !exists {
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
+					time.Sleep(time.Second * time.Duration(*batchTime))
 					if err == nil {
 						urls[streamer.User] = url
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
