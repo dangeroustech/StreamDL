@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger("StreamDL")
 logger.debug("StreamDL Server Starting...")
 logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "ERROR"))
-logger.debug("YT-DLP version: %s", yt_dlp.__version__)
+logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
 
 # Configure yt-dlp logging to match our log level
