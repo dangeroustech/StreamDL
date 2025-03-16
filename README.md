@@ -5,8 +5,6 @@
 ![Master](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_master.yml/badge.svg)
 ![Staging](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_staging.yml/badge.svg)
 
-![CodeQL Analysis](https://github.com/dangeroustech/streamdl/actions/workflows/codeql-analysis.yml/badge.svg)
-
 Monitor and Download Streams from a Variety of Websites
 
 ## Why This Exists
