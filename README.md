@@ -5,8 +5,6 @@
 ![Master](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_master.yml/badge.svg)
 ![Staging](https://github.com/dangeroustech/streamdl/actions/workflows/deploy_staging.yml/badge.svg)
 
-![CodeQL Analysis](https://github.com/dangeroustech/streamdl/actions/workflows/codeql-analysis.yml/badge.svg)
-
 Monitor and Download Streams from a Variety of Websites
 
 ## Why This Exists
@@ -52,6 +50,7 @@ _Make sure to rebuild the container with `docker compose build` after editing th
 ### Bare Metal
 
 Requirements:
+
 - Python 3.10 or newer
 - ffmpeg
 - uv (`pip install uv` or `pip3 install uv` depending on your system)
