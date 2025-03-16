@@ -52,6 +52,7 @@ _Make sure to rebuild the container with `docker compose build` after editing th
 ### Bare Metal
 
 Requirements:
+
 - Python 3.10 or newer
 - ffmpeg
 - uv (`pip install uv` or `pip3 install uv` depending on your system)
