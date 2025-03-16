@@ -1,3 +1,11 @@
+### [3.4.1](https://github.com/dangeroustech/StreamDL/compare/v3.4.0...v3.4.1) (2025-03-16)
+
+
+### 📚 Documentation
+
+* fix markdown formatting ([05ededb](https://github.com/dangeroustech/StreamDL/commit/05ededb3a66e01f0a3230d1c3e3ed8f8085d8c91))
+* remove CodeQL badge ([7b78e3b](https://github.com/dangeroustech/StreamDL/commit/7b78e3b20aee43d25d8da716aae0aaaf0cd36a7d))
+
 ## [3.4.0](https://github.com/dangeroustech/StreamDL/compare/v3.3.9...v3.4.0) (2025-03-15)
 
 
