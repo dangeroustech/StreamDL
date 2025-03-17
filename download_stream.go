@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -13,15 +14,44 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getUmask() int {
+	// Get UMASK from environment, default to 022 if not set
+	umaskStr := os.Getenv("UMASK")
+	if umaskStr == "" {
+		umaskStr = "022"
+	}
+
+	// Parse UMASK value (in octal)
+	umask, err := strconv.ParseInt(umaskStr, 8, 32)
+	if err != nil {
+		log.Warnf("Invalid UMASK value %s, using default 022", umaskStr)
+		umask = 022
+	}
+
+	return int(umask)
+}
+
+func createDirWithUmask(path string) error {
+	// Get current umask
+	oldUmask := syscall.Umask(0)
+	// Restore umask after this function
+	defer syscall.Umask(oldUmask)
+
+	// Calculate directory permissions based on umask
+	// Start with full permissions (0777) and apply umask
+	dirPerms := os.FileMode(0777 &^ os.FileMode(getUmask()))
+	return os.MkdirAll(path, dirPerms)
+}
+
 func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
 	if subfolder {
 		outLoc = filepath.Join(outLoc, user)
-		os.MkdirAll(outLoc, os.ModePerm)
+		createDirWithUmask(outLoc)
 		moveLoc = filepath.Join(moveLoc, user)
-		os.MkdirAll(moveLoc, os.ModePerm)
+		createDirWithUmask(moveLoc)
 	}
 	log.Tracef("out: %s", outLoc)
 	log.Tracef("move: %s", moveLoc)
