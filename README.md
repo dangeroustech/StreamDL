@@ -19,16 +19,16 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 
 ## Usage
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-h`, `--help` | Show this help message and exit | - |
-| `-config` | Location of config file (full path inc filename) | `config.yml` |
-| `-out` | Location of output file (folder only) | Current directory |
-| `-move` | Location to move completed downloads to | - |
-| `-time` | Time interval to check for streams (in seconds) | `60` |
-| `-batch` | Time betwen URL checks (seconds): increase for rate limiting | `5` |
-| `-subfolder` | Add streams to a subfolder with the channel name | `false` |
-| `-log-level` | Set logging level (debug, info, warn, error, etc) | `info` |
+| Flag           | Description                                                  | Default           |
+| -------------- | ------------------------------------------------------------ | ----------------- |
+| `-h`, `--help` | Show this help message and exit                              | -                 |
+| `-config`      | Location of config file (full path inc filename)             | `config.yml`      |
+| `-out`         | Location of output file (folder only)                        | Current directory |
+| `-move`        | Location to move completed downloads to                      | -                 |
+| `-time`        | Time interval to check for streams (in seconds)              | `60`              |
+| `-batch`       | Time betwen URL checks (seconds): increase for rate limiting | `5`               |
+| `-subfolder`   | Add streams to a subfolder with the channel name             | `false`           |
+| `-log-level`   | Set logging level (debug, info, warn, error, etc)            | `info`            |
 
 ## Install
 
@@ -42,6 +42,22 @@ If you'd like to tweak individual parameters, the Dockerfile provided can be use
 Edit the Environment variables in `docker-compose.yml.example` to modify script functionality.
 
 Otherwise, just rename it to `docker-compose.yml` and run `docker compose up -d`.
+
+#### Directory Permissions
+
+When using Docker, be aware of the following:
+
+- It's recommended to create the download directories **before** running the container
+- All directories mounted in Docker will have their permissions updated to match the container's user (PUID/PGID)
+  - Provided the user has write permissions to the directory
+- If you don't want your existing directory permissions changed, mount a subdirectory instead
+- The container will write files with permissions based on the UMASK, PUID, and PGID settings
+
+Example directory setup before launching:
+
+```shell
+mkdir -p downloads/{,in}complete config
+```
 
 Logs are piped to stdout by default so that `docker compose logs` works.
 _If you know what you're doing, you can change this value in `entrypoint.sh`._
@@ -87,6 +103,38 @@ Basic YAML format. See `config/config.yaml.example` for a couple of test sites.
     - name: ninja
       quality: best
 ```
+
+## Environment Variables
+
+StreamDL supports configuration through environment variables for certain system-level settings.
+These can be set directly in your shell or through the `.env` file.
+Some of these are also available as flags to the `streamdl` command, this is a #TODO to harmonise.
+
+| Variable             | Description                                                                                                       | Default  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
+| `STREAMDL_GRPC_ADDR` | The address for the gRPC server to bind to                                                                        | `server` |
+| `STREAMDL_GRPC_PORT` | The port number for the gRPC server                                                                               | `50051`  |
+| `TICK_TIME`          | Time interval (in seconds) between stream checks                                                                  | `60`     |
+| `LOG_LEVEL`          | Logging verbosity level (DEBUG, INFO, WARN, ERROR)                                                                | `INFO`   |
+| `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
+| `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
+| `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
+
+### Understanding UMASK
+
+UMASK (User Mask) is a system setting that controls the default permissions for newly created files and directories.
+It works by masking out (removing) permissions you don't want to grant by default.
+
+- The UMASK value is specified in octal format (e.g. "022")
+- For directories, the base permission is 0777 (rwxrwxrwx)
+- For files, the base permission typically starts at 0666 (rw-rw-rw-)
+- The UMASK is subtracted from these base permissions
+
+Common UMASK values:
+
+- `022`: Files: 644 (rw-r--r--), Directories: 755 (rwxr-xr-x)
+- `027`: Files: 640 (rw-r-----), Directories: 750 (rwxr-x---)
+- `077`: Files: 600 (rw-------), Directories: 700 (rwx------)
 
 ## Env File
 
