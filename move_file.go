@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
@@ -10,6 +11,15 @@ import (
 
 func moveFile(oldPath string, newPath string) error {
 	log.Infof("Moving file from %v to %v", oldPath, newPath)
+
+	// First, ensure target directory exists with correct permissions
+	targetDir := filepath.Dir(newPath)
+	err := createDirWithUmask(targetDir)
+	if err != nil {
+		log.Errorf("Failed to create/set permissions on target directory: %v", err)
+		return err
+	}
+
 	// Open original file
 	originalFile, err := os.Open(oldPath)
 	if err != nil {

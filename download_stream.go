@@ -40,13 +40,26 @@ func createDirWithUmask(path string) error {
 	// Calculate directory permissions based on umask
 	// Start with full permissions (0777) and apply umask
 	dirPerms := os.FileMode(0777 &^ os.FileMode(getUmask()))
-	return os.MkdirAll(path, dirPerms)
+
+	// Create directory if it doesn't exist
+	err := os.MkdirAll(path, dirPerms)
+	if err != nil {
+		return err
+	}
+
+	// Ensure correct permissions even if directory already existed
+	return os.Chmod(path, dirPerms)
 }
 
 func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
+
+	// Always ensure base directories have correct permissions first
+	createDirWithUmask(outLoc)
+	createDirWithUmask(moveLoc)
+
 	if subfolder {
 		outLoc = filepath.Join(outLoc, user)
 		createDirWithUmask(outLoc)
