@@ -49,6 +49,7 @@ When using Docker, be aware of the following:
 
 - It's recommended to create the download directories **before** running the container
 - All directories mounted in Docker will have their permissions updated to match the container's user (PUID/PGID)
+  - Provided the user has write permissions to the directory
 - If you don't want your existing directory permissions changed, mount a subdirectory instead
 - The container will write files with permissions based on the UMASK, PUID, and PGID settings
 
