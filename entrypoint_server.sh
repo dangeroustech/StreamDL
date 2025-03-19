@@ -11,18 +11,18 @@ EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
 
 # Handle group creation or use existing
 if [ -z "${EXISTING_GROUP}" ]; then
-    # GID doesn't exist, create new group
-    groupadd -g "${PGID}" streamdl
-    GROUP_NAME="streamdl"
+	# GID doesn't exist, create new group
+	groupadd -g "${PGID}" streamdl
+	GROUP_NAME="streamdl"
 else
-    # Use existing group
-    GROUP_NAME="${EXISTING_GROUP}"
-    echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
+	# Use existing group
+	GROUP_NAME="${EXISTING_GROUP}"
+	echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
 fi
 
 # Create user if it doesn't exist
 if ! getent passwd streamdl >/dev/null; then
-    useradd -u "${PUID}" -g "${GROUP_NAME}" -s /bin/bash streamdl
+	useradd -u "${PUID}" -g "${GROUP_NAME}" -s /bin/bash streamdl
 fi
 
 # Create and set up home directory and cache directories
