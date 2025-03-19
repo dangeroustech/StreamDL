@@ -1,4 +1,4 @@
-FROM mwader/static-ffmpeg:4.4.1 AS ffmpeg
+FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg
 
 # Go Binary Builder
 FROM golang:1.24.1-alpine AS go-build
@@ -18,7 +18,6 @@ WORKDIR /app
 # Copy FFMPEG Binaries
 COPY --from=ffmpeg /ffmpeg /usr/local/bin/
 COPY --from=ffmpeg /ffprobe /usr/local/bin/
-COPY --from=ffmpeg /qt-faststart /usr/local/bin/
 COPY --from=go-build /app/streamdl .
 COPY entrypoint_client.sh /app/entrypoint_client.sh
 COPY streamdl_client_entrypoint.sh /app/streamdl_client_entrypoint.sh
