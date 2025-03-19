@@ -25,9 +25,9 @@ if ! getent passwd streamdl >/dev/null; then
 	adduser -D -u "${PUID}" -G "${GROUP_NAME}" streamdl
 fi
 
-# Ensure app directories exist and have correct ownership
+# Ensure download directories exist and have correct ownership
 mkdir -p /app/dl /app/out
-chown -R streamdl:"${GROUP_NAME}" /app /app/dl /app/out
+chown -R streamdl:"${GROUP_NAME}" /app/dl /app/out
 
 # Switch to the streamdl user and run the actual entrypoint
 exec su-exec streamdl:"${GROUP_NAME}" /app/streamdl_client_entrypoint.sh "$@"
