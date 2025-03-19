@@ -4,7 +4,7 @@
 : "${PUID:=1000}"
 : "${PGID:=1000}"
 
-echo "Starting with UID: ${PUID}, GID: ${PGID}"
+echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
 
 # Get group name if GID exists
 EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
