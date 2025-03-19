@@ -1,3 +1,37 @@
+## [3.5.0](https://github.com/dangeroustech/StreamDL/compare/v3.4.1...v3.5.0) (2025-03-19)
+
+
+### 🎉 New Features
+
+* add umask info to docs and file mover logic ([2f06996](https://github.com/dangeroustech/StreamDL/commit/2f069968a6109a87a84e8850b0b1a5b266a949dc))
+
+
+### 📚 Documentation
+
+* clarify dir permissions language ([d4251f2](https://github.com/dangeroustech/StreamDL/commit/d4251f22bff44e2d28eadf14dabbbc32554ce1be))
+* update docs with UMASK, PUID, and PGID information ([79cdd6c](https://github.com/dangeroustech/StreamDL/commit/79cdd6cd6ef85acd41f796f2350a813319bcf1e2))
+
+
+### 🐛 Bug Fixes
+
+* add UMASK output to startup for confirmation ([1d80209](https://github.com/dangeroustech/StreamDL/commit/1d8020934028dc0cd9c5e209c865b75077d47354))
+* create directories from scratch with correct permissions ([bcf6951](https://github.com/dangeroustech/StreamDL/commit/bcf6951da9b4f175a0f164017b821be6612e7272))
+* stop changing config directory permissions ([fa1a233](https://github.com/dangeroustech/StreamDL/commit/fa1a233ab2c2cc378dd5e1dbcbb0f03a9993964a))
+
+
+### ✍ Chore
+
+* bump ffmpeg version to 7.1.1 ([b644293](https://github.com/dangeroustech/StreamDL/commit/b64429351c5ab533b86212a90c7af6bc155bbb7b))
+* bump grpcio fixes [#475](https://github.com/dangeroustech/StreamDL/issues/475) ([b5ef1ab](https://github.com/dangeroustech/StreamDL/commit/b5ef1ab45a47583a4dc38e92545423ac649f552d))
+* bump official go version to 1.24.1 ([5af2b19](https://github.com/dangeroustech/StreamDL/commit/5af2b194b1a10cd6f952485e4b9cdaa019da25b4))
+* deps update ([cadf71f](https://github.com/dangeroustech/StreamDL/commit/cadf71fc276409cf6bcc7c7a42a39eaf03c33c6f))
+* fixes [#474](https://github.com/dangeroustech/StreamDL/issues/474) ([056e845](https://github.com/dangeroustech/StreamDL/commit/056e84547de397cb1a336ddfdf36ce8aa1eea859))
+* intermediate commit ([dbc8448](https://github.com/dangeroustech/StreamDL/commit/dbc8448a4fe202416cf93b5a2cc48422db619e7a))
+* linting ([5f32536](https://github.com/dangeroustech/StreamDL/commit/5f32536588be83ca47453b8b47aa763b0ef3e13f))
+* linting ([165c9bc](https://github.com/dangeroustech/StreamDL/commit/165c9bc621954b047ba4d21ae3fbaf8fb228e523))
+* update linter config ([818a7a4](https://github.com/dangeroustech/StreamDL/commit/818a7a4c0ae07b75072d67658d6db8ce053ea3c7))
+* update linters ([e3c2a2e](https://github.com/dangeroustech/StreamDL/commit/e3c2a2e4358464687bbde0a8fd3eae0633505c74))
+
 ### [3.4.1](https://github.com/dangeroustech/StreamDL/compare/v3.4.0...v3.4.1) (2025-03-16)
 
 
