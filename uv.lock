@@ -734,7 +734,7 @@ dev = [
 
 [[package]]
 name = "streamlink"
-version = "7.3.0"
+version = "7.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -750,11 +750,11 @@ dependencies = [
     { name = "urllib3" },
     { name = "websocket-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/ba/cd25043ddaa6253cdbac234e00702eb6fcaec41c317284ed74f53fbde1b6/streamlink-7.3.0.tar.gz", hash = "sha256:1e20d624451f26156a38b9dae5bdfcc6640a8bdf27922370edec8abe237abb08", size = 790002, upload-time = "2025-04-26T19:09:59.922Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/83/8779287122de41b79763810204ce52bf644542396dd0273ad2fa177db80d/streamlink-7.4.0.tar.gz", hash = "sha256:2cc90e5a978800c9e5b113d0b26db1079451f43441a0476255c2e99fd65e60bb", size = 792377, upload-time = "2025-06-08T17:51:47.37Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/6c/2376063368a72b41db85fbf59d52966a8b55418733ec4bbac30182a83800/streamlink-7.3.0-py3-none-any.whl", hash = "sha256:0363f2e5aac2d96a5eb32cabcd1fed1b05677bf2c9b433935cb3da9236092214", size = 542116, upload-time = "2025-04-26T19:09:54.205Z" },
-    { url = "https://files.pythonhosted.org/packages/89/66/ba6eeb32f2a9892c356f8ac258fb498336384650571d38ca59949f9639b6/streamlink-7.3.0-py3-none-win32.whl", hash = "sha256:f2ebbd3d1819d5d577c9c81b1a2e55bdb49ae8b82d54177689c46bf490023c39", size = 542131, upload-time = "2025-04-26T19:09:56.456Z" },
-    { url = "https://files.pythonhosted.org/packages/b0/c1/2b1ffd09ff19e53b08601715a9666988c83b61e6c73816368e0381599b29/streamlink-7.3.0-py3-none-win_amd64.whl", hash = "sha256:0b9f00a5cd8706c22cf9aeb2238d1138b38758c34181e920101be3b46367c9be", size = 542134, upload-time = "2025-04-26T19:09:58.622Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/1e/fea049145e7379cc545b5ef3726f1d48a0ae7a476ba24f6c67e60e14f917/streamlink-7.4.0-py3-none-any.whl", hash = "sha256:ef336995ebb0705b5e7418cf32d78dbb1f9c76d770006a71521955ea41858907", size = 542837, upload-time = "2025-06-08T17:51:40.579Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/6e/a9578e60414fc532c778a2f97153fe5e524a42a59126c8c15fddc201b517/streamlink-7.4.0-py3-none-win32.whl", hash = "sha256:80c1318156ceb0e9d2e9a9acb6059b686112f0a39dd761d60ee02a25cefa3617", size = 542850, upload-time = "2025-06-08T17:51:43.167Z" },
+    { url = "https://files.pythonhosted.org/packages/62/5c/6ab2dc33a0a803f6b7dba21a09073296832779b834b341c3933afaebefa0/streamlink-7.4.0-py3-none-win_amd64.whl", hash = "sha256:9364af2b7023ad70719adbc6b3b4719ca5183d96f0af01084a50b37736bf5a16", size = 542855, upload-time = "2025-06-08T17:51:45.306Z" },
 ]
 
 [[package]]
