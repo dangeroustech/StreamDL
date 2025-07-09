@@ -123,7 +123,6 @@ def serve():
 def get_stream(r):
     session = Streamlink()
     options = Options()
-    options.set("twitch", "twitch-disable-ads")
     options.set("twitch", "twitch-disable-reruns")
 
     try:
