@@ -1,3 +1,10 @@
+### [3.5.1](https://github.com/dangeroustech/StreamDL/compare/v3.5.0...v3.5.1) (2025-08-11)
+
+
+### ✍ Chore
+
+* **release:** update dependencies and bump version to 3.5.0 ([847aca3](https://github.com/dangeroustech/StreamDL/commit/847aca3f52374167f2936e2ec6c204d2fe7f45ed))
+
 ## [3.5.0](https://github.com/dangeroustech/StreamDL/compare/v3.4.1...v3.5.0) (2025-03-19)
 
 
