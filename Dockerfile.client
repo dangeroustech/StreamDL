@@ -1,14 +1,14 @@
 FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg
 
 # Go Binary Builder
-FROM golang:1.24.1-alpine AS go-build
+FROM golang:1.24.6-alpine AS go-build
 WORKDIR /app
 COPY . .
 RUN go get -v && \
     go build -o streamdl
 
 # Golang Protobuf Client and Logic
-FROM golang:1.24.1-alpine AS client
+FROM golang:1.24.6-alpine AS client
 
 # Install su-exec for running as non-root
 RUN apk add --no-cache su-exec
