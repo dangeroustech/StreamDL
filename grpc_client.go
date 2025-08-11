@@ -18,7 +18,7 @@ func getStream(site string, user string, quality string) (string, error) {
     addr := os.Getenv("STREAMDL_GRPC_ADDR")
     port := os.Getenv("STREAMDL_GRPC_PORT")
     log.Debugf("Dialing gRPC server %s:%s", addr, port)
-    conn, err := grpc.Dial(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+    conn, err := grpc.NewClient(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("gRPC Failed to Connect: %v", err)
 	}
@@ -27,11 +27,11 @@ func getStream(site string, user string, quality string) (string, error) {
 
     log.Debugf("gRPC connection established to %s:%s", addr, port)
 
-    timeout := time.Second * 10
+    timeout := time.Second * 30
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
     log.Debugf("Calling GetStream site=%s user=%s quality=%s timeout=%s", site, user, quality, timeout.String())
-	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
+    msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality}, grpc.WaitForReady(true))
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
 			statusCode := e.Code()
