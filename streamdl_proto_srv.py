@@ -20,11 +20,10 @@ from yt_dlp.utils import (
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
 
-# Configure root logger first to capture all logs
-logging.basicConfig(
-    level=os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower(),
-    format="%(asctime)s: |%(levelname)s| %(message)s",
-)
+# Configure root logger first to capture all logs, honoring SERVER_LOG_LEVEL
+level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+level_value = getattr(logging, level_name, logging.INFO)
+logging.basicConfig(level=level_value, format="%(asctime)s: |%(levelname)s| %(message)s")
 
 # Create a null handler to completely silence loggers
 null_handler = logging.NullHandler()
@@ -32,7 +31,7 @@ null_handler = logging.NullHandler()
 # Set up our application logger first
 logger = logging.getLogger("StreamDL")
 # Make sure our logger's level matches the environment setting
-logger.setLevel(os.environ.get("SERVER_LOG_LEVEL", "CRITICAL").lower())
+logger.setLevel(level_value)
 # Ensure our logger propagates to the root logger (which has the console handler)
 logger.propagate = True
 
@@ -55,26 +54,43 @@ for logger_name in logging.root.manager.loggerDict:
         third_party_logger.addHandler(null_handler)
         third_party_logger.propagate = False
 
-logger.debug("StreamDL Server Starting...")
-logger.debug("Log level: %s", os.environ.get("SERVER_LOG_LEVEL", "CRITICAL"))
+logger.info("StreamDL Server Starting...")
 logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
 
 # Configure yt-dlp logging to match our log level
 yt_dlp.utils.std_headers["User-Agent"] = "streamdl"
-yt_dlp.utils.bug_reports_message = lambda: ""
+yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ""
 # Always set these to True to prevent direct console output
 yt_dlp_quiet = True
 yt_dlp_no_warnings = True
 
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
+        logger.debug(
+            "GetStream request received site=%s user=%s quality=%s",
+            request.site,
+            request.user,
+            request.quality,
+        )
         res = get_stream(request)
         if not res.get("error"):
             context.set_code(grpc.StatusCode.OK)
+            logger.debug(
+                "GetStream success user=%s url=%s",
+                request.user,
+                res["url"],
+            )
             return pb.StreamResponse(url=res["url"])
         else:
             error_code = res["error"]
+            logger.debug(
+                "GetStream failure user=%s site=%s quality=%s error=%s",
+                request.user,
+                request.site,
+                request.quality,
+                error_code,
+            )
             match error_code:
                 case 400:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
@@ -104,8 +120,8 @@ class StreamServicer(pb_grpc.Stream):
                     context.set_code(grpc.StatusCode.NOT_FOUND)
                     context.set_details(f"{res['error']} - User is offline")
                 case 500:
-                    context.set_code(grpc.StatusCode.CANCELLED)
-                    context.set_details(f"{res['error']} - Cancelled")
+                    context.set_code(grpc.StatusCode.INTERNAL)
+                    context.set_details(f"{res['error']} - Internal server error")
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
                     context.set_details(f"{res['error']} - Unknown error")
@@ -121,25 +137,35 @@ def serve():
 
 
 def get_stream(r):
+    logger.debug(
+        "Resolving stream via Streamlink site=%s user=%s quality=%s",
+        r.site,
+        r.user,
+        r.quality,
+    )
     session = Streamlink()
     options = Options()
     options.set("twitch", "twitch-disable-reruns")
 
     try:
-        stream = session.streams(url=(r.site + "/" + r.user), options=options)
+        resolve_url = r.site + "/" + r.user
+        logger.debug("Streamlink streams(url=%s)", resolve_url)
+        stream = session.streams(url=resolve_url, options=options)
 
         if not stream:
             logger.warning(f"No streams found for user {r.user}")
             return {"error": 404}
         else:
             try:
-                return {"url": stream[r.quality if r.quality else "best"].url}
+                selected_quality = r.quality if r.quality else "best"
+                logger.debug("Selecting quality=%s from available keys=%s", selected_quality, list(stream.keys()))
+                return {"url": stream[selected_quality].url}
             except KeyError:
                 logger.critical("Stream quality not found - exiting")
                 return {"error": 414}
     except NoPluginError:
-        logger.warning(f"Streamlink is unable to find a plugin for {r.site}")
-        logger.warning("Falling back to yt_dlp")
+        logger.debug(f"Streamlink is unable to find a plugin for {r.site}")
+        logger.debug("Falling back to yt_dlp")
         # Fallback to yt_dlp
         try:
             with yt_dlp.YoutubeDL(
@@ -151,7 +177,9 @@ def get_stream(r):
                     "logger": None,  # Disable yt-dlp's internal logger
                 }
             ) as ydl:
-                info_dict = ydl.extract_info(r.site + "/" + r.user, download=False)
+                ytdlp_url = r.site + "/" + r.user
+                logger.debug("yt_dlp.extract_info(url=%s)", ytdlp_url)
+                info_dict = ydl.extract_info(ytdlp_url, download=False)
                 return {"url": info_dict.get("url", "")}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
@@ -173,8 +201,10 @@ def get_stream(r):
                         "logger": None,  # Disable yt-dlp's internal logger
                     }
                 ) as ydl_temp:
+                    fallback_url = r.site + "/" + r.user
+                    logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
                     info_dict = ydl_temp.extract_info(
-                        r.site + "/" + r.user, download=False
+                        fallback_url, download=False
                     )
                     logger.critical("Requested format is not available")
                     logger.critical("Available formats:")

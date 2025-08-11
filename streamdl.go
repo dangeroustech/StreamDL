@@ -76,12 +76,15 @@ func main() {
 		// TODO: Probably make a nicer 429 handling to allow for counts, retry queueing, etc.
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
+				log.Debugf("Checking user=%s on site=%s quality=%s", streamer.User, site.Site, streamer.Quality)
 				_, exists := urls[streamer.User]
 				if !exists {
+					log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
 					time.Sleep(time.Second * time.Duration(*batchTime))
 					if err == nil {
 						urls[streamer.User] = url
+						log.Debugf("Discovered live stream: user=%s url=%s", streamer.User, url)
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 					} else if err.Error() == "rate limited" {
 						log.Errorf("Rate Limited, Sleeping for 30 seconds")
@@ -100,6 +103,8 @@ func main() {
 							}
 						} else if err.Error() == "rate limited" {
 							log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+						} else {
+							log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 						}
 					}
 				}
