@@ -10,4 +10,5 @@ type Config struct {
 type Streamer struct {
 	User    string `yaml:"name"`
 	Quality string `yaml:"quality"`
+	VOD     bool   `yaml:"vod"`
 }
