@@ -43,7 +43,16 @@ Edit the Environment variables in `docker-compose.yml.example` to modify script 
 
 Otherwise, just rename it to `docker-compose.yml` and run `docker compose up -d`.
 
-#### Directory Permissions
+#### Security Best Practices
+
+StreamDL containers follow Docker security best practices by running as a non-root user:
+
+- **Default User**: Containers create a `streamdl` user (UID 1000, GID 1000) at build time
+- **Runtime User Switching**: Supports dynamic UID/GID switching via `PUID`/`PGID` environment variables
+- **User Tools**: Uses `su-exec` (client) and `gosu` (server) for secure user switching
+- **Directory Permissions**: Working directories are created with proper ownership at build time
+
+##### Directory Permissions
 
 When using Docker, be aware of the following:
 
@@ -119,6 +128,45 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 | `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
 | `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
 | `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
+
+### User ID and Group ID Configuration
+
+The `PUID` and `PGID` environment variables allow you to control what user and group ID the container runs as:
+
+- **Default Behavior**: If not specified, containers run as UID 1000, GID 1000
+- **Runtime Switching**: These values are applied at container startup, allowing you to match your host user's UID/GID
+- **Permission Matching**: Set these to match your host user's UID/GID to avoid permission issues with mounted volumes
+
+Example `.env` configuration:
+
+```bash
+PUID=1001
+PGID=1001
+```
+
+To find your current user's UID/GID on Linux/macOS:
+
+```bash
+id -u  # Shows your user ID
+id -g  # Shows your group ID
+```
+
+### FFmpeg Resilience Settings
+
+The following environment variables control FFmpeg's reconnection behavior for more resilient stream downloading:
+
+|| Variable | Description | Default |
+|| -------------------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
+|| `FFMPEG_MAX_RETRIES` | Maximum number of FFmpeg retry attempts for transient failures | `5` |
+|| `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Base delay in seconds between FFmpeg retry attempts | `5` |
+|| `FFMPEG_RECONNECT_DELAY_MAX` | Maximum delay in seconds for FFmpeg to wait before reconnecting | `30` |
+|| `FFMPEG_RW_TIMEOUT_US` | FFmpeg read/write timeout in microseconds (30,000,000 = 30 seconds) | `30000000` |
+|| `FFMPEG_RECONNECT_ON_NETWORK_ERROR` | Enable FFmpeg reconnection on network errors (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_RECONNECT_ON_HTTP_ERROR` | Enable FFmpeg reconnection on HTTP errors (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_HTTP_SEEKABLE` | Enable HTTP seeking for better resilience (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_HTTP_PERSISTENT` | Keep HTTP connections alive (1=enabled, 0=disabled) | `1` |
+
+These settings help prevent creating multiple small files when streams have temporary interruptions.
 
 ### Understanding UMASK
 

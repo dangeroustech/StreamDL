@@ -4,34 +4,15 @@
 : "${PUID:=1000}"
 : "${PGID:=1000}"
 
-echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
+# Create user with specified UID/GID
+groupadd -g "${PGID}" streamdl 2>/dev/null || echo "Group exists"
+useradd -u "${PUID}" -g streamdl -s /bin/bash streamdl 2>/dev/null || echo "User exists"
 
-# Get group name if GID exists
-EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
-
-# Handle group creation or use existing
-if [ -z "${EXISTING_GROUP}" ]; then
-	# GID doesn't exist, create new group
-	groupadd -g "${PGID}" streamdl
-	GROUP_NAME="streamdl"
-else
-	# Use existing group
-	GROUP_NAME="${EXISTING_GROUP}"
-	echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
-fi
-
-# Create user if it doesn't exist
-if ! getent passwd streamdl >/dev/null; then
-	useradd -u "${PUID}" -g "${GROUP_NAME}" -s /bin/bash streamdl
-fi
-
-# Create and set up home directory and cache directories
+# Set up home directory for the user
 mkdir -p /home/streamdl/.cache/uv
-chown -R streamdl:"${GROUP_NAME}" /home/streamdl
+chown -R "${PUID}":"${PGID}" /home/streamdl 2>/dev/null || echo "Could not set home ownership"
 chmod 700 /home/streamdl
 
-# Ensure app directory has correct ownership
-chown -R streamdl:"${GROUP_NAME}" /app
-
-# Switch to the streamdl user and run the actual entrypoint
-exec gosu streamdl:"${GROUP_NAME}" /app/streamdl_server_entrypoint.sh "$@"
+# Set read permissions for virtual environment
+chmod -R 755 /app/.venv 2>/dev/null || true
+exec gosu "${PUID}":"${PGID}" /app/streamdl_server_entrypoint.sh "$@"

@@ -104,14 +104,14 @@ jobs:
           image: dangeroustech/streamdl:${{ matrix.component }}_stable
           args: >-
             --severity-threshold=critical
-            --file=Dockerfile.${{ matrix.component }}
             --exclude-base-image-vulns
             --policy-path=.snyk
-            --prune-repeated-subdependencies
-            --package-manager=dockerfile
+            --app-vulns
+            --sarif
 
       - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
+          category: ${{ matrix.component }}-master

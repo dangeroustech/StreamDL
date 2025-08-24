@@ -44,8 +44,8 @@ jobs:
           load: true
           tags: streamdl:${{ matrix.component }}_local
 
-      - name: Docker Scan
-        id: docker_scan
+      - name: Snyk Scan
+        id: snyk_scan
         uses: snyk/actions/docker@master
         continue-on-error: true
         env:
@@ -53,10 +53,11 @@ jobs:
         with:
           image: streamdl:${{ matrix.component }}_local
           args: >-
-            --severity-threshold=medium
-            --file=Dockerfile.${{ matrix.component }}
+            --severity-threshold=critical
             --exclude-base-image-vulns
             --policy-path=.snyk
+            --app-vulns
+            --sarif
 
       - name: Upload result to GitHub Code Scanning
         id: snyk_results_upload
@@ -64,6 +65,7 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
+          category: ${{ matrix.component }}-staging-${{ github.event_name }}
 
       - name: Dockerhub Push Staging
         id: dockerhub_staging_push

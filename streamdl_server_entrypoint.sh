@@ -1,3 +1,3 @@
 #!/bin/sh
 
-uv run python streamdl_proto_srv.py
+PYTHONPATH=/app/.venv/lib/python3.13/site-packages python streamdl_proto_srv.py
