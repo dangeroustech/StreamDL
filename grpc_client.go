@@ -22,7 +22,11 @@ func getStream(site string, user string, quality string) (string, error) {
 	if err != nil {
 		log.Fatalf("gRPC Failed to Connect: %v", err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Errorf("Error closing gRPC connection: %v", err)
+		}
+	}()
 	c := pb.NewStreamClient(conn)
 
 	log.Debugf("gRPC connection established to %s:%s", addr, port)

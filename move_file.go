@@ -39,7 +39,11 @@ func moveFile(oldPath string, newPath string) error {
 		log.Errorf("Failed to open original file: %v", err)
 		return err
 	}
-	defer originalFile.Close()
+	defer func() {
+		if err := originalFile.Close(); err != nil {
+			log.Errorf("Error closing original file: %v", err)
+		}
+	}()
 
 	// Get original file info for permissions
 	fileInfo, err := originalFile.Stat()
@@ -63,7 +67,9 @@ func moveFile(oldPath string, newPath string) error {
 
 	// Ensure we close and clean up temp file on error
 	defer func() {
-		tempFile.Close()
+		if err := tempFile.Close(); err != nil {
+			log.Errorf("Error closing temp file: %v", err)
+		}
 		// Best effort: remove temp file if it still exists
 		_ = os.Remove(tempPath)
 	}()

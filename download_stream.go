@@ -58,14 +58,26 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	t := time.Now().Format("2006-01-02_15-04-05")
 
 	// Always ensure base directories have correct permissions first
-	createDirWithUmask(outLoc)
-	createDirWithUmask(moveLoc)
+	if err := createDirWithUmask(outLoc); err != nil {
+		log.Errorf("Failed to create output directory %s: %v", outLoc, err)
+		return
+	}
+	if err := createDirWithUmask(moveLoc); err != nil {
+		log.Errorf("Failed to create move directory %s: %v", moveLoc, err)
+		return
+	}
 
 	if subfolder {
 		outLoc = filepath.Join(outLoc, user)
-		createDirWithUmask(outLoc)
+		if err := createDirWithUmask(outLoc); err != nil {
+			log.Errorf("Failed to create output subfolder %s: %v", outLoc, err)
+			return
+		}
 		moveLoc = filepath.Join(moveLoc, user)
-		createDirWithUmask(moveLoc)
+		if err := createDirWithUmask(moveLoc); err != nil {
+			log.Errorf("Failed to create move subfolder %s: %v", moveLoc, err)
+			return
+		}
 	}
 	outPath := filepath.Join(outLoc, user+"_"+t+".mp4")
 	newPath := filepath.Join(moveLoc, user+"_"+t+".mp4")
@@ -151,7 +163,10 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 		}
 		log.Debugf("FFmpeg args (sanitized): %s", sanitizeArgs(cmd.Args))
 
-		cmd.Start()
+		if err := cmd.Start(); err != nil {
+			log.Errorf("Failed to start FFmpeg for %s: %v", user, err)
+			return
+		}
 
 		go func() {
 			naturalFinish <- cmd.Wait()
@@ -170,10 +185,16 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 		select {
 		case <-sigint:
 			log.Tracef("Sending SIGINT to %v Process", user)
-			cmd.Process.Signal(syscall.SIGINT)
-			cmd.Process.Wait()
+			if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
+				log.Errorf("Failed to send SIGINT to %s process: %v", user, err)
+			}
+			if _, err := cmd.Process.Wait(); err != nil {
+				log.Errorf("Error waiting for %s process after SIGINT: %v", user, err)
+			}
 			log.Tracef("Waiting for %v to Exit", user)
-			cmd.Wait()
+			if err := cmd.Wait(); err != nil {
+				log.Errorf("Error waiting for %s process to exit: %v", user, err)
+			}
 			time.Sleep(time.Second * 2)
 			response <- true
 		case err := <-naturalFinish:
@@ -319,11 +340,12 @@ func splitArgs(s string) []string {
 	for _, r := range s {
 		switch r {
 		case '"', '\'':
-			if inQuote == 0 {
+			switch inQuote {
+			case 0:
 				inQuote = r
-			} else if inQuote == r {
+			case r:
 				inQuote = 0
-			} else {
+			default:
 				cur.WriteRune(r)
 			}
 		case ' ':

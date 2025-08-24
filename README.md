@@ -124,16 +124,16 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 
 The following environment variables control FFmpeg's reconnection behavior for more resilient stream downloading:
 
-|| Variable             | Description                                                                                                       | Default  |
+|| Variable | Description | Default |
 || -------------------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
-|| `FFMPEG_MAX_RETRIES` | Maximum number of FFmpeg retry attempts for transient failures                                                   | `5`      |
-|| `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Base delay in seconds between FFmpeg retry attempts                                                       | `5`      |
-|| `FFMPEG_RECONNECT_DELAY_MAX` | Maximum delay in seconds for FFmpeg to wait before reconnecting                                             | `30`     |
-|| `FFMPEG_RW_TIMEOUT_US` | FFmpeg read/write timeout in microseconds (30,000,000 = 30 seconds)                                             | `30000000` |
-|| `FFMPEG_RECONNECT_ON_NETWORK_ERROR` | Enable FFmpeg reconnection on network errors (1=enabled, 0=disabled)                                     | `1`      |
-|| `FFMPEG_RECONNECT_ON_HTTP_ERROR` | Enable FFmpeg reconnection on HTTP errors (1=enabled, 0=disabled)                                          | `1`      |
-|| `FFMPEG_HTTP_SEEKABLE` | Enable HTTP seeking for better resilience (1=enabled, 0=disabled)                                           | `1`      |
-|| `FFMPEG_HTTP_PERSISTENT` | Keep HTTP connections alive (1=enabled, 0=disabled)                                                          | `1`      |
+|| `FFMPEG_MAX_RETRIES` | Maximum number of FFmpeg retry attempts for transient failures | `5` |
+|| `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Base delay in seconds between FFmpeg retry attempts | `5` |
+|| `FFMPEG_RECONNECT_DELAY_MAX` | Maximum delay in seconds for FFmpeg to wait before reconnecting | `30` |
+|| `FFMPEG_RW_TIMEOUT_US` | FFmpeg read/write timeout in microseconds (30,000,000 = 30 seconds) | `30000000` |
+|| `FFMPEG_RECONNECT_ON_NETWORK_ERROR` | Enable FFmpeg reconnection on network errors (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_RECONNECT_ON_HTTP_ERROR` | Enable FFmpeg reconnection on HTTP errors (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_HTTP_SEEKABLE` | Enable HTTP seeking for better resilience (1=enabled, 0=disabled) | `1` |
+|| `FFMPEG_HTTP_PERSISTENT` | Keep HTTP connections alive (1=enabled, 0=disabled) | `1` |
 
 These settings help prevent creating multiple small files when streams have temporary interruptions.
 
