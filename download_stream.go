@@ -264,7 +264,7 @@ func buildReconnectArgs() []string {
 
 	delayMaxStr := os.Getenv("FFMPEG_RECONNECT_DELAY_MAX")
 	if delayMaxStr == "" {
-		delayMaxStr = "5"
+		delayMaxStr = "15"
 	}
 
 	// Socket I/O timeout in microseconds (many protocols honor -rw_timeout)
