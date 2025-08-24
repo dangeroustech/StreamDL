@@ -107,6 +107,7 @@ jobs:
             --exclude-base-image-vulns
             --policy-path=.snyk
             --app-vulns
+            --sarif
 
       - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
