@@ -57,7 +57,6 @@ jobs:
             --exclude-base-image-vulns
             --policy-path=.snyk
             --app-vulns
-            --exclude=/usr/local/go/**
 
       - name: Upload result to GitHub Code Scanning
         id: snyk_results_upload
