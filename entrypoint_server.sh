@@ -7,13 +7,16 @@
 echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
 
 # Check if we're running as root
-if [ "$(id -u)" -eq 0 ] 2>/dev/null || true; then
+CURRENT_UID=$(id -u 2>/dev/null)
+echo "DEBUG: Current UID is ${CURRENT_UID}"
+if [ "${CURRENT_UID}" -eq 0 ]; then
 	# We're root, can do admin operations
 	ROOT_MODE=true
+	echo "DEBUG: Running as root, will do admin operations"
 else
 	# We're not root, skip admin operations
 	ROOT_MODE=false
-	echo "Running as non-root user, skipping admin operations"
+	echo "DEBUG: Running as non-root user, skipping admin operations"
 fi
 
 # Get group name if GID exists
@@ -50,6 +53,8 @@ if [ "${ROOT_MODE}" = true ]; then
 	find /app -path "/app/.venv" -prune -o -path "/app/.pdm-build" -prune -o -print0 | xargs -0 chown streamdl:"${GROUP_NAME}" 2>/dev/null || true
 	# Set specific permissions for .venv directory to allow read access
 	chmod -R 755 /app/.venv 2>/dev/null || true
+	# Set specific permissions for .pdm-build directory to allow write access
+	chmod -R 755 /app/.pdm-build 2>/dev/null || true
 
 	# Switch to the streamdl user and run the actual entrypoint
 	exec gosu streamdl:"${GROUP_NAME}" /app/streamdl_server_entrypoint.sh "$@"

@@ -7,13 +7,16 @@
 echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
 
 # Check if we're running as root
-if [ "$(id -u)" -eq 0 ] 2>/dev/null || true; then
+CURRENT_UID=$(id -u 2>/dev/null)
+echo "DEBUG: Current UID is ${CURRENT_UID}"
+if [ "${CURRENT_UID}" -eq 0 ]; then
 	# We're root, can do admin operations
 	ROOT_MODE=true
+	echo "DEBUG: Running as root, will do admin operations"
 else
 	# We're not root, skip admin operations
 	ROOT_MODE=false
-	echo "Running as non-root user, skipping admin operations"
+	echo "DEBUG: Running as non-root user, skipping admin operations"
 fi
 
 # Get group name if GID exists
