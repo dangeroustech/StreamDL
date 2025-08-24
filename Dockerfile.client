@@ -10,8 +10,8 @@ RUN go get -v && \
 # Golang Protobuf Client and Logic
 FROM golang:1.24.6-alpine AS client
 
-# Install su-exec for running as non-root
-RUN apk add --no-cache su-exec==0.2-r3
+# Install su-exec and curl for running as non-root and health checks
+RUN apk add --no-cache su-exec==0.2-r3 curl=8.14.1-r1
 
 # Create a default non-root user
 RUN addgroup -g 1000 streamdl && \
@@ -33,5 +33,11 @@ COPY streamdl_client_entrypoint.sh /app/streamdl_client_entrypoint.sh
 # Make entrypoint scripts executable
 RUN chmod +x /app/entrypoint_client.sh /app/streamdl_client_entrypoint.sh
 
-# HEALTHCHECK --interval=60s --timeout=15s --start-period=5s --retries=3 CMD curl --fail http://streamdl-client:8080/health || exit 1
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl --fail --max-time 5 --silent --output /dev/null http://localhost:8080/health || exit 1
+
+# Switch to non-root user (entrypoint script handles final user switching)
+USER streamdl
+
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_client.sh"]

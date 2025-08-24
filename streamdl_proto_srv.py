@@ -2,7 +2,9 @@
 
 import logging
 import os
+import threading
 from concurrent import futures
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import grpc
 import streamlink
@@ -59,6 +61,23 @@ for logger_name in logging.root.manager.loggerDict:
 logger.info("StreamDL Server Starting...")
 logger.debug("YT-DLP version: %s", yt_dlp.version.__version__)
 logger.debug("Streamlink version: %s", streamlink.__version__)
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"OK")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        # Suppress default HTTP server logs to avoid noise
+        return
+
 
 # Configure yt-dlp logging to match our log level
 yt_dlp.utils.std_headers["User-Agent"] = "streamdl"
@@ -132,11 +151,28 @@ class StreamServicer(pb_grpc.Stream):
 
 
 def serve():
+    # Start HTTP health server
+    health_port = 8080
+    # Bind to all interfaces for container networking (safe in isolated container environment)
+    health_server = HTTPServer(("0.0.0.0", health_port), HealthHandler)  # nosec B104
+    health_thread = threading.Thread(target=health_server.serve_forever)
+    health_thread.daemon = True
+    health_thread.start()
+    logger.info(f"Health server started on port {health_port}")
+
+    # Start gRPC server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb_grpc.add_StreamServicer_to_server(StreamServicer(), server)
     server.add_insecure_port(f"[::]:{os.environ.get('STREAMDL_GRPC_PORT')}")
     server.start()
-    server.wait_for_termination()
+    logger.info(f"gRPC server started on port {os.environ.get('STREAMDL_GRPC_PORT')}")
+
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        logger.info("Shutting down servers...")
+        health_server.shutdown()
+        server.stop(0)
 
 
 def get_stream(r):
