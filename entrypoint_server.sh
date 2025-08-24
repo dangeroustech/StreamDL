@@ -6,55 +6,32 @@
 
 echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
 
-# Check if we're running as root
-CURRENT_UID=$(id -u 2>/dev/null)
-echo "DEBUG: Current UID is ${CURRENT_UID}"
-if [ "${CURRENT_UID}" -eq 0 ]; then
-	# We're root, can do admin operations
-	ROOT_MODE=true
-	echo "DEBUG: Running as root, will do admin operations"
+# Get group name if GID exists
+EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
+
+# Handle group creation or use existing
+if [ -z "${EXISTING_GROUP}" ]; then
+	# GID doesn't exist, create new group
+	groupadd -g "${PGID}" streamdl
+	GROUP_NAME="streamdl"
 else
-	# We're not root, skip admin operations
-	ROOT_MODE=false
-	echo "DEBUG: Running as non-root user, skipping admin operations"
+	# Use existing group
+	GROUP_NAME="${EXISTING_GROUP}"
+	echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
 fi
 
-# Get group name if GID exists
-if [ "${ROOT_MODE}" = true ]; then
-	EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
-
-	# Handle group creation or use existing
-	if [ -z "${EXISTING_GROUP}" ]; then
-		# GID doesn't exist, create new group
-		groupadd -g "${PGID}" streamdl
-		GROUP_NAME="streamdl"
-	else
-		# Use existing group
-		GROUP_NAME="${EXISTING_GROUP}"
-		echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
-	fi
-
-	# Create user if it doesn't exist
-	if ! getent passwd streamdl >/dev/null; then
-		useradd -u "${PUID}" -g "${GROUP_NAME}" -s /bin/bash streamdl
-	fi
-else
-	# Use existing user/group names
-	GROUP_NAME="streamdl"
+# Create user if it doesn't exist
+if ! getent passwd streamdl >/dev/null; then
+	useradd -u "${PUID}" -g "${GROUP_NAME}" -s /bin/bash streamdl
 fi
 
 # Create and set up home directory and cache directories
-if [ "${ROOT_MODE}" = true ]; then
-	mkdir -p /home/streamdl/.cache/uv
-	chown -R streamdl:"${GROUP_NAME}" /home/streamdl 2>/dev/null || true
-	chmod 700 /home/streamdl 2>/dev/null || true
+mkdir -p /home/streamdl/.cache/uv
+chown -R streamdl:"${GROUP_NAME}" /home/streamdl
+chmod 700 /home/streamdl
 
 	# Set read permissions for virtual environment
 	chmod -R 755 /app/.venv 2>/dev/null || true
 
-	# Switch to the streamdl user and run the actual entrypoint
-	exec gosu streamdl:"${GROUP_NAME}" /app/streamdl_server_entrypoint.sh "$@"
-else
-	# Already running as target user, just run the entrypoint
-	exec /app/streamdl_server_entrypoint.sh "$@"
-fi
+# Switch to the streamdl user and run the actual entrypoint
+exec gosu streamdl:"${GROUP_NAME}" /app/streamdl_server_entrypoint.sh "$@"
