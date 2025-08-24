@@ -64,6 +64,7 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
+          category: snyk-staging-${{ matrix.component }}
 
       - name: Dockerhub Push Staging
         id: dockerhub_staging_push
