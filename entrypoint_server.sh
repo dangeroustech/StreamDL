@@ -49,12 +49,8 @@ if [ "${ROOT_MODE}" = true ]; then
 	chown -R streamdl:"${GROUP_NAME}" /home/streamdl 2>/dev/null || true
 	chmod 700 /home/streamdl 2>/dev/null || true
 
-	# Ensure app directory has correct ownership (excluding .venv)
-	find /app -path "/app/.venv" -prune -o -path "/app/.pdm-build" -prune -o -print0 | xargs -0 chown streamdl:"${GROUP_NAME}" 2>/dev/null || true
-	# Set specific permissions for .venv directory to allow read access
+	# Set read permissions for virtual environment
 	chmod -R 755 /app/.venv 2>/dev/null || true
-	# Set specific permissions for .pdm-build directory to allow write access
-	chmod -R 755 /app/.pdm-build 2>/dev/null || true
 
 	# Switch to the streamdl user and run the actual entrypoint
 	exec gosu streamdl:"${GROUP_NAME}" /app/streamdl_server_entrypoint.sh "$@"
