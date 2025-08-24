@@ -33,6 +33,12 @@ func getUmask() int {
 }
 
 func createDirWithUmask(path string) error {
+	// Check if directory already exists
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		// Directory already exists, no need to create or modify permissions
+		return nil
+	}
+
 	// Get current umask
 	oldUmask := syscall.Umask(0)
 	// Restore umask after this function
@@ -162,6 +168,11 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 			cmd.Args = insertAfterBinary(cmd.Args, []string{"-y"})
 		}
 		log.Debugf("FFmpeg args (sanitized): %s", sanitizeArgs(cmd.Args))
+
+		// Debug: Show current process user and what user ffmpeg will run as
+		log.Debugf("Current Go process user: %d, %d", os.Getuid(), os.Getgid())
+		log.Debugf("FFmpeg command: %s %s", cmd.Path, strings.Join(cmd.Args, " "))
+		log.Debugf("FFmpeg process will inherit current user permissions")
 
 		if err := cmd.Start(); err != nil {
 			log.Errorf("Failed to start FFmpeg for %s: %v", user, err)

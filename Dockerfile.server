@@ -11,14 +11,6 @@ FROM python:3.13-slim-bookworm AS server
 # Install gosu and curl for running as non-root and health checks
 RUN apt-get update && apt-get install -y --no-install-recommends gosu=1.14-1+b10 curl=7.88.1-10+deb12u12 && rm -rf /var/lib/apt/lists/*
 
-# Create a default non-root user
-RUN groupadd -g 1000 streamdl && \
-    useradd -u 1000 -g streamdl -s /bin/bash -m streamdl
-
-# Set proper ownership for user directories
-RUN chown -R streamdl:streamdl /home/streamdl && \
-    chmod 700 /home/streamdl
-
 WORKDIR /app
 
 # Copy in app files
@@ -37,7 +29,5 @@ RUN pip install --no-cache-dir uv==0.4.28 && uv sync && \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl --fail --max-time 5 http://localhost:8080/health || exit 1
 
-# Switch to non-root user (entrypoint script handles final user switching)
-USER streamdl
-
+# Entrypoint script handles user creation and switching
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_server.sh"]

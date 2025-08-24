@@ -13,14 +13,6 @@ FROM golang:1.24.6-alpine AS client
 # Install su-exec and curl for running as non-root and health checks
 RUN apk add --no-cache su-exec==0.2-r3 curl=8.14.1-r1
 
-# Create a default non-root user
-RUN addgroup -g 1000 streamdl && \
-    adduser -D -u 1000 -G streamdl streamdl
-
-# Create and set permissions for working directories
-RUN mkdir -p /app/dl /app/out && \
-    chown -R streamdl:streamdl /app/dl /app/out
-
 WORKDIR /app
 
 # Copy FFMPEG Binaries
@@ -37,7 +29,5 @@ RUN chmod +x /app/entrypoint_client.sh /app/streamdl_client_entrypoint.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl --fail --max-time 5 --silent --output /dev/null http://localhost:8080/health || exit 1
 
-# Switch to non-root user (entrypoint script handles final user switching)
-USER streamdl
-
+# Entrypoint script handles user creation and switching
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_client.sh"]
