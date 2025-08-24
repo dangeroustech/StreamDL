@@ -11,7 +11,7 @@ RUN go get -v && \
 FROM golang:1.24.6-alpine AS client
 
 # Install su-exec for running as non-root
-RUN apk add --no-cache su-exec
+RUN apk add --no-cache su-exec==0.2-r3
 
 WORKDIR /app
 
