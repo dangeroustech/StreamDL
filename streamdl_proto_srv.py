@@ -23,7 +23,9 @@ import stream_pb2_grpc as pb_grpc
 # Configure root logger first to capture all logs, honoring SERVER_LOG_LEVEL
 level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
 level_value = getattr(logging, level_name, logging.INFO)
-logging.basicConfig(level=level_value, format="%(asctime)s: |%(levelname)s| %(message)s")
+logging.basicConfig(
+    level=level_value, format="%(asctime)s: |%(levelname)s| %(message)s"
+)
 
 # Create a null handler to completely silence loggers
 null_handler = logging.NullHandler()
@@ -64,6 +66,7 @@ yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ""
 # Always set these to True to prevent direct console output
 yt_dlp_quiet = True
 yt_dlp_no_warnings = True
+
 
 class StreamServicer(pb_grpc.Stream):
     def GetStream(self, request, context):
@@ -158,7 +161,11 @@ def get_stream(r):
         else:
             try:
                 selected_quality = r.quality if r.quality else "best"
-                logger.debug("Selecting quality=%s from available keys=%s", selected_quality, list(stream.keys()))
+                logger.debug(
+                    "Selecting quality=%s from available keys=%s",
+                    selected_quality,
+                    list(stream.keys()),
+                )
                 return {"url": stream[selected_quality].url}
             except KeyError:
                 logger.critical("Stream quality not found - exiting")
@@ -203,9 +210,7 @@ def get_stream(r):
                 ) as ydl_temp:
                     fallback_url = r.site + "/" + r.user
                     logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
-                    info_dict = ydl_temp.extract_info(
-                        fallback_url, download=False
-                    )
+                    info_dict = ydl_temp.extract_info(fallback_url, download=False)
                     logger.critical("Requested format is not available")
                     logger.critical("Available formats:")
                     # List available formats
