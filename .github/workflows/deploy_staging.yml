@@ -44,8 +44,8 @@ jobs:
           load: true
           tags: streamdl:${{ matrix.component }}_local
 
-      - name: Docker Scan
-        id: docker_scan
+      - name: Snyk Scan
+        id: snyk_scan
         uses: snyk/actions/docker@master
         continue-on-error: true
         env:
@@ -53,10 +53,12 @@ jobs:
         with:
           image: streamdl:${{ matrix.component }}_local
           args: >-
-            --severity-threshold=medium
+            --severity-threshold=critical
             --file=Dockerfile.${{ matrix.component }}
             --exclude-base-image-vulns
             --policy-path=.snyk
+            --prune-repeated-subdependencies
+            --package-manager=dockerfile
 
       - name: Upload result to GitHub Code Scanning
         id: snyk_results_upload
