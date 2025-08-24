@@ -12,7 +12,7 @@ var fatalf = log.Fatalf
 
 func check(e error) {
 	if e != nil {
-        fatalf("%v", e)
+		fatalf("%v", e)
 	}
 }
 
@@ -24,9 +24,9 @@ func readConfig(loc string) []byte {
 
 // parseConfig unmarshals YAML bytes into []Config.
 func parseConfig(data []byte) ([]Config, error) {
-    var cfg []Config
-    if err := yaml.Unmarshal(data, &cfg); err != nil {
-        return nil, err
-    }
-    return cfg, nil
+	var cfg []Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }

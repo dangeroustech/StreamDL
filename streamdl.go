@@ -28,11 +28,11 @@ func main() {
 	flag.Parse()
 
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
-    var config []Config
-    parsed, confErr := parseConfig(readConfig(*confLoc))
-    if confErr == nil {
-        config = parsed
-    }
+	var config []Config
+	parsed, confErr := parseConfig(readConfig(*confLoc))
+	if confErr == nil {
+		config = parsed
+	}
 	control := make(chan bool)
 	response := make(chan bool)
 
@@ -69,12 +69,12 @@ func main() {
 		log.Infof("-----------------------------------------")
 		log.Infof("Running StreamDL at %v", time.Now().Format("2006-01-02 15:04:05"))
 		log.Infof("-----------------------------------------")
-        // Update config for each tick
-        parsed, confErr := parseConfig(readConfig(*confLoc))
+		// Update config for each tick
+		parsed, confErr := parseConfig(readConfig(*confLoc))
 		if confErr != nil {
 			log.Fatalf("Config Error: %v", confErr)
-        } else {
-            config = parsed
+		} else {
+			config = parsed
 		}
 
 		// TODO: Probably make a nicer 429 handling to allow for counts, retry queueing, etc.
