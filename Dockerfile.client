@@ -13,6 +13,14 @@ FROM golang:1.24.6-alpine AS client
 # Install su-exec for running as non-root
 RUN apk add --no-cache su-exec==0.2-r3
 
+# Create a default non-root user
+RUN addgroup -g 1000 streamdl && \
+    adduser -D -u 1000 -G streamdl streamdl
+
+# Create and set permissions for working directories
+RUN mkdir -p /app/dl /app/out && \
+    chown -R streamdl:streamdl /app/dl /app/out
+
 WORKDIR /app
 
 # Copy FFMPEG Binaries

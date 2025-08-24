@@ -9,7 +9,15 @@ RUN which uv
 FROM python:3.13-slim-bookworm AS server
 
 # Install gosu for running as non-root
-RUN apt-get update && apt-get install -y gosu && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gosu==1.17-3+b4 && rm -rf /var/lib/apt/lists/*
+
+# Create a default non-root user
+RUN groupadd -g 1000 streamdl && \
+    useradd -u 1000 -g streamdl -s /bin/bash -m streamdl
+
+# Set proper ownership for user directories
+RUN chown -R streamdl:streamdl /home/streamdl && \
+    chmod 700 /home/streamdl
 
 WORKDIR /app
 

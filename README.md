@@ -43,7 +43,16 @@ Edit the Environment variables in `docker-compose.yml.example` to modify script 
 
 Otherwise, just rename it to `docker-compose.yml` and run `docker compose up -d`.
 
-#### Directory Permissions
+#### Security Best Practices
+
+StreamDL containers follow Docker security best practices by running as a non-root user:
+
+- **Default User**: Containers create a `streamdl` user (UID 1000, GID 1000) at build time
+- **Runtime User Switching**: Supports dynamic UID/GID switching via `PUID`/`PGID` environment variables
+- **User Tools**: Uses `su-exec` (client) and `gosu` (server) for secure user switching
+- **Directory Permissions**: Working directories are created with proper ownership at build time
+
+##### Directory Permissions
 
 When using Docker, be aware of the following:
 
@@ -119,6 +128,28 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 | `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
 | `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
 | `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
+
+### User ID and Group ID Configuration
+
+The `PUID` and `PGID` environment variables allow you to control what user and group ID the container runs as:
+
+- **Default Behavior**: If not specified, containers run as UID 1000, GID 1000
+- **Runtime Switching**: These values are applied at container startup, allowing you to match your host user's UID/GID
+- **Permission Matching**: Set these to match your host user's UID/GID to avoid permission issues with mounted volumes
+
+Example `.env` configuration:
+
+```bash
+PUID=1001
+PGID=1001
+```
+
+To find your current user's UID/GID on Linux/macOS:
+
+```bash
+id -u  # Shows your user ID
+id -g  # Shows your group ID
+```
 
 ### FFmpeg Resilience Settings
 
