@@ -115,4 +115,4 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
-          category: snyk-master-${{ matrix.component }}-push
+          category: ${{ matrix.component }}-master
