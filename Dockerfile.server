@@ -9,7 +9,7 @@ RUN which uv
 FROM python:3.13-slim-bookworm AS server
 
 # Install gosu and curl for running as non-root and health checks
-RUN apt-get update && apt-get install -y --no-install-recommends gosu=1.14-1+b10 curl=7.88.1-10+deb12u12 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gosu=1.14-1+b10 curl=7.88.1-10+deb12u14 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
