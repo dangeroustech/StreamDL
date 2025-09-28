@@ -63,6 +63,12 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
 
+	// Always ensure the user is removed from the live list when this goroutine exits
+	defer func() {
+		delete(urls, user)
+		log.Debugf("Removed %s from live list", user)
+	}()
+
 	// Always ensure base directories have correct permissions first
 	if err := createDirWithUmask(outLoc); err != nil {
 		log.Errorf("Failed to create output directory %s: %v", outLoc, err)
@@ -208,6 +214,7 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 			}
 			time.Sleep(time.Second * 2)
 			response <- true
+			return
 		case err := <-naturalFinish:
 			if err != nil {
 				// Emit a compact tail of FFmpeg logs to aid diagnosis
@@ -231,7 +238,7 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 					}
 				}
 				log.Errorf("FFmpeg failed for %s after %d attempts: %v", user, attempt, err)
-				// Keep URL cached; another tick may attempt again
+				// Ensure cleanup so the next tick can retry fresh
 				return
 			}
 			log.Debugf("Stream For %v Ended", user)
@@ -241,7 +248,6 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 			} else {
 				log.Debugf("Moved file to %v", newPath)
 			}
-			delete(urls, user)
 			return
 		}
 	}
