@@ -1,0 +1,40 @@
+name: Validate GitHub Actions
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC (Dependabot handles PRs, this validates)
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggering
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-actions:
+    name: Validate Action Versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for pinned action versions
+        run: |
+          echo "Checking for actions using @master or @main tags..."
+          if grep -r "uses:.*@master\|uses:.*@main" .github/workflows/; then
+            echo "⚠️ Warning: Found actions using @master or @main tags"
+            echo "Consider pinning to specific versions for better security and reproducibility"
+            exit 1
+          else
+            echo "✅ All actions are using versioned tags"
+          fi
+
+      - name: List all action versions
+        run: |
+          echo "## GitHub Actions in use:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -h "uses:" .github/workflows/*.yml | sort -u >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
