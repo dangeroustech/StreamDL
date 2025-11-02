@@ -2,7 +2,7 @@ name: Validate GitHub Actions
 
 on:
   schedule:
-    # Run weekly on Mondays at 9 AM UTC (Dependabot handles PRs, this validates)
+    # Run weekly on Mondays at 9 AM UTC (Dependabot handles PRs daily, this validates)
     - cron: 0 9 * * 1
   workflow_dispatch: # Allow manual triggering
   pull_request:
