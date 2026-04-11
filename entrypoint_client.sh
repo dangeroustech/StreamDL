@@ -5,9 +5,15 @@
 : "${PGID:=1000}"
 
 # Create user with specified UID/GID
-addgroup -g "${PGID}" streamdl 2>/dev/null || echo "Group exists"
-adduser -D -u "${PUID}" -G streamdl streamdl 2>/dev/null || echo "User exists"
+if ! getent group "${PGID}" >/dev/null 2>&1; then
+  addgroup -g "${PGID}" streamdl
+fi
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+  adduser -D -u "${PUID}" -G streamdl streamdl
+fi
 
-# Ensure download directories exist
-mkdir -p /app/dl /app/out 2>/dev/null || echo "Directories already exist (likely mounted)"
+# Ensure download directories exist and are writable by the runtime user
+mkdir -p /app/dl /app/out
+chown "${PUID}:${PGID}" /app/dl /app/out 2>/dev/null || \
+  echo "Could not change ownership on /app/dl or /app/out"
 exec su-exec "${PUID}":"${PGID}" /app/streamdl_client_entrypoint.sh "$@"

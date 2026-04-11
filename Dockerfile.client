@@ -11,7 +11,7 @@ RUN go get -v && \
 FROM golang:1.25.3-alpine AS client
 
 # Install su-exec and curl for running as non-root and health checks
-RUN apk add --no-cache su-exec==0.2-r3 curl=8.14.1-r2
+RUN apk add --no-cache su-exec=0.2-r3 curl=8.14.1-r2
 
 WORKDIR /app
 

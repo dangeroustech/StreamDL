@@ -16,7 +16,13 @@ import (
 
 func getStream(site string, user string, quality string) (string, error) {
 	addr := os.Getenv("STREAMDL_GRPC_ADDR")
+	if addr == "" {
+		addr = "server"
+	}
 	port := os.Getenv("STREAMDL_GRPC_PORT")
+	if port == "" {
+		port = "50051"
+	}
 	log.Debugf("Dialing gRPC server %s:%s", addr, port)
 	conn, err := grpc.NewClient(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

@@ -100,6 +100,17 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 	log.Tracef("full: %s", outPath)
 	log.Infof("Starting Download for %v", user)
 
+	// Single control listener — forwards shutdown signal to sigint channel
+	go func() {
+		for {
+			_, more := <-control
+			if !more {
+				sigint <- true
+				return
+			}
+		}
+	}()
+
 	// Retry loop for transient FFmpeg failures
 	maxRetries := parseIntEnvOrDefault("FFMPEG_MAX_RETRIES", 3)
 	baseDelay := time.Duration(parseIntEnvOrDefault("FFMPEG_RETRY_BASE_DELAY_SECONDS", 2)) * time.Second
@@ -179,7 +190,7 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 
 		// Debug: Show current process user and what user ffmpeg will run as
 		log.Debugf("Current Go process user: %d, %d", os.Getuid(), os.Getgid())
-		log.Debugf("FFmpeg command: %s %s", cmd.Path, strings.Join(cmd.Args, " "))
+		log.Debugf("FFmpeg command: %s %s", cmd.Path, sanitizeArgs(cmd.Args))
 		log.Debugf("FFmpeg process will inherit current user permissions")
 
 		if err := cmd.Start(); err != nil {
@@ -189,16 +200,6 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 
 		go func() {
 			naturalFinish <- cmd.Wait()
-		}()
-
-		go func() {
-			for {
-				_, more := <-control
-				if !more {
-					sigint <- true
-					return
-				}
-			}
 		}()
 
 		select {

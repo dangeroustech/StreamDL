@@ -5,8 +5,12 @@
 : "${PGID:=1000}"
 
 # Create user with specified UID/GID
-groupadd -g "${PGID}" streamdl 2>/dev/null || echo "Group exists"
-useradd -u "${PUID}" -g streamdl -s /bin/bash streamdl 2>/dev/null || echo "User exists"
+if ! getent group "${PGID}" >/dev/null 2>&1; then
+  groupadd -g "${PGID}" streamdl
+fi
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+  useradd -u "${PUID}" -g "${PGID}" -s /bin/bash -m -d /home/streamdl streamdl
+fi
 
 # Set up home directory for the user
 mkdir -p /home/streamdl/.cache/uv

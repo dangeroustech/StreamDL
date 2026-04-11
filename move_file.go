@@ -66,9 +66,12 @@ func moveFile(oldPath string, newPath string) error {
 	}
 
 	// Ensure we close and clean up temp file on error
+	tempClosed := false
 	defer func() {
-		if err := tempFile.Close(); err != nil {
-			log.Errorf("Error closing temp file: %v", err)
+		if !tempClosed {
+			if err := tempFile.Close(); err != nil {
+				log.Errorf("Error closing temp file: %v", err)
+			}
 		}
 		// Best effort: remove temp file if it still exists
 		_ = os.Remove(tempPath)
@@ -86,6 +89,7 @@ func moveFile(oldPath string, newPath string) error {
 		log.Errorf("Failed to close temp file: %v", err)
 		return err
 	}
+	tempClosed = true
 
 	// Atomically replace target path with temp file
 	if err := renameFunc(tempPath, newPath); err != nil {
