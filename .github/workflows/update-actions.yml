@@ -23,8 +23,7 @@ jobs:
       - name: Check for pinned action versions
         run: |
           echo "Checking for actions using @master or @main tags..."
-          # Exclude snyk/actions/docker as it only has @master available
-          if grep -rh "uses:" .github/workflows/*.yml | grep -E "@master|@main" | grep -v "snyk/actions/docker"; then
+          if grep -rh "uses:" .github/workflows/*.yml | grep -E "@master|@main"; then
             echo "⚠️ Warning: Found actions using @master or @main tags"
             echo "Consider pinning to specific versions for better security and reproducibility"
             exit 1
@@ -34,8 +33,10 @@ jobs:
 
       - name: List all action versions
         run: |
-          echo "## GitHub Actions in use:" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          grep -h "uses:" .github/workflows/*.yml | sort -u >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## GitHub Actions in use:"
+            echo '```'
+            grep -h "uses:" .github/workflows/*.yml | sort -u
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 

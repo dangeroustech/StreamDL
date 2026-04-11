@@ -46,14 +46,14 @@ jobs:
 
       - name: Snyk Scan
         id: snyk_scan
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@v1
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: streamdl:${{ matrix.component }}_local
           args: >-
-            --severity-threshold=critical
+            --severity-threshold=high
             --exclude-base-image-vulns
             --policy-path=.snyk
             --app-vulns
