@@ -64,8 +64,19 @@ mkdir -p "$OUTPUT_DIR/incomplete" "$OUTPUT_DIR/complete" "$CONFIG_DIR"
 # --- Phase 1: Start the server and find a live stream ---
 echo "--- Building and starting server ---"
 $DC -f "$COMPOSE_FILE" up -d --build server
+
+# Wait for server health check — use --wait if supported, otherwise poll
 echo "Waiting for server health check..."
-$DC -f "$COMPOSE_FILE" up -d --wait server
+if $DC -f "$COMPOSE_FILE" up --help 2>&1 | grep -q -- '--wait'; then
+  $DC -f "$COMPOSE_FILE" up -d --wait server
+else
+  for i in $(seq 1 30); do
+    if $DC -f "$COMPOSE_FILE" exec -T server curl -sf http://localhost:8080/health &>/dev/null; then
+      break
+    fi
+    sleep 2
+  done
+fi
 
 echo ""
 echo "--- Probing for a live Twitch stream ---"
@@ -78,7 +89,8 @@ for channel in "${CANDIDATE_CHANNELS[@]}"; do
   # This calls the same code path the gRPC server uses.
   RESULT=$($DC -f "$COMPOSE_FILE" exec -T server \
     /app/.venv/bin/python -c "
-import sys
+import socket
+socket.setdefaulttimeout(15)
 from streamlink import Streamlink
 session = Streamlink()
 try:

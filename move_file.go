@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -111,11 +112,10 @@ func isCrossDeviceLink(err error) bool {
 	if err == nil {
 		return false
 	}
-	// Check syscall errno directly when possible
-	if errno, ok := err.(syscall.Errno); ok {
-		if errno == syscall.EXDEV {
-			return true
-		}
+	// Unwrap through *os.LinkError etc. to find the underlying errno
+	var errno syscall.Errno
+	if errors.As(err, &errno) && errno == syscall.EXDEV {
+		return true
 	}
 	// Some platforms may wrap the error string
 	msg := strings.ToLower(err.Error())

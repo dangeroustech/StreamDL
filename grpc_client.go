@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -26,7 +27,7 @@ func getStream(site string, user string, quality string) (string, error) {
 	log.Debugf("Dialing gRPC server %s:%s", addr, port)
 	conn, err := grpc.NewClient(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("gRPC Failed to Connect: %v", err)
+		return "", fmt.Errorf("gRPC failed to connect to %s:%s: %w", addr, port, err)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {

@@ -74,7 +74,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-    def log_message(self, format, *args):
+    def log_message(self, fmt, *args):
         # Suppress default HTTP server logs to avoid noise
         return
 
@@ -99,9 +99,8 @@ class StreamServicer(pb_grpc.Stream):
         if not res.get("error"):
             context.set_code(grpc.StatusCode.OK)
             logger.debug(
-                "GetStream success user=%s url=%s",
+                "GetStream success user=%s",
                 request.user,
-                res["url"],
             )
             return pb.StreamResponse(url=res["url"])
         else:
@@ -162,9 +161,12 @@ def serve():
     # Start gRPC server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb_grpc.add_StreamServicer_to_server(StreamServicer(), server)
-    server.add_insecure_port(f"[::]:{os.environ.get('STREAMDL_GRPC_PORT')}")
+    grpc_port = os.environ.get("STREAMDL_GRPC_PORT", "50051")
+    bound_port = server.add_insecure_port(f"[::]:{grpc_port}")
+    if bound_port == 0:
+        raise RuntimeError(f"Failed to bind gRPC server to port {grpc_port}")
     server.start()
-    logger.info(f"gRPC server started on port {os.environ.get('STREAMDL_GRPC_PORT')}")
+    logger.info(f"gRPC server started on port {bound_port}")
 
     try:
         server.wait_for_termination()
