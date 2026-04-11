@@ -85,7 +85,9 @@ func main() {
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
 				log.Debugf("Checking user=%s on site=%s quality=%s", streamer.User, site.Site, streamer.Quality)
+				urlsMu.RLock()
 				_, exists := urls[streamer.User]
+				urlsMu.RUnlock()
 				if !exists {
 					log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
@@ -125,10 +127,12 @@ func main() {
 			}
 		}
 
+		urlsMu.RLock()
 		var users []string
 		for user := range urls {
 			users = append(users, user)
 		}
+		urlsMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
@@ -142,7 +146,10 @@ func main() {
 			log.Tracef("Closing Control Channel")
 			close(control)
 
-			for i := 0; i < len(urls); i++ {
+			urlsMu.RLock()
+			urlsLen := len(urls)
+			urlsMu.RUnlock()
+			for i := 0; i < urlsLen; i++ {
 				<-response
 			}
 			time.Sleep(time.Second * 3)
