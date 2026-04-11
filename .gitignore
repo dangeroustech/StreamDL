@@ -25,3 +25,4 @@ Dockerfile
 streamdl
 test/
 .dccache
+docs/
