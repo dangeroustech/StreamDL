@@ -91,7 +91,9 @@ func main() {
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
 					time.Sleep(time.Second * time.Duration(*batchTime))
 					if err == nil {
+						urlsMu.Lock()
 						urls[streamer.User] = url
+						urlsMu.Unlock()
 						log.Debugf("Discovered live stream: user=%s url=%s", streamer.User, url)
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 					} else if err.Error() == "rate limited" {
@@ -99,14 +101,18 @@ func main() {
 						time.Sleep(time.Second * 30)
 						url, err := getStream(site.Site, streamer.User, streamer.Quality)
 						if err == nil {
+							urlsMu.Lock()
 							urls[streamer.User] = url
+							urlsMu.Unlock()
 							go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 						} else if err.Error() == "rate limited" {
 							log.Errorf("Rate Limited, Sleeping for 60 seconds")
 							time.Sleep(time.Second * 60)
 							url, err := getStream(site.Site, streamer.User, streamer.Quality)
 							if err == nil {
+								urlsMu.Lock()
 								urls[streamer.User] = url
+								urlsMu.Unlock()
 								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 							}
 						} else if err.Error() == "rate limited" {
