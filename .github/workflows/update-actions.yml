@@ -23,7 +23,7 @@ jobs:
       - name: Check for pinned action versions
         run: |
           echo "Checking for actions using @master or @main tags..."
-          if grep -rh "uses:" .github/workflows/*.yml | grep -E "@master|@main"; then
+          if grep -rh "uses:" .github/workflows/*.yml | grep -v "grep -E" | grep -E "@master|@main"; then
             echo "⚠️ Warning: Found actions using @master or @main tags"
             echo "Consider pinning to specific versions for better security and reproducibility"
             exit 1
