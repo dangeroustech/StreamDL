@@ -153,8 +153,7 @@ class StreamServicer(pb_grpc.Stream):
 def serve():
     # Start HTTP health server
     health_port = 8080
-    # Bind to all interfaces for container networking (safe in isolated container environment)
-    health_server = HTTPServer(("0.0.0.0", health_port), HealthHandler)  # nosec B104
+    health_server = HTTPServer(("127.0.0.1", health_port), HealthHandler)
     health_thread = threading.Thread(target=health_server.serve_forever)
     health_thread.daemon = True
     health_thread.start()

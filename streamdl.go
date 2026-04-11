@@ -76,7 +76,7 @@ func main() {
 		// Update config for each tick
 		parsed, confErr := parseConfig(readConfig(*confLoc))
 		if confErr != nil {
-			log.Fatalf("Config Error: %v", confErr)
+			log.Warnf("Config reload failed; keeping previous config: %v", confErr)
 		} else {
 			config = parsed
 		}
@@ -96,7 +96,7 @@ func main() {
 						urlsMu.Lock()
 						urls[streamer.User] = url
 						urlsMu.Unlock()
-						log.Debugf("Discovered live stream: user=%s url=%s", streamer.User, url)
+						log.Debugf("Discovered live stream for user=%s", streamer.User)
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 					} else if err.Error() == "rate limited" {
 						log.Errorf("Rate Limited, Sleeping for 30 seconds")
