@@ -65,7 +65,9 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 
 	// Always ensure the user is removed from the live list when this goroutine exits
 	defer func() {
+		urlsMu.Lock()
 		delete(urls, user)
+		urlsMu.Unlock()
 		log.Debugf("Removed %s from live list", user)
 	}()
 

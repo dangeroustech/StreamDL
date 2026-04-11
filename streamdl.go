@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -14,7 +15,10 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-var urls = make(map[string]string)
+var (
+	urls   = make(map[string]string)
+	urlsMu sync.RWMutex
+)
 var c = make(chan os.Signal, 2)
 
 func main() {
