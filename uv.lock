@@ -710,7 +710,7 @@ wheels = [
 
 [[package]]
 name = "streamdl"
-version = "3.5.0"
+version = "3.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "curl-cffi" },
@@ -734,7 +734,7 @@ requires-dist = [
     { name = "grpcio", specifier = ">=1.68.1,<2.0.0" },
     { name = "protobuf", specifier = ">=5.26.0,<6.0.0" },
     { name = "streamlink", specifier = ">=7.1.3" },
-    { name = "wheel", specifier = ">=0.45.1,<1.0.0" },
+    { name = "wheel", specifier = ">=0.46.2,<1.0.0" },
     { name = "yt-dlp", specifier = ">=2025.2.19" },
 ]
 
@@ -840,14 +840,14 @@ wheels = [
 
 [[package]]
 name = "wheel"
-version = "0.46.1"
+version = "0.46.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fb/62/e90918c4558b002726ab930863c0cbd3e7cf9a7befa1d4a1a240cecdb379/wheel-0.46.1.tar.gz", hash = "sha256:fd477efb5da0f7df1d3c76c73c14394002c844451bd63229d8570f376f5e6a38", size = 54400, upload-time = "2025-04-08T20:55:41.22Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/92/3a64fa9639b8e290fe8630d8067a66f7c5510845c6d73686ad880c9b04d9/wheel-0.46.2.tar.gz", hash = "sha256:3d79e48fde9847618a5a181f3cc35764c349c752e2fe911e65fa17faab9809b0", size = 60274, upload-time = "2026-01-21T23:55:25.838Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/44/31d964a260fcda6bf2f59384231bbf4962ac796a5d36c554162b5411b8db/wheel-0.46.1-py3-none-any.whl", hash = "sha256:f796f65d72750ccde090663e466d0ca37cd72b62870f7520b96d34cdc07d86d8", size = 23058, upload-time = "2025-04-08T20:55:39.551Z" },
+    { url = "https://files.pythonhosted.org/packages/13/2c/5e079cefe955ae58e5a052fe037c850ce493eb7269dedeb960237e78fb0f/wheel-0.46.2-py3-none-any.whl", hash = "sha256:33ae60725d69eaa249bc1982e739943c23b34b58d51f1cb6253453773aca6e65", size = 29971, upload-time = "2026-01-21T23:55:24.447Z" },
 ]
 
 [[package]]
