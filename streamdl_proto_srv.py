@@ -64,7 +64,10 @@ logger.debug("Streamlink version: %s", streamlink.__version__)
 
 
 class HealthHandler(BaseHTTPRequestHandler):
+    """HTTP request handler for the health check endpoint."""
+
     def do_GET(self):
+        """Respond to GET requests with 200 OK on /health, 404 otherwise."""
         if self.path == "/health":
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
@@ -75,7 +78,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def log_message(self, fmt, *args):
-        # Suppress default HTTP server logs to avoid noise
+        """Suppress default HTTP server access logs."""
         return
 
 
@@ -88,7 +91,10 @@ yt_dlp_no_warnings = True
 
 
 class StreamServicer(pb_grpc.Stream):
+    """gRPC servicer that resolves live stream URLs."""
+
     def GetStream(self, request, context):
+        """Resolve a stream URL for the given site/user/quality and return it via gRPC."""
         logger.debug(
             "GetStream request received site=%s user=%s quality=%s",
             request.site,
@@ -150,6 +156,7 @@ class StreamServicer(pb_grpc.Stream):
 
 
 def serve():
+    """Start the health check HTTP server and gRPC server, then block until termination."""
     # Start HTTP health server
     health_port = 8080
     health_server = HTTPServer(("127.0.0.1", health_port), HealthHandler)
@@ -177,6 +184,7 @@ def serve():
 
 
 def get_stream(r):
+    """Resolve a stream URL using Streamlink, falling back to yt-dlp on failure."""
     logger.debug(
         "Resolving stream via Streamlink site=%s user=%s quality=%s",
         r.site,
