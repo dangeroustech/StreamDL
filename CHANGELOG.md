@@ -1,3 +1,86 @@
+## [3.6.0](https://github.com/dangeroustech/StreamDL/compare/v3.5.1...v3.6.0) (2026-04-13)
+
+
+### 🏭 Build
+
+* **deps:** bump golang.org/x/net from 0.37.0 to 0.38.0 ([dfe5251](https://github.com/dangeroustech/StreamDL/commit/dfe5251a7feb8d90eab675a173bbf6ea12ca2085))
+
+
+### 🎉 New Features
+
+* add unit tests for config reader and improve error handling ([9b9601f](https://github.com/dangeroustech/StreamDL/commit/9b9601f41bab1f368598a018663899ab735ce95d))
+* add unit tests for moveFile function and enhance cross-device handling ([2046aaa](https://github.com/dangeroustech/StreamDL/commit/2046aaaaf618439e65ac3692002a00f53917e099))
+* enhance downloadStream function with retry logic and network resilience ([8947e7f](https://github.com/dangeroustech/StreamDL/commit/8947e7f1c2c62af3f5faa266c33fec4fa669f951))
+
+
+### 📃 Refactor
+
+* enhance entrypoint scripts to handle user/group creation and permissions based on root status ([7d2cf50](https://github.com/dangeroustech/StreamDL/commit/7d2cf505f34516b0625818411f3851cf45e0ce3e))
+* enhance error handling and logging in downloadStream, moveFile, and gRPC connection management ([e4f66f5](https://github.com/dangeroustech/StreamDL/commit/e4f66f55788c11fb84a18e42d80a47dcb0be3b53))
+* improve code readability and consistency in configuration and file handling tests ([30d79a5](https://github.com/dangeroustech/StreamDL/commit/30d79a558f9a18ff733e23f16194ed7901afd66b))
+* improve entrypoint scripts with debug information and adjust permissions for .pdm-build directory ([fbfbff2](https://github.com/dangeroustech/StreamDL/commit/fbfbff299e2bcf3ab52f73d117296a9c5bcec24d))
+* improve logging format and streamline code readability in streamdl_proto_srv.py ([d45c340](https://github.com/dangeroustech/StreamDL/commit/d45c340036484bdf0ed262e4331d0d1ceb047333))
+* simplify entrypoint scripts by removing debug output and consolidating user/group creation steps ([f67994f](https://github.com/dangeroustech/StreamDL/commit/f67994f5b81802d7934e8471e2d45c782fdd144b))
+* streamline downloadStream function and enhance logging ([4f70983](https://github.com/dangeroustech/StreamDL/commit/4f70983afddd132efd0e296025e580585ae2af79))
+* streamline entrypoint script by removing redundant ownership changes and clarifying permissions for .venv ([88bcbee](https://github.com/dangeroustech/StreamDL/commit/88bcbee921d6e4d7e53cc867115741d8f7f14e9d))
+
+
+### 🧪 Tests
+
+* add end-to-end integration test for live stream download ([8f817b8](https://github.com/dangeroustech/StreamDL/commit/8f817b89d81e5034ee8d3d8873949c6d1b35fb93))
+
+
+### 📚 Documentation
+
+* add docstrings to Python server functions and classes ([98eea44](https://github.com/dangeroustech/StreamDL/commit/98eea44884464491245b29a308351f452b60e507))
+* add FFmpeg resilience settings to README ([8a28341](https://github.com/dangeroustech/StreamDL/commit/8a283414f5b871fc2cf44dbe90230322f6c33f5f))
+
+
+### ✍ Chore
+
+* add --sarif option to Snyk scan parameters in deploy workflows ([627c6b3](https://github.com/dangeroustech/StreamDL/commit/627c6b31fe1aae39f5ce4cb55b905b555e272fe7))
+* add category parameter for Snyk SARIF file in deploy workflows ([71d9730](https://github.com/dangeroustech/StreamDL/commit/71d973012182ec1509300d88f1e5118bf23d0f01))
+* add docs/ to gitignore ([9ad1ade](https://github.com/dangeroustech/StreamDL/commit/9ad1adedad4b315eda746cf5ad8ecbcd52592f4f))
+* add go.work file for Go module management ([8aa3642](https://github.com/dangeroustech/StreamDL/commit/8aa3642ddde6e8a79925f1cb505129106f300458))
+* add go.work.sum file for dependency management ([a14c088](https://github.com/dangeroustech/StreamDL/commit/a14c088c8e30cb6dc99965a1ee0aa76d0ffa9119))
+* add health checks and curl installation in Dockerfiles, implement health server in streamdl_proto_srv.py ([ba5199a](https://github.com/dangeroustech/StreamDL/commit/ba5199a478d8ddfb6be4f27c1ccd88edb4286462))
+* **ci:** update action versions, Go, Python, and Node versions ([fc86f54](https://github.com/dangeroustech/StreamDL/commit/fc86f5496da0905d9b16d350ad7234b735da8d46))
+* implement non-root user and directory permissions in Dockerfiles ([ab7fb75](https://github.com/dangeroustech/StreamDL/commit/ab7fb750d81fcf17d566c2206da30f197e2ef772))
+* permissions debug ([624be49](https://github.com/dangeroustech/StreamDL/commit/624be491182092d47e8a83ab902f36f8dbaaa8a6))
+* pin su-exec version in Dockerfile.client to ensure compatibility ([2879e47](https://github.com/dangeroustech/StreamDL/commit/2879e474cd5bc43b5007312cb63cca40b3bab2ed))
+* remove exclusion of /usr/local/go/** from Snyk scan parameters in deploy workflows ([edd43a3](https://github.com/dangeroustech/StreamDL/commit/edd43a3dcf3c77f30e8fde9f078aeb216adca53e))
+* remove go.work and go.work.sum files as they are no longer needed ([1a1c85d](https://github.com/dangeroustech/StreamDL/commit/1a1c85df5b15be988924aba68ccb32e044e7508c))
+* rename Docker Scan to Snyk Scan and update scan parameters in deploy_staging.yml ([4e38833](https://github.com/dangeroustech/StreamDL/commit/4e38833ac66e1d275bcdbb0f038c8c2a1153f839))
+* update category parameter for Snyk SARIF file in deploy workflows to include event name ([27c0b55](https://github.com/dangeroustech/StreamDL/commit/27c0b55a907dbac49f9a2cfc15d41270940f3b2d))
+* update category parameter for Snyk SARIF file in deploy workflows to remove redundant prefixes ([1dafbcd](https://github.com/dangeroustech/StreamDL/commit/1dafbcdbaacfe25f6a276490ceb89517f0fed5aa))
+* update ffmpeg version in Dockerfile.client from 7.1.1 to 8.0 ([9ac837d](https://github.com/dangeroustech/StreamDL/commit/9ac837de6f18e3226674e9d2bd5149097c95fa17))
+* update Go version and dependencies in Dockerfile and go.mod ([8cd053e](https://github.com/dangeroustech/StreamDL/commit/8cd053e0de91f7355e152c6859271ce8eeff2dfe))
+* update Snyk scan parameters in deploy workflows to include app vulnerabilities and exclude specific paths ([bc00136](https://github.com/dangeroustech/StreamDL/commit/bc001368ad67ce6f8eca6626cc99a02176f23937))
+
+
+### 🐛 Bug Fixes
+
+* --twitch--disable-ads is now the default ([c645c01](https://github.com/dangeroustech/StreamDL/commit/c645c0194e7acf6265b8f95d03cfca1a51f7f31c))
+* add sync.RWMutex for urls map, protect delete in downloadStream ([f2c8567](https://github.com/dangeroustech/StreamDL/commit/f2c8567aba37d432bc346e4e962ba4b81009aa43))
+* address CodeRabbit PR [#507](https://github.com/dangeroustech/StreamDL/issues/507) review items [#4](https://github.com/dangeroustech/StreamDL/issues/4),7-12 ([d96852d](https://github.com/dangeroustech/StreamDL/commit/d96852d325660391ff7a22cc28854206571718f2))
+* address remaining CodeRabbit PR [#507](https://github.com/dangeroustech/StreamDL/issues/507) review items [#13](https://github.com/dangeroustech/StreamDL/issues/13)-18 ([5269d40](https://github.com/dangeroustech/StreamDL/commit/5269d40ebb1b95d92ea42db7bda44eb8009f5c40)), closes [#13-18](https://github.com/dangeroustech/StreamDL/issues/13-18)
+* address second round of CodeRabbit review comments ([ab2db99](https://github.com/dangeroustech/StreamDL/commit/ab2db99df40b7d3f481f5e16240e14b76d316793))
+* **ci:** drop Python 3.14 from test matrix (lxml lacks 3.14 wheels) ([1bd5ae1](https://github.com/dangeroustech/StreamDL/commit/1bd5ae1c3e413f652fac7f12da342d921048c221))
+* **ci:** exclude validator's own grep line from action version check ([e314026](https://github.com/dangeroustech/StreamDL/commit/e314026deb66e7c0123671ba4a001d6f6c9211bf))
+* **ci:** pin Snyk action to v1, lower severity threshold, quote GITHUB_STEP_SUMMARY ([52aa178](https://github.com/dangeroustech/StreamDL/commit/52aa178e16f2d47442c5f1bdeb477be2c463edc3))
+* **ci:** use setup-uv@v7 (v8 major tag not yet available) ([03412e6](https://github.com/dangeroustech/StreamDL/commit/03412e6855d61414927d3e3dd61d6c8151946a17))
+* **deps:** pin go-jose/v4 to v4.1.4 to resolve CVE-2026-34986 ([35ab99a](https://github.com/dangeroustech/StreamDL/commit/35ab99a3488fc21383f5748b69089b1aec6c4dc7))
+* **deps:** update grpc and transitive deps to resolve Snyk vulnerabilities ([e31c62a](https://github.com/dangeroustech/StreamDL/commit/e31c62a92a7a19046695a03500404c798186374d))
+* ensure user cleanup in downloadStream goroutine ([d9998f8](https://github.com/dangeroustech/StreamDL/commit/d9998f8e00a157817ed12499f2e393983630e2d8))
+* increase default FFMPEG reconnect delay from 5 to 15 seconds ([047e290](https://github.com/dangeroustech/StreamDL/commit/047e29072be2ed4d0f601da716fe0989058f7792))
+* protect urls map reads in ticker loop with urlsMu RLock ([a2b8955](https://github.com/dangeroustech/StreamDL/commit/a2b8955eae068c3f7d68260d6cdda1c0884f5f15))
+* protect urls map writes in ticker loop with urlsMu ([b36a499](https://github.com/dangeroustech/StreamDL/commit/b36a499a255f9768b008e1446aa793ce5761bd3a))
+* update curl package version in Dockerfile.server ([31f74d5](https://github.com/dangeroustech/StreamDL/commit/31f74d5692c14c1cb98a6be7d771f4a01405b4cd))
+* update curl version in Dockerfile.client from 8.14.1-r1 to 8.14.1-r2 ([296b3cb](https://github.com/dangeroustech/StreamDL/commit/296b3cb9915d798c339030ff24d60e8a5c9e3117))
+* update gRPC client connection method and increase timeout ([e9cdc75](https://github.com/dangeroustech/StreamDL/commit/e9cdc75cbc966c0a0916de65851accfb9d0e95f7))
+* update ownership and permissions for app directory and .venv in entrypoint script ([2fdc5db](https://github.com/dangeroustech/StreamDL/commit/2fdc5dba973dcf84c128eb796c5861f73b00e92e))
+* yt_dlp error handling bug that caused some plugins to always fail ([d816e98](https://github.com/dangeroustech/StreamDL/commit/d816e986ea4d601d9b4f84854de6c1132622e24a))
+
 ### [3.5.1](https://github.com/dangeroustech/StreamDL/compare/v3.5.0...v3.5.1) (2025-08-11)
 
 
