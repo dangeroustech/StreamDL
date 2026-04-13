@@ -7,15 +7,18 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
-	yaml "gopkg.in/yaml.v3"
 )
 
-var urls = make(map[string]string)
+var (
+	urls   = make(map[string]string)
+	urlsMu sync.RWMutex
+)
 var c = make(chan os.Signal, 2)
 
 func main() {
@@ -30,7 +33,10 @@ func main() {
 
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
 	var config []Config
-	confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
+	parsed, confErr := parseConfig(readConfig(*confLoc))
+	if confErr == nil {
+		config = parsed
+	}
 	control := make(chan bool)
 	response := make(chan bool)
 
@@ -67,49 +73,66 @@ func main() {
 		log.Infof("-----------------------------------------")
 		log.Infof("Running StreamDL at %v", time.Now().Format("2006-01-02 15:04:05"))
 		log.Infof("-----------------------------------------")
-		//Update config for each tick
-		confErr := yaml.Unmarshal(readConfig(*confLoc), &config)
+		// Update config for each tick
+		parsed, confErr := parseConfig(readConfig(*confLoc))
 		if confErr != nil {
-			log.Fatalf("Config Error: %v", confErr)
+			log.Warnf("Config reload failed; keeping previous config: %v", confErr)
+		} else {
+			config = parsed
 		}
 
 		// TODO: Probably make a nicer 429 handling to allow for counts, retry queueing, etc.
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
+				log.Debugf("Checking user=%s on site=%s quality=%s", streamer.User, site.Site, streamer.Quality)
+				urlsMu.RLock()
 				_, exists := urls[streamer.User]
+				urlsMu.RUnlock()
 				if !exists {
+					log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
 					url, err := getStream(site.Site, streamer.User, streamer.Quality)
 					time.Sleep(time.Second * time.Duration(*batchTime))
 					if err == nil {
+						urlsMu.Lock()
 						urls[streamer.User] = url
+						urlsMu.Unlock()
+						log.Debugf("Discovered live stream for user=%s", streamer.User)
 						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 					} else if err.Error() == "rate limited" {
 						log.Errorf("Rate Limited, Sleeping for 30 seconds")
 						time.Sleep(time.Second * 30)
 						url, err := getStream(site.Site, streamer.User, streamer.Quality)
 						if err == nil {
+							urlsMu.Lock()
 							urls[streamer.User] = url
+							urlsMu.Unlock()
 							go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 						} else if err.Error() == "rate limited" {
 							log.Errorf("Rate Limited, Sleeping for 60 seconds")
 							time.Sleep(time.Second * 60)
 							url, err := getStream(site.Site, streamer.User, streamer.Quality)
 							if err == nil {
+								urlsMu.Lock()
 								urls[streamer.User] = url
+								urlsMu.Unlock()
 								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 							}
 						} else if err.Error() == "rate limited" {
 							log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+						} else {
+							log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 						}
 					}
 				}
 			}
 		}
 
+		urlsMu.RLock()
 		var users []string
 		for user := range urls {
 			users = append(users, user)
 		}
+		urlsMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
@@ -123,7 +146,10 @@ func main() {
 			log.Tracef("Closing Control Channel")
 			close(control)
 
-			for i := 0; i < len(urls); i++ {
+			urlsMu.RLock()
+			urlsLen := len(urls)
+			urlsMu.RUnlock()
+			for i := 0; i < urlsLen; i++ {
 				<-response
 			}
 			time.Sleep(time.Second * 3)

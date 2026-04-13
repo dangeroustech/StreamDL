@@ -18,14 +18,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version: "22"
           check-latest: true
 
       - name: Install Changelog NPM Package
         run: npm install conventional-changelog-conventionalcommits
 
       - name: Changelog
-        uses: TriPSs/conventional-changelog-action@v5
+        uses: TriPSs/conventional-changelog-action@v6
         id: changelog
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
           skip-on-empty: false # otherwise we don't publish fixes
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         id: release
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
         env:
@@ -83,7 +83,7 @@ jobs:
 
       - name: Dockerhub Push Stable
         id: dockerhub_stable_push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}
@@ -96,7 +96,7 @@ jobs:
 
       - name: Snyk Scan
         id: snyk_scan
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@v1
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -104,14 +104,14 @@ jobs:
           image: dangeroustech/streamdl:${{ matrix.component }}_stable
           args: >-
             --severity-threshold=critical
-            --file=Dockerfile.${{ matrix.component }}
             --exclude-base-image-vulns
             --policy-path=.snyk
-            --prune-repeated-subdependencies
-            --package-manager=dockerfile
+            --app-vulns
+            --sarif
 
       - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
+          category: ${{ matrix.component }}-master

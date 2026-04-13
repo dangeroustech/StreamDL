@@ -4,30 +4,16 @@
 : "${PUID:=1000}"
 : "${PGID:=1000}"
 
-echo "Starting with UID: ${PUID}, GID: ${PGID}, UMASK: ${UMASK}"
-
-# Get group name if GID exists
-EXISTING_GROUP=$(getent group "${PGID}" | cut -d: -f1)
-
-# Handle group creation or use existing
-if [ -z "${EXISTING_GROUP}" ]; then
-	# GID doesn't exist, create new group
-	addgroup -g "${PGID}" streamdl
-	GROUP_NAME="streamdl"
-else
-	# Use existing group
-	GROUP_NAME="${EXISTING_GROUP}"
-	echo "Using existing group ${GROUP_NAME} for GID ${PGID}"
+# Create user with specified UID/GID
+if ! getent group "${PGID}" >/dev/null 2>&1; then
+  addgroup -g "${PGID}" streamdl
+fi
+if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+  adduser -D -u "${PUID}" -G streamdl streamdl
 fi
 
-# Create user if it doesn't exist
-if ! getent passwd streamdl >/dev/null; then
-	adduser -D -u "${PUID}" -G "${GROUP_NAME}" streamdl
-fi
-
-# Ensure download directories exist and have correct ownership
+# Ensure download directories exist and are writable by the runtime user
 mkdir -p /app/dl /app/out
-chown -R streamdl:"${GROUP_NAME}" /app/dl /app/out
-
-# Switch to the streamdl user and run the actual entrypoint
-exec su-exec streamdl:"${GROUP_NAME}" /app/streamdl_client_entrypoint.sh "$@"
+chown "${PUID}:${PGID}" /app/dl /app/out 2>/dev/null || \
+  echo "Could not change ownership on /app/dl or /app/out"
+exec su-exec "${PUID}":"${PGID}" /app/streamdl_client_entrypoint.sh "$@"

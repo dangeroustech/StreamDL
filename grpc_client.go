@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -15,21 +16,38 @@ import (
 )
 
 func getStream(site string, user string, quality string) (string, error) {
-	conn, err := grpc.Dial(os.Getenv("STREAMDL_GRPC_ADDR")+":"+os.Getenv("STREAMDL_GRPC_PORT"), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("gRPC Failed to Connect: %v", err)
+	addr := os.Getenv("STREAMDL_GRPC_ADDR")
+	if addr == "" {
+		addr = "server"
 	}
-	defer conn.Close()
+	port := os.Getenv("STREAMDL_GRPC_PORT")
+	if port == "" {
+		port = "50051"
+	}
+	log.Debugf("Dialing gRPC server %s:%s", addr, port)
+	conn, err := grpc.NewClient(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return "", fmt.Errorf("gRPC failed to connect to %s:%s: %w", addr, port, err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Errorf("Error closing gRPC connection: %v", err)
+		}
+	}()
 	c := pb.NewStreamClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	log.Debugf("gRPC connection established to %s:%s", addr, port)
+
+	timeout := time.Second * 30
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality})
+	log.Debugf("Calling GetStream site=%s user=%s quality=%s timeout=%s", site, user, quality, timeout.String())
+	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality}, grpc.WaitForReady(true))
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
 			statusCode := e.Code()
 			statusMessage := e.Message()
-			log.Errorf("Failed to Get Stream for %v: %v", user, statusMessage)
+			log.Errorf("Failed to Get Stream for %v: %s", user, statusMessage)
 
 			switch statusCode {
 			case codes.NotFound:
@@ -44,6 +62,7 @@ func getStream(site string, user string, quality string) (string, error) {
 				return "", errors.New("failed to get stream: " + statusCode.String())
 			}
 		}
+		log.Errorf("GetStream RPC failed (non-gRPC error) for user=%s: %v", user, err)
 		return "", err
 	} else {
 		if msg.GetError() != 0 {
