@@ -65,7 +65,7 @@ jobs:
 
       - name: Get Tag
         id: tag
-        uses: WyriHaximus/github-action-get-previous-tag@v1
+        uses: WyriHaximus/github-action-get-previous-tag@v2
         with:
           fallback: 1.0.0
 
