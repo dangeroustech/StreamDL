@@ -23,7 +23,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
       - name: Set Up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
       - name: Install Deps
