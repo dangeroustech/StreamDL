@@ -14,13 +14,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.12", "3.13"]
-        go-version: [1.24]
+        python-version: ["3.13", "3.14"]
+        go-version: [1.25]
         os: [ubuntu-24.04, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v8
       - name: Set Up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - uses: actions/setup-go@v5
@@ -55,7 +55,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Docker Build and Push Unstable
         id: docker_build_push_unstable
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.${{ matrix.component }}
