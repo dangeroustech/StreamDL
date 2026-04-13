@@ -5,7 +5,7 @@ dev-dependencies = ["pytest", "bandit", "black<25.0,>=24.3"]
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
 requires-python = "<4.0,>=3.10"
 dependencies = [
-  "curl-cffi>=0.10.0",
+  "curl-cffi>=0.15.0",
   "grpcio>=1.80.0,<2.0.0",
   "protobuf<6.0.0,>=5.26.0",
   "streamlink>=7.1.3",
