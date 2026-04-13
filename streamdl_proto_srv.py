@@ -261,8 +261,11 @@ def get_stream(r):
                     # List available formats
                     formats = info_dict.get("formats", [])
                     for f in formats:
+                        fmt_id = f.get("format_id", "?")
+                        width = f.get("width", "?")
+                        height = f.get("height", "?")
                         logger.critical(
-                            f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}"
+                            f"Format code: {fmt_id}, resolution: {width}x{height}"
                         )
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):
