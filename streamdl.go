@@ -19,6 +19,7 @@ import (
 var (
 	urls   = make(map[string]string)
 	urlsMu sync.RWMutex
+	vodWg  sync.WaitGroup
 )
 var c = make(chan os.Signal, 2)
 
@@ -145,7 +146,11 @@ func main() {
 							log.Warnf("Failed to resolve VOD %s: %v", vod.ID, err)
 							continue
 						}
-						go downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control, response)
+						vodWg.Add(1)
+						go func() {
+							defer vodWg.Done()
+							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control, response)
+						}()
 					}
 				} else {
 					// Live stream mode (existing behavior)
@@ -217,6 +222,7 @@ func main() {
 			for i := 0; i < urlsLen; i++ {
 				<-response
 			}
+			vodWg.Wait()
 			time.Sleep(time.Second * 3)
 			os.Exit(0)
 		case t := <-ticker.C:
