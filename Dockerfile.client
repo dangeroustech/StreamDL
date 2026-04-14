@@ -1,4 +1,4 @@
-FROM mwader/static-ffmpeg:8.0 AS ffmpeg
+FROM mwader/static-ffmpeg:8.1 AS ffmpeg
 
 # Go Binary Builder
 FROM golang:1.25.3-alpine AS go-build

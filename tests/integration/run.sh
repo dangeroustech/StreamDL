@@ -189,7 +189,7 @@ if command -v ffprobe &>/dev/null; then
   PROBE_OUTPUT=$(ffprobe -v quiet -print_format json -show_format -show_streams "$FOUND_FILE" 2>&1) || true
 else
   PROBE_OUTPUT=$(docker run --rm -v "$OUTPUT_DIR/complete:/data:ro" \
-    --entrypoint ffprobe mwader/static-ffmpeg:8.0 \
+    --entrypoint ffprobe mwader/static-ffmpeg:8.1 \
     -v quiet -print_format json -show_format -show_streams "/data/$(basename "$FOUND_FILE")" 2>&1) || true
 fi
 
