@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -29,7 +30,18 @@ func main() {
 	batchTime := flag.Int("batch", 5, "Time betwen URL checks (seconds): increase for rate limiting")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
 	logLevel := flag.String("log-level", "info", "Log level (trace, debug, info, warn, error, fatal, panic)")
+	dataDir := flag.String("data", "/app/data", "Directory for persistent data (VOD tracking database)")
+	vodOutLoc := flag.String("vod-out", "", "Output location for VOD downloads (defaults to -out)")
+	vodMoveLoc := flag.String("vod-move", "", "Move location for completed VOD downloads (defaults to -move)")
 	flag.Parse()
+
+	// Default VOD paths to the same as live stream paths if not specified
+	if *vodOutLoc == "" {
+		vodOutLoc = outLoc
+	}
+	if *vodMoveLoc == "" {
+		vodMoveLoc = moveLoc
+	}
 
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
 	var config []Config
@@ -51,6 +63,14 @@ func main() {
 		log.SetLevel(ll)
 	}
 	log.Infof("Starting StreamDL...")
+
+	vodDB, err := InitVodDB(filepath.Join(*dataDir, "streamdl.db"))
+	if err != nil {
+		log.Fatalf("Failed to initialize VOD database: %v", err)
+	}
+	defer vodDB.Close()
+	log.Infof("VOD tracking database initialized at %s", filepath.Join(*dataDir, "streamdl.db"))
+
 	log.Tracef("Config: %v", config)
 
 	if confErr != nil {
@@ -84,43 +104,88 @@ func main() {
 		// TODO: Probably make a nicer 429 handling to allow for counts, retry queueing, etc.
 		for _, site := range config {
 			for _, streamer := range site.Streamers {
-				log.Debugf("Checking user=%s on site=%s quality=%s", streamer.User, site.Site, streamer.Quality)
-				urlsMu.RLock()
-				_, exists := urls[streamer.User]
-				urlsMu.RUnlock()
-				if !exists {
-					log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
-					url, err := getStream(site.Site, streamer.User, streamer.Quality)
+				log.Debugf("Checking user=%s on site=%s quality=%s vod=%v", streamer.User, site.Site, streamer.Quality, streamer.VOD)
+
+				if streamer.VOD {
+					// VOD mode: check for new VODs to download
+					limit := streamer.VODLimit
+					if limit <= 0 {
+						limit = 10
+					}
+					vods, err := getVods(site.Site, streamer.User, limit)
 					time.Sleep(time.Second * time.Duration(*batchTime))
-					if err == nil {
-						urlsMu.Lock()
-						urls[streamer.User] = url
-						urlsMu.Unlock()
-						log.Debugf("Discovered live stream for user=%s", streamer.User)
-						go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
-					} else if err.Error() == "rate limited" {
-						log.Errorf("Rate Limited, Sleeping for 30 seconds")
-						time.Sleep(time.Second * 30)
+					if err != nil {
+						if err.Error() == "rate limited" {
+							log.Errorf("Rate limited checking VODs for %s, skipping", streamer.User)
+						} else {
+							log.Warnf("GetVods failed for user=%s: %v", streamer.User, err)
+						}
+						continue
+					}
+					// Stale threshold: 2× tick interval, minimum 10 minutes
+					staleThreshold := time.Duration(*tickTime) * time.Second * 2
+					if staleThreshold < 10*time.Minute {
+						staleThreshold = 10 * time.Minute
+					}
+					for _, vod := range vods {
+						shouldDL, err := vodDB.ShouldDownloadVOD(vod.ID, staleThreshold)
+						if err != nil {
+							log.Errorf("Error checking VOD %s: %v", vod.ID, err)
+							continue
+						}
+						if !shouldDL {
+							log.Tracef("VOD %s already completed or in progress, skipping", vod.ID)
+							continue
+						}
+						log.Infof("VOD to download for %s: %s (%s)", streamer.User, vod.Title, vod.ID)
+						// Resolve the VOD URL through GetStream (Streamlink → yt-dlp fallback)
+						resolvedURL, err := getStream(site.Site, "videos/"+vod.ID, streamer.Quality)
+						time.Sleep(time.Second * time.Duration(*batchTime))
+						if err != nil {
+							log.Warnf("Failed to resolve VOD %s: %v", vod.ID, err)
+							continue
+						}
+						go downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control, response)
+					}
+				} else {
+					// Live stream mode (existing behavior)
+					urlsMu.RLock()
+					_, exists := urls[streamer.User]
+					urlsMu.RUnlock()
+					if !exists {
+						log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
 						url, err := getStream(site.Site, streamer.User, streamer.Quality)
+						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err == nil {
 							urlsMu.Lock()
 							urls[streamer.User] = url
 							urlsMu.Unlock()
+							log.Debugf("Discovered live stream for user=%s", streamer.User)
 							go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
 						} else if err.Error() == "rate limited" {
-							log.Errorf("Rate Limited, Sleeping for 60 seconds")
-							time.Sleep(time.Second * 60)
+							log.Errorf("Rate Limited, Sleeping for 30 seconds")
+							time.Sleep(time.Second * 30)
 							url, err := getStream(site.Site, streamer.User, streamer.Quality)
 							if err == nil {
 								urlsMu.Lock()
 								urls[streamer.User] = url
 								urlsMu.Unlock()
 								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+							} else if err.Error() == "rate limited" {
+								log.Errorf("Rate Limited, Sleeping for 60 seconds")
+								time.Sleep(time.Second * 60)
+								url, err := getStream(site.Site, streamer.User, streamer.Quality)
+								if err == nil {
+									urlsMu.Lock()
+									urls[streamer.User] = url
+									urlsMu.Unlock()
+									go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+								}
+							} else if err.Error() == "rate limited" {
+								log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+							} else {
+								log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 							}
-						} else if err.Error() == "rate limited" {
-							log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
-						} else {
-							log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 						}
 					}
 				}

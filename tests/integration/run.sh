@@ -230,11 +230,10 @@ fi
 
 echo ""
 if [ "$PASS" = true ]; then
-  echo "=== PASS: Integration test succeeded ==="
+  echo "=== PASS: Live stream integration test succeeded ==="
   echo "  Downloaded ${DURATION}s of $LIVE_CHANNEL's stream, valid mp4 with video."
-  exit 0
 else
-  echo "=== FAIL: Integration test failed ==="
+  echo "=== FAIL: Live stream integration test failed ==="
   echo ""
   echo "--- ffprobe output ---"
   echo "$PROBE_OUTPUT"
@@ -243,3 +242,55 @@ else
   $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -50
   exit 1
 fi
+
+# --- Phase 5: VOD download test ---
+echo ""
+echo "=== VOD Download Test ==="
+
+# Clean output for VOD test
+rm -rf "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/*
+mkdir -p "$SCRIPT_DIR/data"
+
+# Pick a channel we know has VODs (the same live channel likely has them)
+VOD_CHANNEL="$LIVE_CHANNEL"
+
+cat > "$CONFIG_DIR/config.yml" <<EOF
+- site: twitch.tv
+  channels:
+  - name: $VOD_CHANNEL
+    quality: worst
+    vod: true
+    vod_limit: 1
+EOF
+
+echo "--- Starting client for VOD download (channel: $VOD_CHANNEL) ---"
+$DC -f "$COMPOSE_FILE" restart client
+
+VOD_ELAPSED=0
+VOD_TIMEOUT=180
+VOD_FILE=""
+while [ $VOD_ELAPSED -lt $VOD_TIMEOUT ]; do
+  VOD_FILE=$(find "$OUTPUT_DIR/complete" -name "*_vod_*" -size +0c 2>/dev/null | head -1) || true
+  if [ -n "$VOD_FILE" ]; then
+    break
+  fi
+  sleep 5
+  VOD_ELAPSED=$((VOD_ELAPSED + 5))
+done
+
+if [ -z "$VOD_FILE" ]; then
+  echo "FAIL: No VOD file found after ${VOD_TIMEOUT}s"
+  $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -30
+  exit 1
+fi
+
+echo "--- VOD download complete: $VOD_FILE ---"
+VOD_SIZE=$(stat -f%z "$VOD_FILE" 2>/dev/null || stat --printf="%s" "$VOD_FILE" 2>/dev/null || echo "0")
+echo "  File size: $VOD_SIZE bytes"
+
+if [ "$VOD_SIZE" -lt 1000 ]; then
+  echo "FAIL: VOD file too small"
+  exit 1
+fi
+
+echo "=== PASS: All integration tests succeeded ==="

@@ -1,5 +1,10 @@
 [tool.uv]
-dev-dependencies = ["pytest", "bandit", "black<25.0,>=24.3"]
+dev-dependencies = [
+    "pytest",
+    "bandit",
+    "black<25.0,>=24.3",
+    "grpcio-tools>=1.71.2",
+]
 
 [project]
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]

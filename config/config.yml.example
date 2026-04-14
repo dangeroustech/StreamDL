@@ -4,6 +4,8 @@
     quality: best
   - name: day9tv
     quality: worst
+    vod: true       # Download VODs instead of live streams
+    vod_limit: 5    # Check the 5 most recent VODs (default: 10)
 - site: mixer.com
   channels:
   - name: ninja

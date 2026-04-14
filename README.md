@@ -29,6 +29,9 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 | `-batch`       | Time betwen URL checks (seconds): increase for rate limiting | `5`               |
 | `-subfolder`   | Add streams to a subfolder with the channel name             | `false`           |
 | `-log-level`   | Set logging level (debug, info, warn, error, etc)            | `info`            |
+| `-data`        | Directory for persistent data (VOD tracking database)        | `/app/data`       |
+| `-vod-out`     | Output location for VOD downloads (defaults to `-out`)       | Same as `-out`    |
+| `-vod-move`    | Move location for completed VOD downloads (defaults to `-move`) | Same as `-move` |
 
 ## Install
 
@@ -112,6 +115,40 @@ Basic YAML format. See `config/config.yaml.example` for a couple of test sites.
     - name: ninja
       quality: best
 ```
+
+## VOD Downloads (Twitch)
+
+StreamDL can download past broadcasts (VODs) from Twitch. Enable per-channel with the `vod` option:
+
+```yaml
+- site: twitch.tv
+  channels:
+  - name: day9tv
+    quality: best
+    vod: true
+    vod_limit: 5  # Check the 5 most recent VODs (default: 10)
+```
+
+**How it works:**
+- On each tick, StreamDL checks for new VODs using yt-dlp
+- Downloaded VODs are tracked in a SQLite database (`/app/data/streamdl.db`) to avoid re-downloading
+- In-progress downloads are tracked so interrupted downloads are retried after a stale threshold
+- VOD files are named: `{user}_vod_{id}_{title}.mp4`
+- Stream copy is used by default (no re-encoding) for fast downloads
+
+**Docker volume:** Mount `/app/data` to persist the VOD tracking database across container restarts:
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
+**Separate output directories:** Use `-vod-out` and `-vod-move` to send VODs to a different location than live streams. If not set, VODs use the same `-out` and `-move` directories.
+
+**Notes:**
+- `vod: true` and live streaming are mutually exclusive per channel entry
+- To download both live streams and VODs, add the same channel twice with different modes
+- Currently supported for Twitch only
 
 ## Environment Variables
 
