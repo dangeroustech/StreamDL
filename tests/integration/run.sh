@@ -272,7 +272,7 @@ VOD_ELAPSED=0
 VOD_TIMEOUT=180
 VOD_FILE=""
 while [ $VOD_ELAPSED -lt $VOD_TIMEOUT ]; do
-  VOD_FILE=$(find "$OUTPUT_DIR/complete" -name "*_vod_*" -size +0c 2>/dev/null | head -1) || true
+  VOD_FILE=$(find "$OUTPUT_DIR/complete" -name "*_vod_*.mp4" -size +0c 2>/dev/null | head -1) || true
   if [ -n "$VOD_FILE" ]; then
     break
   fi
