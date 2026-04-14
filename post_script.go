@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,10 @@ func runPostScript(scriptPath, filePath, user, site, dlType string) error {
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error {
+		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	}
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("post_script %s failed: %w", scriptPath, err)
