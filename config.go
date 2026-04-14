@@ -1,12 +1,12 @@
 package main
 
-// Config defines the root type
+// Config represents a streaming site and its list of channels to monitor.
 type Config struct {
 	Site      string     `yaml:"site"`
 	Streamers []Streamer `yaml:"channels"`
 }
 
-// Streamer definition
+// Streamer represents a single channel to monitor, with quality and VOD settings.
 type Streamer struct {
 	User     string `yaml:"name"`
 	Quality  string `yaml:"quality"`

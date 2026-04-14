@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// getUmask reads the UMASK environment variable (octal), defaulting to 022.
 func getUmask() int {
 	// Get UMASK from environment, default to 022 if not set
 	umaskStr := os.Getenv("UMASK")
@@ -32,6 +33,7 @@ func getUmask() int {
 	return int(umask)
 }
 
+// createDirWithUmask creates a directory (recursively) with permissions derived from the configured UMASK.
 func createDirWithUmask(path string) error {
 	// Check if directory already exists
 	if info, err := os.Stat(path); err == nil && info.IsDir() {
@@ -58,6 +60,8 @@ func createDirWithUmask(path string) error {
 	return os.Chmod(path, dirPerms)
 }
 
+// downloadStream records a live stream via FFmpeg, retrying on transient failures.
+// It removes the user from the live list on exit and moves the finished file to moveLoc.
 func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
@@ -405,6 +409,7 @@ func sanitizeLog(s string) string {
 	return s
 }
 
+// redactBetween replaces text between start and end markers with "<redacted>".
 func redactBetween(s, start, end string) string {
 	idx := strings.Index(s, start)
 	if idx == -1 {
