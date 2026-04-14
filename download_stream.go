@@ -8,12 +8,32 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
 	log "github.com/sirupsen/logrus"
 )
+
+// siteResolveMu serializes URL resolution per site so concurrent download
+// goroutines don't all hammer the same API simultaneously.
+var (
+	siteResolveMu   = make(map[string]*sync.Mutex)
+	siteResolveMuMu sync.Mutex
+)
+
+// getSiteResolveMu returns a mutex unique to the given site domain.
+func getSiteResolveMu(site string) *sync.Mutex {
+	siteResolveMuMu.Lock()
+	defer siteResolveMuMu.Unlock()
+	mu, ok := siteResolveMu[site]
+	if !ok {
+		mu = &sync.Mutex{}
+		siteResolveMu[site] = mu
+	}
+	return mu
+}
 
 // getUmask reads the UMASK environment variable (octal), defaulting to 022.
 func getUmask() int {
@@ -123,7 +143,9 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 	attempt := 0
 	for {
 		// Resolve a fresh stream URL for each attempt to avoid stale tokens.
-		// Retries with backoff on rate limiting.
+		// Serialized per-site to prevent concurrent goroutines from triggering rate limits.
+		mu := getSiteResolveMu(site)
+		mu.Lock()
 		var url string
 		resolveBackoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
 		resolved := false
@@ -140,13 +162,16 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 			}
 			if err.Error() != "rate limited" {
 				log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+				mu.Unlock()
 				return
 			}
 			if ri == len(resolveBackoffs)-1 {
 				log.Errorf("Rate limited resolving URL for %s after %d attempts, giving up", user, ri+1)
+				mu.Unlock()
 				return
 			}
 		}
+		mu.Unlock()
 		if !resolved {
 			return
 		}
