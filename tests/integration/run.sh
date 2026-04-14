@@ -247,8 +247,9 @@ fi
 echo ""
 echo "=== VOD Download Test ==="
 
-# Clean output for VOD test
+# Clean output and DB state for VOD test
 rm -rf "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/*
+rm -rf "$SCRIPT_DIR/data"
 mkdir -p "$SCRIPT_DIR/data"
 
 # Pick a channel we know has VODs (the same live channel likely has them)
