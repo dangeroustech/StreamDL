@@ -8,6 +8,8 @@ type Config struct {
 
 // Streamer definition
 type Streamer struct {
-	User    string `yaml:"name"`
-	Quality string `yaml:"quality"`
+	User     string `yaml:"name"`
+	Quality  string `yaml:"quality"`
+	VOD      bool   `yaml:"vod"`
+	VODLimit int    `yaml:"vod_limit"`
 }

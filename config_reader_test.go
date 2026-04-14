@@ -36,6 +36,45 @@ func TestReadConfig_MissingFile_Fatal(t *testing.T) {
 	}
 }
 
+func TestParseConfig_VODFields(t *testing.T) {
+	yamlData := []byte(`
+- site: twitch.tv
+  channels:
+  - name: testuser
+    quality: best
+    vod: true
+    vod_limit: 5
+- site: twitch.tv
+  channels:
+  - name: liveuser
+    quality: best
+`)
+	config, err := parseConfig(yamlData)
+	if err != nil {
+		t.Fatalf("Failed to parse config: %v", err)
+	}
+
+	if len(config) != 2 {
+		t.Fatalf("Expected 2 site configs, got %d", len(config))
+	}
+
+	vodStreamer := config[0].Streamers[0]
+	if !vodStreamer.VOD {
+		t.Error("Expected VOD to be true")
+	}
+	if vodStreamer.VODLimit != 5 {
+		t.Errorf("Expected VODLimit 5, got %d", vodStreamer.VODLimit)
+	}
+
+	liveStreamer := config[1].Streamers[0]
+	if liveStreamer.VOD {
+		t.Error("Expected VOD to default to false")
+	}
+	if liveStreamer.VODLimit != 0 {
+		t.Errorf("Expected VODLimit 0 (default), got %d", liveStreamer.VODLimit)
+	}
+}
+
 func TestParseConfig_MalformedYAML(t *testing.T) {
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "bad.yml")

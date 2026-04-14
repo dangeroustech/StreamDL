@@ -1,5 +1,10 @@
 [tool.uv]
-dev-dependencies = ["pytest", "bandit", "black<25.0,>=24.3"]
+dev-dependencies = [
+    "pytest",
+    "bandit",
+    "black<25.0,>=24.3",
+    "grpcio-tools>=1.71.2",
+]
 
 [project]
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
@@ -7,7 +12,7 @@ requires-python = "<4.0,>=3.10"
 dependencies = [
   "curl-cffi>=0.15.0",
   "grpcio>=1.80.0,<2.0.0",
-  "protobuf<6.0.0,>=5.26.0",
+  "protobuf<6.0.0,>=5.29.0",
   "streamlink>=8.3.0",
   "wheel<1.0.0,>=0.45.1",
   "yt-dlp>=2026.3.17",

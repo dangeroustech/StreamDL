@@ -6,6 +6,7 @@ option go_package = "dangerous.tech/streamdl;streamdl";
 
 service Stream {
   rpc GetStream(StreamInfo) returns (StreamResponse);
+  rpc GetVods(VodRequest) returns (VodResponse);
 }
 
 message StreamInfo {
@@ -17,5 +18,23 @@ message StreamInfo {
 
 message StreamResponse {
   string url = 1;
+  int32 error = 2;
+}
+
+message VodRequest {
+  string site = 1;
+  string user = 2;
+  int32 limit = 3;
+}
+
+message VodInfo {
+  string id = 1;
+  string title = 2;
+  string published_at = 3;
+  int64 duration_seconds = 4;
+}
+
+message VodResponse {
+  repeated VodInfo vods = 1;
   int32 error = 2;
 }

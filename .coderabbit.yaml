@@ -1,0 +1,8 @@
+reviews:
+  auto_review:
+    enabled: true
+    base_branches:
+      - staging
+  path_filters:
+    - "!stream_pb2.py"
+    - "!stream_pb2_grpc.py"

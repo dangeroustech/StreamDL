@@ -230,11 +230,10 @@ fi
 
 echo ""
 if [ "$PASS" = true ]; then
-  echo "=== PASS: Integration test succeeded ==="
+  echo "=== PASS: Live stream integration test succeeded ==="
   echo "  Downloaded ${DURATION}s of $LIVE_CHANNEL's stream, valid mp4 with video."
-  exit 0
 else
-  echo "=== FAIL: Integration test failed ==="
+  echo "=== FAIL: Live stream integration test failed ==="
   echo ""
   echo "--- ffprobe output ---"
   echo "$PROBE_OUTPUT"
@@ -243,3 +242,141 @@ else
   $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -50
   exit 1
 fi
+
+# --- Phase 5: VOD download test ---
+echo ""
+echo "=== VOD Download Test ==="
+
+# Clean output and DB state for VOD test
+rm -rf "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/*
+rm -rf "$SCRIPT_DIR/data"
+mkdir -p "$SCRIPT_DIR/data"
+
+# Channels known to have VODs, in priority order.
+# Override with VOD_CHANNEL env var to skip probing.
+CANDIDATE_VOD_CHANNELS=(
+  teampgp
+  kaicenat
+  xqc
+  hasanabi
+  shroud
+  summit1g
+)
+
+if [ -n "${VOD_CHANNEL:-}" ]; then
+  echo "--- Using VOD_CHANNEL override: $VOD_CHANNEL ---"
+else
+  echo "--- Probing for a channel with VODs ---"
+  VOD_CHANNEL=""
+  ANY_PROBE_OK=false
+  for vod_candidate in "${CANDIDATE_VOD_CHANNELS[@]}"; do
+    echo -n "  Trying $vod_candidate... "
+    RESULT=$($DC -f "$COMPOSE_FILE" exec -T server \
+      /app/.venv/bin/python -c "
+import socket
+socket.setdefaulttimeout(15)
+import yt_dlp
+try:
+    with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'extract_flat': 'in_playlist', 'playlistend': 1}) as ydl:
+        info = ydl.extract_info('https://twitch.tv/$vod_candidate/videos', download=False)
+        if info and 'entries' in info and list(info['entries']):
+            print('HAS_VODS')
+        else:
+            print('NO_VODS')
+except Exception as e:
+    print(f'ERROR:{e}')
+" 2>/dev/null) || RESULT="ERROR"
+
+    if [ "$RESULT" = "HAS_VODS" ]; then
+      echo "has VODs!"
+      VOD_CHANNEL="$vod_candidate"
+      break
+    else
+      echo "$RESULT"
+      # Track whether any probe completed without error
+      if [ "$RESULT" = "NO_VODS" ]; then
+        ANY_PROBE_OK=true
+      fi
+    fi
+  done
+fi
+
+if [ -z "$VOD_CHANNEL" ]; then
+  if [ "$ANY_PROBE_OK" = false ] && [ -z "${VOD_CHANNEL:-}" ]; then
+    echo ""
+    echo "FAIL: All VOD probes failed with errors. Check server connectivity."
+    echo "--- Server logs ---"
+    $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
+    exit 1
+  fi
+  echo ""
+  echo "SKIP: No channels with VODs found among candidates."
+  echo "      The test infrastructure works; re-run or set VOD_CHANNEL manually."
+  echo "=== PASS: Live stream integration test succeeded (VOD phase skipped) ==="
+  exit 0
+fi
+
+cat > "$CONFIG_DIR/config.yml" <<EOF
+- site: twitch.tv
+  channels:
+  - name: $VOD_CHANNEL
+    quality: worst
+    vod: true
+    vod_limit: 1
+EOF
+
+echo "--- Starting client for VOD download (channel: $VOD_CHANNEL) ---"
+$DC -f "$COMPOSE_FILE" restart client
+
+VOD_ELAPSED=0
+VOD_TIMEOUT="${VOD_TIMEOUT:-180}"
+VOD_FILE=""
+VOD_PROGRESS=""
+while [ "$VOD_ELAPSED" -lt "$VOD_TIMEOUT" ]; do
+  # Check for a completed VOD first
+  VOD_FILE=$(find "$OUTPUT_DIR/complete" -name "*_vod_*.mp4" -size +0c 2>/dev/null | head -1) || true
+  if [ -n "$VOD_FILE" ]; then
+    break
+  fi
+  # An in-progress download >1KB in /incomplete proves the full pipeline works:
+  # VOD discovered → URL resolved → FFmpeg started → bytes flowing.
+  # We accept this rather than waiting for completion because full VODs can take
+  # much longer than a reasonable CI timeout, and the live stream phase already
+  # validates the download-to-completion + file-move path.
+  VOD_PROGRESS=$(find "$OUTPUT_DIR/incomplete" -name "*_vod_*.mp4" -size +1000c 2>/dev/null | head -1) || true
+  if [ -n "$VOD_PROGRESS" ]; then
+    echo "--- VOD download in progress: $VOD_PROGRESS ---"
+    break
+  fi
+  sleep 5
+  VOD_ELAPSED=$((VOD_ELAPSED + 5))
+done
+
+if [ -z "$VOD_FILE" ] && [ -z "$VOD_PROGRESS" ]; then
+  echo "FAIL: No VOD download activity found after ${VOD_TIMEOUT}s"
+  echo ""
+  echo "--- Client logs ---"
+  $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -30
+  echo ""
+  echo "--- Server logs ---"
+  $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
+  exit 1
+fi
+
+if [ -n "$VOD_FILE" ]; then
+  echo "--- VOD download complete: $VOD_FILE ---"
+  VOD_CHECK="$VOD_FILE"
+else
+  echo "--- VOD download started (in progress): $VOD_PROGRESS ---"
+  VOD_CHECK="$VOD_PROGRESS"
+fi
+
+VOD_SIZE=$(stat -f%z "$VOD_CHECK" 2>/dev/null || stat --printf="%s" "$VOD_CHECK" 2>/dev/null || echo "0")
+echo "  File size: $VOD_SIZE bytes"
+
+if [ "$VOD_SIZE" -lt 1000 ]; then
+  echo "FAIL: VOD file too small"
+  exit 1
+fi
+
+echo "=== PASS: All integration tests succeeded ==="
