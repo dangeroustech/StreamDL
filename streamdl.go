@@ -171,45 +171,16 @@ func main() {
 						}()
 					}
 				} else {
-					// Live stream mode: check if user is online and start downloading
+					// Live stream mode: launch download goroutine which resolves the URL itself
 					activeUsersMu.RLock()
 					_, exists := activeUsers[streamer.User]
 					activeUsersMu.RUnlock()
 					if !exists {
-						log.Tracef("No active download for %s; checking if online", streamer.User)
-						backoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
-
-						for attempt := range backoffs {
-							if backoffs[attempt] > 0 {
-								log.Errorf("Rate Limited, Sleeping for %v", backoffs[attempt])
-								time.Sleep(backoffs[attempt])
-							}
-
-							// Probe whether the user is live; the URL is discarded since
-							// downloadStream resolves a fresh URL right before FFmpeg starts.
-							_, err := getStream(site.Site, streamer.User, streamer.Quality)
-							if attempt == 0 {
-								time.Sleep(time.Second * time.Duration(*batchTime))
-							}
-
-							if err == nil {
-								activeUsersMu.Lock()
-								activeUsers[streamer.User] = true
-								activeUsersMu.Unlock()
-								log.Debugf("Discovered live stream for user=%s", streamer.User)
-								go downloadStream(streamer.User, site.Site, streamer.Quality, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
-								break
-							}
-
-							if err.Error() != "rate limited" {
-								log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
-								break
-							}
-
-							if attempt == len(backoffs)-1 {
-								log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
-							}
-						}
+						activeUsersMu.Lock()
+						activeUsers[streamer.User] = true
+						activeUsersMu.Unlock()
+						time.Sleep(time.Second * time.Duration(*batchTime))
+						go downloadStream(streamer.User, site.Site, streamer.Quality, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
 					}
 				}
 			}

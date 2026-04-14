@@ -122,10 +122,32 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 
 	attempt := 0
 	for {
-		// Resolve a fresh stream URL for each attempt to avoid stale tokens
-		url, err := getStream(site, user, quality)
-		if err != nil {
-			log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+		// Resolve a fresh stream URL for each attempt to avoid stale tokens.
+		// Retries with backoff on rate limiting.
+		var url string
+		resolveBackoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
+		resolved := false
+		for ri, backoff := range resolveBackoffs {
+			if backoff > 0 {
+				log.Warnf("Rate limited resolving URL for %s, sleeping %v", user, backoff)
+				time.Sleep(backoff)
+			}
+			var err error
+			url, err = getStream(site, user, quality)
+			if err == nil {
+				resolved = true
+				break
+			}
+			if err.Error() != "rate limited" {
+				log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+				return
+			}
+			if ri == len(resolveBackoffs)-1 {
+				log.Errorf("Rate limited resolving URL for %s after %d attempts, giving up", user, ri+1)
+				return
+			}
+		}
+		if !resolved {
 			return
 		}
 
