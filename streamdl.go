@@ -156,6 +156,9 @@ func main() {
 						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err != nil {
 							log.Warnf("Failed to resolve VOD %s: %v", vod.ID, err)
+							if markErr := vodDB.MarkVODFailed(vod.ID); markErr != nil {
+								log.Errorf("Failed to mark VOD %s as failed: %v", vod.ID, markErr)
+							}
 							continue
 						}
 						vodWg.Add(1)

@@ -452,10 +452,16 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 	// Always ensure base directories have correct permissions first
 	if err := createDirWithUmask(outLoc); err != nil {
 		log.Errorf("Failed to create output directory %s: %v", outLoc, err)
+		if vodDB != nil {
+			vodDB.MarkVODFailed(vod.ID)
+		}
 		return
 	}
 	if err := createDirWithUmask(moveLoc); err != nil {
 		log.Errorf("Failed to create move directory %s: %v", moveLoc, err)
+		if vodDB != nil {
+			vodDB.MarkVODFailed(vod.ID)
+		}
 		return
 	}
 
@@ -463,11 +469,17 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 		outLoc = filepath.Join(outLoc, user)
 		if err := createDirWithUmask(outLoc); err != nil {
 			log.Errorf("Failed to create output subfolder %s: %v", outLoc, err)
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
 			return
 		}
 		moveLoc = filepath.Join(moveLoc, user)
 		if err := createDirWithUmask(moveLoc); err != nil {
 			log.Errorf("Failed to create move subfolder %s: %v", moveLoc, err)
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
 			return
 		}
 	}
