@@ -320,13 +320,17 @@ VOD_ELAPSED=0
 VOD_TIMEOUT="${VOD_TIMEOUT:-180}"
 VOD_FILE=""
 VOD_PROGRESS=""
-while [ $VOD_ELAPSED -lt $VOD_TIMEOUT ]; do
+while [ "$VOD_ELAPSED" -lt "$VOD_TIMEOUT" ]; do
   # Check for a completed VOD first
   VOD_FILE=$(find "$OUTPUT_DIR/complete" -name "*_vod_*.mp4" -size +0c 2>/dev/null | head -1) || true
   if [ -n "$VOD_FILE" ]; then
     break
   fi
-  # Accept an in-progress download (>1KB) as proof the pipeline works
+  # An in-progress download >1KB in /incomplete proves the full pipeline works:
+  # VOD discovered → URL resolved → FFmpeg started → bytes flowing.
+  # We accept this rather than waiting for completion because full VODs can take
+  # much longer than a reasonable CI timeout, and the live stream phase already
+  # validates the download-to-completion + file-move path.
   VOD_PROGRESS=$(find "$OUTPUT_DIR/incomplete" -name "*_vod_*.mp4" -size +1000c 2>/dev/null | head -1) || true
   if [ -n "$VOD_PROGRESS" ]; then
     echo "--- VOD download in progress: $VOD_PROGRESS ---"
