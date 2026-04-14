@@ -205,13 +205,13 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 				cmd.Args = newArgs
 			}
 		}
-		// If a separate audio URL is available, add it as a second input after the video input.
+		// If a separate audio URL is available, add it as a second input with
+		// explicit stream mapping so FFmpeg muxes video from input 0 and audio from input 1.
 		if streamURLs.Audio != "" {
-			// Find the end of the first -i <url> pair and insert -i <audio_url> after it
 			iIdx := indexOf(cmd.Args, "-i")
 			if iIdx != -1 && iIdx+1 < len(cmd.Args) {
 				insertAt := iIdx + 2 // after "-i" and the video URL
-				audioArgs := []string{"-i", streamURLs.Audio}
+				audioArgs := []string{"-i", streamURLs.Audio, "-map", "0:v", "-map", "1:a", "-c", "copy"}
 				newArgs := make([]string, 0, len(cmd.Args)+len(audioArgs))
 				newArgs = append(newArgs, cmd.Args[:insertAt]...)
 				newArgs = append(newArgs, audioArgs...)
