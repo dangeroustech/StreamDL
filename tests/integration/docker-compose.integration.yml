@@ -32,6 +32,8 @@ services:
       - ./output/complete:/app/out
       - ./config:/app/config
       - ./data:/app/data
+      - ./hooks:/app/hooks
+      - ./output/hook-markers:/app/hook-markers
     depends_on:
       server:
         condition: service_healthy

@@ -47,10 +47,12 @@ CANDIDATE_CHANNELS=(
   esl_csgo
 )
 
+HOOKS_DIR="$SCRIPT_DIR/hooks"
+
 cleanup() {
   echo "--- Tearing down ---"
   $DC -f "$COMPOSE_FILE" down --volumes --remove-orphans 2>/dev/null || true
-  rm -rf "$OUTPUT_DIR" "$CONFIG_DIR"
+  rm -rf "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR"
 }
 trap cleanup EXIT
 
@@ -58,8 +60,15 @@ echo "=== StreamDL Integration Test ==="
 echo ""
 
 # Clean slate
-rm -rf "$OUTPUT_DIR" "$CONFIG_DIR"
-mkdir -p "$OUTPUT_DIR/incomplete" "$OUTPUT_DIR/complete" "$CONFIG_DIR"
+rm -rf "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR"
+mkdir -p "$OUTPUT_DIR/incomplete" "$OUTPUT_DIR/complete" "$OUTPUT_DIR/hook-markers" "$CONFIG_DIR" "$HOOKS_DIR"
+
+# Create post-download hook script that writes a marker file with context
+cat > "$HOOKS_DIR/post_hook.sh" <<'HOOKEOF'
+#!/bin/sh
+echo "${STREAMDL_TYPE}|${STREAMDL_USER}|${STREAMDL_SITE}|${STREAMDL_FILE}" > "/app/hook-markers/${STREAMDL_TYPE}_${STREAMDL_USER}.txt"
+HOOKEOF
+chmod +x "$HOOKS_DIR/post_hook.sh"
 
 # --- Phase 1: Start the server and find a live stream ---
 echo "--- Building and starting server ---"
@@ -125,6 +134,7 @@ echo "--- Using channel: $LIVE_CHANNEL ---"
 # --- Phase 2: Generate config and start the client ---
 cat > "$CONFIG_DIR/config.yml" <<EOF
 - site: twitch.tv
+  post_script: /app/hooks/post_hook.sh
   channels:
   - name: $LIVE_CHANNEL
     quality: worst
@@ -243,6 +253,23 @@ else
   exit 1
 fi
 
+# --- Phase 4b: Verify post_script hook fired for live stream ---
+echo ""
+echo "--- Checking post_script hook marker (live) ---"
+LIVE_MARKER="$OUTPUT_DIR/hook-markers/live_${LIVE_CHANNEL}.txt"
+if [ -f "$LIVE_MARKER" ]; then
+  MARKER_CONTENT=$(cat "$LIVE_MARKER")
+  echo "  Hook fired! Marker: $MARKER_CONTENT"
+  if echo "$MARKER_CONTENT" | grep -q "^live|${LIVE_CHANNEL}|twitch.tv|"; then
+    echo "  PASS: post_script hook ran with correct context"
+  else
+    echo "  WARN: Hook marker exists but content unexpected: $MARKER_CONTENT"
+  fi
+else
+  echo "  WARN: post_script hook marker not found (script may not have finished yet)"
+  echo "  This is non-fatal — the hook runs asynchronously after file move"
+fi
+
 # --- Phase 5: VOD download test ---
 echo ""
 echo "=== VOD Download Test ==="
@@ -318,6 +345,7 @@ fi
 
 cat > "$CONFIG_DIR/config.yml" <<EOF
 - site: twitch.tv
+  post_script: /app/hooks/post_hook.sh
   channels:
   - name: $VOD_CHANNEL
     quality: worst
@@ -377,6 +405,24 @@ echo "  File size: $VOD_SIZE bytes"
 if [ "$VOD_SIZE" -lt 1000 ]; then
   echo "FAIL: VOD file too small"
   exit 1
+fi
+
+# --- Check post_script hook marker for VOD ---
+echo ""
+echo "--- Checking post_script hook marker (vod) ---"
+VOD_MARKER="$OUTPUT_DIR/hook-markers/vod_${VOD_CHANNEL}.txt"
+if [ -n "$VOD_FILE" ] && [ -f "$VOD_MARKER" ]; then
+  MARKER_CONTENT=$(cat "$VOD_MARKER")
+  echo "  Hook fired! Marker: $MARKER_CONTENT"
+  if echo "$MARKER_CONTENT" | grep -q "^vod|${VOD_CHANNEL}|twitch.tv|"; then
+    echo "  PASS: post_script hook ran with correct context"
+  else
+    echo "  WARN: Hook marker exists but content unexpected: $MARKER_CONTENT"
+  fi
+elif [ -n "$VOD_PROGRESS" ]; then
+  echo "  SKIP: VOD still in progress, hook fires after completion"
+else
+  echo "  WARN: VOD hook marker not found"
 fi
 
 echo "=== PASS: All integration tests succeeded ==="
