@@ -255,7 +255,9 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 			} else {
 				log.Debugf("Moved file to %v", newPath)
 				if postScript != "" {
+					postScriptWg.Add(1)
 					go func() {
+						defer postScriptWg.Done()
 						if err := runPostScript(postScript, newPath, user, site, "live"); err != nil {
 							log.Errorf("post_script failed for %s: %v", user, err)
 						}
@@ -589,7 +591,9 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 				}
 			}
 			if postScript != "" {
+				postScriptWg.Add(1)
 				go func() {
+					defer postScriptWg.Done()
 					if err := runPostScript(postScript, newPath, user, site, "vod"); err != nil {
 						log.Errorf("post_script failed for VOD %s: %v", vod.ID, err)
 					}

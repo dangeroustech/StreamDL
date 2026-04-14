@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	urls   = make(map[string]string)
-	urlsMu sync.RWMutex
-	vodWg  sync.WaitGroup
+	urls           = make(map[string]string)
+	urlsMu         sync.RWMutex
+	vodWg          sync.WaitGroup
+	postScriptWg   sync.WaitGroup
 )
 var c = make(chan os.Signal, 2)
 
@@ -238,6 +239,7 @@ func main() {
 				<-response
 			}
 			vodWg.Wait()
+			postScriptWg.Wait()
 			time.Sleep(time.Second * 3)
 			return
 		case t := <-ticker.C:

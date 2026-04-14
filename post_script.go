@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -27,7 +29,11 @@ func runPostScript(scriptPath, filePath, user, site, dlType string) error {
 
 	log.Infof("Running post_script %s for %s (%s)", scriptPath, user, filePath)
 
-	cmd := exec.Command(scriptPath, filePath)
+	timeout := time.Duration(parseIntEnvOrDefault("STREAMDL_POST_SCRIPT_TIMEOUT", 1800)) * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, scriptPath, filePath)
 	cmd.Env = append(os.Environ(),
 		"STREAMDL_FILE="+filePath,
 		"STREAMDL_USER="+user,

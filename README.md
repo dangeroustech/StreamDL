@@ -166,7 +166,7 @@ The script receives the file path as its first argument, and additional context 
 
 | Variable | Description | Example |
 |---|---|---|
-| `STREAMDL_FILE` | Absolute path to the downloaded file | `/data/complete/user_2026-04-14.mp4` |
+| `STREAMDL_FILE` | Path to the downloaded file | `/data/complete/user_2026-04-14.mp4` |
 | `STREAMDL_USER` | Channel/user name | `kaicenat` |
 | `STREAMDL_SITE` | Site domain | `twitch.tv` |
 | `STREAMDL_TYPE` | Download type | `live` or `vod` |
