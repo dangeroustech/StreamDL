@@ -1,3 +1,46 @@
+## [3.7.0](https://github.com/dangeroustech/StreamDL/compare/v3.6.0...v3.7.0) (2026-04-14)
+
+
+### 🎉 New Features
+
+* add vod and vod_limit fields to channel config (Task 1 partial) ([7e8efa6](https://github.com/dangeroustech/StreamDL/commit/7e8efa609afd51819d69c1252872aa75cc0cf833))
+* implement Twitch VOD download support ([af000db](https://github.com/dangeroustech/StreamDL/commit/af000db3c266c65654edf411b03878f5b1bcf16f))
+
+
+### 📚 Documentation
+
+* clarify -data flag is configurable in README VOD section ([77d898c](https://github.com/dangeroustech/StreamDL/commit/77d898c90a968f33ba2dc10bd212293d841deaff))
+
+
+### ✍ Chore
+
+* add CodeRabbit config to enable reviews on staging PRs ([87adf3f](https://github.com/dangeroustech/StreamDL/commit/87adf3f12044d42519c0b39ceb1ad953bfd01e30))
+* **deps:** bump lodash from 4.17.21 to 4.18.1 ([#556](https://github.com/dangeroustech/StreamDL/issues/556)) ([e07ee5d](https://github.com/dangeroustech/StreamDL/commit/e07ee5d1e5346cb5721b72a49f0063005762e699))
+* **deps:** bump pygments from 2.18.0 to 2.20.0 ([#536](https://github.com/dangeroustech/StreamDL/issues/536)) ([c6b17bb](https://github.com/dangeroustech/StreamDL/commit/c6b17bb5826e3df7a5caca60178e8b87321c0923))
+* **deps:** bump pytest from 8.3.3 to 9.0.3 ([#543](https://github.com/dangeroustech/StreamDL/issues/543)) ([d2fe06c](https://github.com/dangeroustech/StreamDL/commit/d2fe06c74562cad67d372bbead1632757eed2efe))
+* **deps:** bump requests from 2.32.3 to 2.33.0 ([#538](https://github.com/dangeroustech/StreamDL/issues/538)) ([866969c](https://github.com/dangeroustech/StreamDL/commit/866969cacc9ce0ff5021ac1b0c5883c2d344ddc8))
+* **deps:** bump urllib3 from 2.2.3 to 2.6.3 ([#547](https://github.com/dangeroustech/StreamDL/issues/547)) ([a24bb52](https://github.com/dangeroustech/StreamDL/commit/a24bb5201dc89526e787623f03387a2841cbfb70))
+* pin protobuf>=5.29.0 and ignore generated files in CodeRabbit ([2c02376](https://github.com/dangeroustech/StreamDL/commit/2c02376c5b12f21c38575b57dc6726192d22f18a))
+
+
+### 🐛 Bug Fixes
+
+* add server logs to VOD failure path and distinguish probe errors ([d3b9df3](https://github.com/dangeroustech/StreamDL/commit/d3b9df3aff42fbe9ac9b665eb146022dc34134d0))
+* address CodeRabbit review findings ([a90bb2f](https://github.com/dangeroustech/StreamDL/commit/a90bb2f667b2099b2bc31f23aaa572d1f52f4f93))
+* check RowsAffected in MarkVODCompleted and MarkVODFailed ([8768785](https://github.com/dangeroustech/StreamDL/commit/87687852b0d6e9ea5fa81987ca3b0e501597d947))
+* clean stale VOD database before integration test Phase 5 ([ea82c0f](https://github.com/dangeroustech/StreamDL/commit/ea82c0f990d549ce01bf18bebb28eb12d483076b))
+* lazy init VOD database on first use ([37559aa](https://github.com/dangeroustech/StreamDL/commit/37559aa9e15d20a3faa193092e5a4d4a819db510))
+* make VOD integration test more robust ([8438861](https://github.com/dangeroustech/StreamDL/commit/84388610f0d941c37b60d10adf45a9d316140060))
+* probe candidate VOD channels in integration test ([0db038d](https://github.com/dangeroustech/StreamDL/commit/0db038d86e1154a0e0720293e173b1e55e99ded5))
+* quote shell variables and document in-progress VOD test trade-off ([c1126ad](https://github.com/dangeroustech/StreamDL/commit/c1126add103b569e12e7f67bb78b14f6c8276c01))
+* release VOD claim on setup and resolution failures ([17a7856](https://github.com/dangeroustech/StreamDL/commit/17a78566d11e9de8089e8c3f52ab887c2e0a280c))
+* replace ShouldDownloadVOD + MarkVODStarted with atomic ClaimVOD ([fe7fea2](https://github.com/dangeroustech/StreamDL/commit/fe7fea295b2a988a81edbbfe60cdd41cd82c8816))
+* tighten VOD integration test file match to .mp4 ([4d7b0ac](https://github.com/dangeroustech/StreamDL/commit/4d7b0acb1b3fbf4ab0258ce8ff212debc0d07d4b))
+* track VOD download goroutines for graceful shutdown ([a93a4c9](https://github.com/dangeroustech/StreamDL/commit/a93a4c94f577ef078bdfe6fa93533f540ea9115d))
+* use .get() for format fields in yt-dlp fallback to avoid KeyError ([52b1fa1](https://github.com/dangeroustech/StreamDL/commit/52b1fa1ca5da91a0505ac72992e5c05ab0911611))
+* use dedicated VOD channel in integration test ([91bac11](https://github.com/dangeroustech/StreamDL/commit/91bac118ff67decc6f65cfc97c820782f0f675e1))
+* use teampgp as dedicated VOD integration test channel ([219892f](https://github.com/dangeroustech/StreamDL/commit/219892fce78e951dd682e8ba150ca09d74a04fed))
+
 ## [3.6.0](https://github.com/dangeroustech/StreamDL/compare/v3.5.1...v3.6.0) (2026-04-13)
 
 
