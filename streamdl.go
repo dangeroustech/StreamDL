@@ -161,7 +161,7 @@ func main() {
 						vodWg.Add(1)
 						go func() {
 							defer vodWg.Done()
-							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control, response)
+							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control)
 						}()
 					}
 				} else {
@@ -191,15 +191,17 @@ func main() {
 							} else if err.Error() == "rate limited" {
 								log.Errorf("Rate Limited, Sleeping for 60 seconds")
 								time.Sleep(time.Second * 60)
-								url, err := getStream(site.Site, streamer.User, streamer.Quality)
+								url, err = getStream(site.Site, streamer.User, streamer.Quality)
 								if err == nil {
 									urlsMu.Lock()
 									urls[streamer.User] = url
 									urlsMu.Unlock()
 									go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+								} else if err.Error() == "rate limited" {
+									log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+								} else {
+									log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 								}
-							} else if err.Error() == "rate limited" {
-								log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
 							} else {
 								log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
 							}
@@ -236,7 +238,7 @@ func main() {
 			}
 			vodWg.Wait()
 			time.Sleep(time.Second * 3)
-			os.Exit(0)
+			return
 		case t := <-ticker.C:
 			// block until we tick
 			log.Tracef("Ticking: %v", t)

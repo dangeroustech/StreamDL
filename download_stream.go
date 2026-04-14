@@ -439,7 +439,7 @@ func sanitizeFilename(name string) string {
 
 // downloadVOD downloads a single VOD and updates its status in the database.
 // The url parameter is a resolved stream URL (from GetStream via Streamlink/yt-dlp).
-func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc string, subfolder bool, vodDB *VodDB, control <-chan bool, response chan<- bool) {
+func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc string, subfolder bool, vodDB *VodDB, control <-chan bool) {
 	sanitizedTitle := sanitizeFilename(vod.Title)
 	fileBase := user + "_vod_" + vod.ID
 	if sanitizedTitle != "" {
@@ -452,12 +452,10 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 	// Always ensure base directories have correct permissions first
 	if err := createDirWithUmask(outLoc); err != nil {
 		log.Errorf("Failed to create output directory %s: %v", outLoc, err)
-		response <- true
 		return
 	}
 	if err := createDirWithUmask(moveLoc); err != nil {
 		log.Errorf("Failed to create move directory %s: %v", moveLoc, err)
-		response <- true
 		return
 	}
 
@@ -465,13 +463,11 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 		outLoc = filepath.Join(outLoc, user)
 		if err := createDirWithUmask(outLoc); err != nil {
 			log.Errorf("Failed to create output subfolder %s: %v", outLoc, err)
-			response <- true
 			return
 		}
 		moveLoc = filepath.Join(moveLoc, user)
 		if err := createDirWithUmask(moveLoc); err != nil {
 			log.Errorf("Failed to create move subfolder %s: %v", moveLoc, err)
-			response <- true
 			return
 		}
 	}
@@ -523,7 +519,6 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 		if vodDB != nil {
 			vodDB.MarkVODFailed(vod.ID)
 		}
-		response <- true
 		return
 	}
 
@@ -537,10 +532,11 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 		if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
 			log.Errorf("Failed to send SIGINT to VOD %s: %v", vod.ID, err)
 		}
-		cmd.Process.Wait()
-		cmd.Wait()
+		// Use only cmd.Wait() which handles process reaping internally
+		if err := cmd.Wait(); err != nil {
+			log.Tracef("VOD %s process exited after SIGINT: %v", vod.ID, err)
+		}
 		// Interrupted — leave as 'downloading'; stale threshold will handle retry
-		response <- true
 		return
 	case err := <-naturalFinish:
 		if err != nil {
@@ -552,7 +548,6 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 			if vodDB != nil {
 				vodDB.MarkVODFailed(vod.ID)
 			}
-			response <- true
 			return
 		}
 
@@ -571,7 +566,6 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 			}
 		}
 
-		response <- true
 		return
 	}
 }
