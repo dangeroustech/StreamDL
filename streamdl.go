@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	urls   = make(map[string]string)
-	urlsMu sync.RWMutex
-	vodWg  sync.WaitGroup
+	urls           = make(map[string]string)
+	urlsMu         sync.RWMutex
+	vodWg          sync.WaitGroup
+	postScriptWg   sync.WaitGroup
 )
 var c = make(chan os.Signal, 2)
 
@@ -166,7 +167,7 @@ func main() {
 						vodWg.Add(1)
 						go func() {
 							defer vodWg.Done()
-							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control)
+							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, site.Site, site.PostScript, vodDB, control)
 						}()
 					}
 				} else {
@@ -194,7 +195,7 @@ func main() {
 								urls[streamer.User] = url
 								urlsMu.Unlock()
 								log.Debugf("Discovered live stream for user=%s", streamer.User)
-								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, site.Site, site.PostScript, control, response)
 								break
 							}
 
@@ -238,6 +239,7 @@ func main() {
 				<-response
 			}
 			vodWg.Wait()
+			postScriptWg.Wait()
 			time.Sleep(time.Second * 3)
 			return
 		case t := <-ticker.C:
