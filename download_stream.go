@@ -192,17 +192,22 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 			Build()
 
 		// Inject resilient network flags before the FFmpeg input ("-i") argument.
-		reconnectArgs := buildReconnectArgs()
-		if len(reconnectArgs) > 0 {
-			idx := indexOf(cmd.Args, "-i")
-			if idx == -1 {
-				cmd.Args = append(reconnectArgs, cmd.Args...)
-			} else {
-				newArgs := make([]string, 0, len(cmd.Args)+len(reconnectArgs))
-				newArgs = append(newArgs, cmd.Args[:idx]...)
-				newArgs = append(newArgs, reconnectArgs...)
-				newArgs = append(newArgs, cmd.Args[idx:]...)
-				cmd.Args = newArgs
+		// Skip reconnect flags for HLS split-format streams — the HLS demuxer handles
+		// segment transitions natively, and reconnect_streamed/reconnect_at_eof cause
+		// 403 loops when segment session tokens expire between reconnect attempts.
+		if streamURLs.Audio == "" {
+			reconnectArgs := buildReconnectArgs()
+			if len(reconnectArgs) > 0 {
+				idx := indexOf(cmd.Args, "-i")
+				if idx == -1 {
+					cmd.Args = append(reconnectArgs, cmd.Args...)
+				} else {
+					newArgs := make([]string, 0, len(cmd.Args)+len(reconnectArgs))
+					newArgs = append(newArgs, cmd.Args[:idx]...)
+					newArgs = append(newArgs, reconnectArgs...)
+					newArgs = append(newArgs, cmd.Args[idx:]...)
+					cmd.Args = newArgs
+				}
 			}
 		}
 		// If a separate audio URL is available, add it as a second input with
