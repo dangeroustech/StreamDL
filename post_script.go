@@ -17,8 +17,12 @@ func runPostScript(scriptPath, filePath, user, site, dlType string) error {
 		return nil
 	}
 
-	if _, err := os.Stat(scriptPath); err != nil {
+	info, err := os.Stat(scriptPath)
+	if err != nil {
 		return fmt.Errorf("post_script not found: %w", err)
+	}
+	if info.Mode().Perm()&0111 == 0 {
+		return fmt.Errorf("post_script %s is not executable", scriptPath)
 	}
 
 	log.Infof("Running post_script %s for %s (%s)", scriptPath, user, filePath)

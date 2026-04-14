@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -82,5 +83,21 @@ func TestRunPostScript_FilePathAsFirstArg(t *testing.T) {
 
 	if string(got) != "/data/complete/test.mp4\n" {
 		t.Errorf("arg content = %q, want %q", string(got), "/data/complete/test.mp4\n")
+	}
+}
+
+func TestRunPostScript_NotExecutable(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "noexec.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho hi\n"), 0644); err != nil {
+		t.Fatalf("write script: %v", err)
+	}
+
+	err := runPostScript(script, "/data/file.mp4", "user", "twitch.tv", "live")
+	if err == nil {
+		t.Fatal("expected error for non-executable script")
+	}
+	if !strings.Contains(err.Error(), "not executable") {
+		t.Errorf("expected 'not executable' in error, got: %v", err)
 	}
 }
