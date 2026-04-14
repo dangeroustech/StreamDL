@@ -93,6 +93,51 @@ yt_dlp_no_warnings = True
 class StreamServicer(pb_grpc.Stream):
     """gRPC servicer that resolves live stream URLs."""
 
+    def GetVods(self, request, context):
+        """Enumerate recent VODs for a user on a given site."""
+        logger.debug(
+            "GetVods request received site=%s user=%s limit=%d",
+            request.site,
+            request.user,
+            request.limit,
+        )
+        limit = request.limit if request.limit > 0 else 10
+        res = get_vods(request.site, request.user, limit)
+
+        if "error" in res:
+            error_code = res["error"]
+            logger.debug(
+                "GetVods failure user=%s error=%s",
+                request.user,
+                error_code,
+            )
+            match error_code:
+                case 404:
+                    context.set_code(grpc.StatusCode.NOT_FOUND)
+                    context.set_details("User not found or no VODs available")
+                case 429:
+                    context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
+                    context.set_details("Rate limited")
+                case _:
+                    context.set_code(grpc.StatusCode.INTERNAL)
+                    context.set_details("Internal server error")
+            return pb.VodResponse(error=error_code)
+
+        vod_infos = []
+        for v in res.get("vods", []):
+            vod_infos.append(
+                pb.VodInfo(
+                    id=v["id"],
+                    title=v["title"],
+                    published_at=v["published_at"],
+                    duration_seconds=v["duration_seconds"],
+                )
+            )
+
+        logger.debug("GetVods success user=%s count=%d", request.user, len(vod_infos))
+        context.set_code(grpc.StatusCode.OK)
+        return pb.VodResponse(vods=vod_infos)
+
     def GetStream(self, request, context):
         """Resolve a stream URL for the given site/user/quality and return it via gRPC."""
         logger.debug(
@@ -183,6 +228,60 @@ def serve():
         server.stop(0)
 
 
+def get_vods(site, user, limit=10):
+    """Enumerate a user's recent VODs using yt-dlp."""
+    vod_url = f"https://{site}/{user}/videos"
+    logger.debug("Fetching VODs from %s (limit=%d)", vod_url, limit)
+
+    try:
+        with yt_dlp.YoutubeDL(
+            {
+                "quiet": yt_dlp_quiet,
+                "no_warnings": yt_dlp_no_warnings,
+                "verbose": False,
+                "logger": None,
+                "extract_flat": "in_playlist",
+                "playlistend": limit,
+            }
+        ) as ydl:
+            info = ydl.extract_info(vod_url, download=False)
+
+            if not info or "entries" not in info:
+                logger.warning("No VODs found for user %s", user)
+                return {"error": 404}
+
+            vods = []
+            for entry in info["entries"]:
+                if entry is None:
+                    continue
+                vod = {
+                    "id": str(entry.get("id", "")),
+                    "title": entry.get("title", ""),
+                    "published_at": entry.get("upload_date", ""),
+                    "duration_seconds": int(entry.get("duration", 0) or 0),
+                }
+                if vod["id"]:
+                    vods.append(vod)
+
+            logger.debug("Found %d VODs for user %s", len(vods), user)
+            return {"vods": vods}
+
+    except yt_dlp.utils.DownloadError as e:
+        error_str = str(e)
+        if "HTTP Error 429" in error_str:
+            logger.error("Rate limited fetching VODs for %s", user)
+            return {"error": 429}
+        elif "HTTP Error 404" in error_str or "does not exist" in error_str:
+            logger.warning("User %s not found on %s", user, site)
+            return {"error": 404}
+        else:
+            logger.error("DownloadError fetching VODs for %s: %s", user, e)
+            return {"error": 500}
+    except Exception as e:
+        logger.error("Error fetching VODs for %s: %s", user, e)
+        return {"error": 500}
+
+
 def get_stream(r):
     """Resolve a stream URL using Streamlink, falling back to yt-dlp on failure."""
     logger.debug(
@@ -261,8 +360,11 @@ def get_stream(r):
                     # List available formats
                     formats = info_dict.get("formats", [])
                     for f in formats:
+                        fmt_id = f.get("format_id", "?")
+                        width = f.get("width", "?")
+                        height = f.get("height", "?")
                         logger.critical(
-                            f"Format code: {f['format_id']}, resolution: {f['width']}x{f['height']}"
+                            f"Format code: {fmt_id}, resolution: {width}x{height}"
                         )
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):

@@ -31,6 +31,7 @@ services:
       - ./output/incomplete:/app/dl
       - ./output/complete:/app/out
       - ./config:/app/config
+      - ./data:/app/data
     depends_on:
       server:
         condition: service_healthy

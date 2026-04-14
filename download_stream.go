@@ -417,3 +417,167 @@ func redactBetween(s, start, end string) string {
 	j += idx
 	return s[:idx+len(start)] + "<redacted>" + s[j:]
 }
+
+// sanitizeFilename removes or replaces characters that are unsafe in filenames.
+func sanitizeFilename(name string) string {
+	replacer := strings.NewReplacer(
+		"/", "_", "\\", "_", ":", "_", "*", "_",
+		"?", "_", "\"", "_", "<", "_", ">", "_",
+		"|", "_", "\n", "_", "\r", "_",
+	)
+	sanitized := replacer.Replace(name)
+	// Collapse multiple underscores
+	for strings.Contains(sanitized, "__") {
+		sanitized = strings.ReplaceAll(sanitized, "__", "_")
+	}
+	// Trim to reasonable length
+	if len(sanitized) > 100 {
+		sanitized = sanitized[:100]
+	}
+	return strings.Trim(sanitized, "_. ")
+}
+
+// downloadVOD downloads a single VOD and updates its status in the database.
+// The url parameter is a resolved stream URL (from GetStream via Streamlink/yt-dlp).
+func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc string, subfolder bool, vodDB *VodDB, control <-chan bool) {
+	sanitizedTitle := sanitizeFilename(vod.Title)
+	fileBase := user + "_vod_" + vod.ID
+	if sanitizedTitle != "" {
+		fileBase += "_" + sanitizedTitle
+	}
+
+	naturalFinish := make(chan error, 1)
+	sigint := make(chan bool)
+
+	// Always ensure base directories have correct permissions first
+	if err := createDirWithUmask(outLoc); err != nil {
+		log.Errorf("Failed to create output directory %s: %v", outLoc, err)
+		if vodDB != nil {
+			vodDB.MarkVODFailed(vod.ID)
+		}
+		return
+	}
+	if err := createDirWithUmask(moveLoc); err != nil {
+		log.Errorf("Failed to create move directory %s: %v", moveLoc, err)
+		if vodDB != nil {
+			vodDB.MarkVODFailed(vod.ID)
+		}
+		return
+	}
+
+	if subfolder {
+		outLoc = filepath.Join(outLoc, user)
+		if err := createDirWithUmask(outLoc); err != nil {
+			log.Errorf("Failed to create output subfolder %s: %v", outLoc, err)
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
+			return
+		}
+		moveLoc = filepath.Join(moveLoc, user)
+		if err := createDirWithUmask(moveLoc); err != nil {
+			log.Errorf("Failed to create move subfolder %s: %v", moveLoc, err)
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
+			return
+		}
+	}
+
+	outPath := filepath.Join(outLoc, fileBase+".mp4")
+	newPath := filepath.Join(moveLoc, fileBase+".mp4")
+	log.Infof("Starting VOD download for %s: %s", user, vod.Title)
+
+	// Single control listener
+	go func() {
+		for {
+			_, more := <-control
+			if !more {
+				sigint <- true
+				return
+			}
+		}
+	}()
+
+	buf := &bytes.Buffer{}
+	cmd := fluentffmpeg.
+		NewCommand("").
+		InputPath(url).
+		OutputFormat("mp4").
+		OutputPath(outPath).
+		OutputLogs(buf).
+		Build()
+
+	// Prefer stream copy for VODs to avoid re-encoding
+	outIdx := indexOf(cmd.Args, outPath)
+	copyArgs := []string{"-c:v", "copy", "-c:a", "copy", "-movflags", "+faststart"}
+	if outIdx == -1 {
+		cmd.Args = append(cmd.Args, copyArgs...)
+	} else {
+		newArgs := make([]string, 0, len(cmd.Args)+len(copyArgs))
+		newArgs = append(newArgs, cmd.Args[:outIdx]...)
+		newArgs = append(newArgs, copyArgs...)
+		newArgs = append(newArgs, cmd.Args[outIdx:]...)
+		cmd.Args = newArgs
+	}
+
+	if indexOf(cmd.Args, "-y") == -1 {
+		cmd.Args = insertAfterBinary(cmd.Args, []string{"-y"})
+	}
+	log.Debugf("FFmpeg VOD args (sanitized): %s", sanitizeArgs(cmd.Args))
+
+	if err := cmd.Start(); err != nil {
+		log.Errorf("Failed to start FFmpeg for VOD %s: %v", vod.ID, err)
+		if vodDB != nil {
+			vodDB.MarkVODFailed(vod.ID)
+		}
+		return
+	}
+
+	go func() {
+		naturalFinish <- cmd.Wait()
+	}()
+
+	select {
+	case <-sigint:
+		log.Tracef("Sending SIGINT to VOD %s process", vod.ID)
+		if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
+			log.Errorf("Failed to send SIGINT to VOD %s: %v", vod.ID, err)
+		}
+		// Use only cmd.Wait() which handles process reaping internally
+		if err := cmd.Wait(); err != nil {
+			log.Tracef("VOD %s process exited after SIGINT: %v", vod.ID, err)
+		}
+		// Interrupted — leave as 'downloading'; stale threshold will handle retry
+		return
+	case err := <-naturalFinish:
+		if err != nil {
+			log.Warnf("FFmpeg failed for VOD %s: %v", vod.ID, err)
+			ffLog := tailString(buf.String(), 50)
+			if ffLog != "" {
+				log.Warnf("FFmpeg log tail for VOD %s:\n%s", vod.ID, sanitizeLog(ffLog))
+			}
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
+			return
+		}
+
+		log.Debugf("VOD %s download complete", vod.ID)
+		if err := moveFile(outPath, newPath); err != nil {
+			log.Errorf("Failed to move VOD file: %v", err)
+			if vodDB != nil {
+				vodDB.MarkVODFailed(vod.ID)
+			}
+		} else {
+			log.Debugf("Moved VOD to %v", newPath)
+			if vodDB != nil {
+				if err := vodDB.MarkVODCompleted(vod.ID); err != nil {
+					log.Errorf("Failed to mark VOD %s as completed: %v", vod.ID, err)
+				}
+			}
+		}
+
+		return
+	}
+}
