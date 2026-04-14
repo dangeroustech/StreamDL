@@ -153,7 +153,7 @@ class StreamServicer(pb_grpc.Stream):
                 "GetStream success user=%s",
                 request.user,
             )
-            return pb.StreamResponse(url=res["url"])
+            return pb.StreamResponse(url=res["url"], audio_url=res.get("audio_url", ""))
         else:
             error_code = res["error"]
             logger.debug(
@@ -282,25 +282,30 @@ def get_vods(site, user, limit=10):
         return {"error": 500}
 
 
-def _extract_url(info_dict):
-    """Extract the best stream URL from a yt-dlp info dict.
+def _extract_urls(info_dict):
+    """Extract video and audio stream URLs from a yt-dlp info dict.
 
-    When yt-dlp merges formats (e.g. bestvideo+bestaudio), there is no top-level
-    'url' key — the URLs live inside 'requested_formats'. We return the video
-    stream URL which FFmpeg can connect to directly. Manifest URLs are avoided
-    because some CDNs bind their tokens to the originating session.
+    Returns (video_url, audio_url). audio_url may be empty when the video URL
+    already contains both tracks (e.g. older extractors or Streamlink results).
+    When yt-dlp merges formats, we return separate video and audio URLs so
+    FFmpeg can combine them as two inputs.
     """
     url = info_dict.get("url")
     if url:
-        return url
+        return url, ""
     requested = info_dict.get("requested_formats")
     if requested:
-        # Prefer the video stream URL
+        video_url = ""
+        audio_url = ""
         for rf in requested:
-            if rf.get("vcodec") and rf.get("vcodec") != "none":
-                return rf.get("url", "")
-        return requested[0].get("url", "")
-    return ""
+            vcodec = rf.get("vcodec", "none")
+            acodec = rf.get("acodec", "none")
+            if vcodec and vcodec != "none" and not video_url:
+                video_url = rf.get("url", "")
+            elif (not vcodec or vcodec == "none") and not audio_url:
+                audio_url = rf.get("url", "")
+        return video_url or (requested[0].get("url", "")), audio_url
+    return "", ""
 
 
 def get_stream(r):
@@ -362,7 +367,8 @@ def get_stream(r):
                 ytdlp_url = r.site + "/" + r.user
                 logger.debug("yt_dlp.extract_info(url=%s)", ytdlp_url)
                 info_dict = ydl.extract_info(ytdlp_url, download=False)
-                return {"url": _extract_url(info_dict)}
+                video_url, audio_url = _extract_urls(info_dict)
+                return {"url": video_url, "audio_url": audio_url}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
             return {"error": 403}
@@ -391,12 +397,12 @@ def get_stream(r):
                     fallback_url = r.site + "/" + r.user
                     logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
                     info_dict = ydl_temp.extract_info(fallback_url, download=False)
-                    url = _extract_url(info_dict)
-                    if url:
+                    video_url, audio_url = _extract_urls(info_dict)
+                    if video_url:
                         logger.info(
                             "Fallback format selection succeeded for %s", r.user
                         )
-                        return {"url": url}
+                        return {"url": video_url, "audio_url": audio_url}
                     logger.error("Fallback format selection returned no URL for %s", r.user)
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):

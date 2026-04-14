@@ -17,10 +17,10 @@ func TestGetStreamTwitch404(t *testing.T) {
 	os.Setenv("STREAMDL_GRPC_PORT", "50051")
 	defer os.Unsetenv("STREAMDL_GRPC_PORT")
 
-	url, _ := getStream("twitch.tv", "ANonExistentUser", "best")
+	result, _ := getStream("twitch.tv", "ANonExistentUser", "best")
 
-	if url != "" {
-		t.Errorf("Test should have not received an URL, got %s", url)
+	if result.Video != "" {
+		t.Errorf("Test should have not received an URL, got %s", result.Video)
 	}
 }
 
@@ -31,10 +31,10 @@ func TestGetStreamYouTube404(t *testing.T) {
 	os.Setenv("STREAMDL_GRPC_PORT", "50051")
 	defer os.Unsetenv("STREAMDL_GRPC_PORT")
 
-	url, _ := getStream("youtube.com", "ANonExistentUser1234", "best")
+	result, _ := getStream("youtube.com", "ANonExistentUser1234", "best")
 
-	if url != "" {
-		t.Errorf("Test should have not received an URL, got %s", url)
+	if result.Video != "" {
+		t.Errorf("Test should have not received an URL, got %s", result.Video)
 	}
 }
 
@@ -48,9 +48,9 @@ func TestGetStreamKick404(t *testing.T) {
 	os.Setenv("STREAMDL_GRPC_PORT", "50051")
 	defer os.Unsetenv("STREAMDL_GRPC_PORT")
 
-	url, _ := getStream("kick.com", "ANonExistentUser", "best")
+	result, _ := getStream("kick.com", "ANonExistentUser", "best")
 
-	if url != "" {
-		t.Errorf("Test should have not received an URL, got %s", url)
+	if result.Video != "" {
+		t.Errorf("Test should have not received an URL, got %s", result.Video)
 	}
 }

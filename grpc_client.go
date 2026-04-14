@@ -84,8 +84,14 @@ func getVods(site string, user string, limit int) ([]VodResult, error) {
 	return results, nil
 }
 
+// StreamURLs holds the resolved video and optional audio stream URLs.
+type StreamURLs struct {
+	Video string
+	Audio string
+}
+
 // getStream calls the gRPC server to resolve a stream URL for the given site, user, and quality.
-func getStream(site string, user string, quality string) (string, error) {
+func getStream(site string, user string, quality string) (StreamURLs, error) {
 	addr := os.Getenv("STREAMDL_GRPC_ADDR")
 	if addr == "" {
 		addr = "server"
@@ -97,7 +103,7 @@ func getStream(site string, user string, quality string) (string, error) {
 	log.Debugf("Dialing gRPC server %s:%s", addr, port)
 	conn, err := grpc.NewClient(addr+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return "", fmt.Errorf("gRPC failed to connect to %s:%s: %w", addr, port, err)
+		return StreamURLs{}, fmt.Errorf("gRPC failed to connect to %s:%s: %w", addr, port, err)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -121,25 +127,25 @@ func getStream(site string, user string, quality string) (string, error) {
 
 			switch statusCode {
 			case codes.NotFound:
-				return "", errors.New("stream not found or offline")
+				return StreamURLs{}, errors.New("stream not found or offline")
 			case codes.DeadlineExceeded:
-				return "", errors.New("request timed out")
+				return StreamURLs{}, errors.New("request timed out")
 			case codes.Unavailable:
-				return "", errors.New("service unavailable")
+				return StreamURLs{}, errors.New("service unavailable")
 			case codes.ResourceExhausted:
-				return "", errors.New("rate limited")
+				return StreamURLs{}, errors.New("rate limited")
 			default:
-				return "", errors.New("failed to get stream: " + statusCode.String())
+				return StreamURLs{}, errors.New("failed to get stream: " + statusCode.String())
 			}
 		}
 		log.Errorf("GetStream RPC failed (non-gRPC error) for user=%s: %v", user, err)
-		return "", err
+		return StreamURLs{}, err
 	} else {
 		if msg.GetError() != 0 {
 			log.Debugf("Server returned error code: %d", msg.GetError())
-			return "", errors.New("server error")
+			return StreamURLs{}, errors.New("server error")
 		}
 		log.Tracef("Stream for %v Fetched: %v", user, msg.Url)
 	}
-	return msg.Url, nil
+	return StreamURLs{Video: msg.Url, Audio: msg.GetAudioUrl()}, nil
 }

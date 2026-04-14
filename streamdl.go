@@ -155,7 +155,7 @@ func main() {
 						}
 						log.Infof("VOD to download for %s: %s (%s)", streamer.User, vod.Title, vod.ID)
 						// Resolve the VOD URL through GetStream (Streamlink → yt-dlp fallback)
-						resolvedURL, err := getStream(site.Site, "videos/"+vod.ID, streamer.Quality)
+						resolved, err := getStream(site.Site, "videos/"+vod.ID, streamer.Quality)
 						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err != nil {
 							log.Warnf("Failed to resolve VOD %s: %v", vod.ID, err)
@@ -167,7 +167,7 @@ func main() {
 						vodWg.Add(1)
 						go func() {
 							defer vodWg.Done()
-							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, site.Site, site.PostScript, vodDB, control)
+							downloadVOD(streamer.User, vod, resolved.Video, *vodOutLoc, *vodMoveLoc, *subfolder, site.Site, site.PostScript, vodDB, control)
 						}()
 					}
 				} else {

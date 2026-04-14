@@ -146,7 +146,7 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 		// Serialized per-site to prevent concurrent goroutines from triggering rate limits.
 		mu := getSiteResolveMu(site)
 		mu.Lock()
-		var url string
+		var streamURLs StreamURLs
 		resolveBackoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
 		resolved := false
 		for ri, backoff := range resolveBackoffs {
@@ -155,7 +155,7 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 				time.Sleep(backoff)
 			}
 			var err error
-			url, err = getStream(site, user, quality)
+			streamURLs, err = getStream(site, user, quality)
 			if err == nil {
 				resolved = true
 				break
@@ -175,6 +175,7 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 		if !resolved {
 			return
 		}
+		url := streamURLs.Video
 
 		buf := &bytes.Buffer{}
 		cmd := fluentffmpeg.
@@ -196,6 +197,20 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 				newArgs = append(newArgs, cmd.Args[:idx]...)
 				newArgs = append(newArgs, reconnectArgs...)
 				newArgs = append(newArgs, cmd.Args[idx:]...)
+				cmd.Args = newArgs
+			}
+		}
+		// If a separate audio URL is available, add it as a second input after the video input.
+		if streamURLs.Audio != "" {
+			// Find the end of the first -i <url> pair and insert -i <audio_url> after it
+			iIdx := indexOf(cmd.Args, "-i")
+			if iIdx != -1 && iIdx+1 < len(cmd.Args) {
+				insertAt := iIdx + 2 // after "-i" and the video URL
+				audioArgs := []string{"-i", streamURLs.Audio}
+				newArgs := make([]string, 0, len(cmd.Args)+len(audioArgs))
+				newArgs = append(newArgs, cmd.Args[:insertAt]...)
+				newArgs = append(newArgs, audioArgs...)
+				newArgs = append(newArgs, cmd.Args[insertAt:]...)
 				cmd.Args = newArgs
 			}
 		}
