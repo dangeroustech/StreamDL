@@ -268,6 +268,7 @@ if [ -n "${VOD_CHANNEL:-}" ]; then
 else
   echo "--- Probing for a channel with VODs ---"
   VOD_CHANNEL=""
+  ANY_PROBE_OK=false
   for vod_candidate in "${CANDIDATE_VOD_CHANNELS[@]}"; do
     echo -n "  Trying $vod_candidate... "
     RESULT=$($DC -f "$COMPOSE_FILE" exec -T server \
@@ -292,11 +293,22 @@ except Exception as e:
       break
     else
       echo "$RESULT"
+      # Track whether any probe completed without error
+      if [ "$RESULT" = "NO_VODS" ]; then
+        ANY_PROBE_OK=true
+      fi
     fi
   done
 fi
 
 if [ -z "$VOD_CHANNEL" ]; then
+  if [ "$ANY_PROBE_OK" = false ] && [ -z "${VOD_CHANNEL:-}" ]; then
+    echo ""
+    echo "FAIL: All VOD probes failed with errors. Check server connectivity."
+    echo "--- Server logs ---"
+    $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
+    exit 1
+  fi
   echo ""
   echo "SKIP: No channels with VODs found among candidates."
   echo "      The test infrastructure works; re-run or set VOD_CHANNEL manually."
@@ -342,7 +354,12 @@ done
 
 if [ -z "$VOD_FILE" ] && [ -z "$VOD_PROGRESS" ]; then
   echo "FAIL: No VOD download activity found after ${VOD_TIMEOUT}s"
+  echo ""
+  echo "--- Client logs ---"
   $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -30
+  echo ""
+  echo "--- Server logs ---"
+  $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
   exit 1
 fi
 
