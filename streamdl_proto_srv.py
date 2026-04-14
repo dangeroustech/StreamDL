@@ -286,22 +286,16 @@ def _extract_url(info_dict):
     """Extract the best stream URL from a yt-dlp info dict.
 
     When yt-dlp merges formats (e.g. bestvideo+bestaudio), there is no top-level
-    'url' key — the URLs live inside 'requested_formats'. For HLS streams we
-    prefer the manifest_url (master playlist) so FFmpeg can mux both video and
-    audio tracks. Falls back to the individual stream URL if no manifest exists.
+    'url' key — the URLs live inside 'requested_formats'. We return the video
+    stream URL which FFmpeg can connect to directly. Manifest URLs are avoided
+    because some CDNs bind their tokens to the originating session.
     """
     url = info_dict.get("url")
     if url:
         return url
     requested = info_dict.get("requested_formats")
     if requested:
-        # For HLS streams, prefer the master manifest URL which contains
-        # both video and audio tracks — FFmpeg handles this natively.
-        for rf in requested:
-            manifest = rf.get("manifest_url")
-            if manifest:
-                return manifest
-        # Fall back to the video stream URL
+        # Prefer the video stream URL
         for rf in requested:
             if rf.get("vcodec") and rf.get("vcodec") != "none":
                 return rf.get("url", "")
