@@ -451,7 +451,7 @@ func sanitizeFilename(name string) string {
 
 // downloadVOD downloads a single VOD and updates its status in the database.
 // The url parameter is a resolved stream URL (from GetStream via Streamlink/yt-dlp).
-func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc string, subfolder bool, vodDB *VodDB, control <-chan bool) {
+func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc string, subfolder bool, site string, postScript string, vodDB *VodDB, control <-chan bool) {
 	sanitizedTitle := sanitizeFilename(vod.Title)
 	fileBase := user + "_vod_" + vod.ID
 	if sanitizedTitle != "" {
@@ -587,6 +587,13 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 				if err := vodDB.MarkVODCompleted(vod.ID); err != nil {
 					log.Errorf("Failed to mark VOD %s as completed: %v", vod.ID, err)
 				}
+			}
+			if postScript != "" {
+				go func() {
+					if err := runPostScript(postScript, newPath, user, site, "vod"); err != nil {
+						log.Errorf("post_script failed for VOD %s: %v", vod.ID, err)
+					}
+				}()
 			}
 		}
 

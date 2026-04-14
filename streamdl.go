@@ -166,7 +166,7 @@ func main() {
 						vodWg.Add(1)
 						go func() {
 							defer vodWg.Done()
-							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, vodDB, control)
+							downloadVOD(streamer.User, vod, resolvedURL, *vodOutLoc, *vodMoveLoc, *subfolder, site.Site, site.PostScript, vodDB, control)
 						}()
 					}
 				} else {
