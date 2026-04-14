@@ -194,7 +194,7 @@ func main() {
 								urls[streamer.User] = url
 								urlsMu.Unlock()
 								log.Debugf("Discovered live stream for user=%s", streamer.User)
-								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
+								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, site.Site, site.PostScript, control, response)
 								break
 							}
 
