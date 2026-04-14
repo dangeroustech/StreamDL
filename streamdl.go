@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	urls           = make(map[string]string)
-	urlsMu         sync.RWMutex
+	activeUsers    = make(map[string]bool)
+	activeUsersMu  sync.RWMutex
 	vodWg          sync.WaitGroup
 	postScriptWg   sync.WaitGroup
 )
@@ -171,12 +171,12 @@ func main() {
 						}()
 					}
 				} else {
-					// Live stream mode (existing behavior)
-					urlsMu.RLock()
-					_, exists := urls[streamer.User]
-					urlsMu.RUnlock()
+					// Live stream mode: check if user is online and start downloading
+					activeUsersMu.RLock()
+					_, exists := activeUsers[streamer.User]
+					activeUsersMu.RUnlock()
 					if !exists {
-						log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
+						log.Tracef("No active download for %s; checking if online", streamer.User)
 						backoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
 
 						for attempt := range backoffs {
@@ -185,17 +185,19 @@ func main() {
 								time.Sleep(backoffs[attempt])
 							}
 
-							url, err := getStream(site.Site, streamer.User, streamer.Quality)
+							// Probe whether the user is live; the URL is discarded since
+							// downloadStream resolves a fresh URL right before FFmpeg starts.
+							_, err := getStream(site.Site, streamer.User, streamer.Quality)
 							if attempt == 0 {
 								time.Sleep(time.Second * time.Duration(*batchTime))
 							}
 
 							if err == nil {
-								urlsMu.Lock()
-								urls[streamer.User] = url
-								urlsMu.Unlock()
+								activeUsersMu.Lock()
+								activeUsers[streamer.User] = true
+								activeUsersMu.Unlock()
 								log.Debugf("Discovered live stream for user=%s", streamer.User)
-								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, site.Site, site.PostScript, control, response)
+								go downloadStream(streamer.User, site.Site, streamer.Quality, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
 								break
 							}
 
@@ -213,12 +215,12 @@ func main() {
 			}
 		}
 
-		urlsMu.RLock()
+		activeUsersMu.RLock()
 		var users []string
-		for user := range urls {
+		for user := range activeUsers {
 			users = append(users, user)
 		}
-		urlsMu.RUnlock()
+		activeUsersMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
 		log.Tracef("Sleeping...")
@@ -232,9 +234,9 @@ func main() {
 			log.Tracef("Closing Control Channel")
 			close(control)
 
-			urlsMu.RLock()
-			urlsLen := len(urls)
-			urlsMu.RUnlock()
+			activeUsersMu.RLock()
+			urlsLen := len(activeUsers)
+			activeUsersMu.RUnlock()
 			for i := 0; i < urlsLen; i++ {
 				<-response
 			}

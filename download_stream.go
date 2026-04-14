@@ -61,18 +61,19 @@ func createDirWithUmask(path string) error {
 }
 
 // downloadStream records a live stream via FFmpeg, retrying on transient failures.
-// It removes the user from the live list on exit and moves the finished file to moveLoc.
-func downloadStream(user string, url string, outLoc string, moveLoc string, subfolder bool, site string, postScript string, control <-chan bool, response chan<- bool) {
+// It resolves a fresh stream URL before each FFmpeg attempt to avoid stale tokens.
+// It removes the user from the active list on exit and moves the finished file to moveLoc.
+func downloadStream(user string, site string, quality string, outLoc string, moveLoc string, subfolder bool, postScript string, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
 
-	// Always ensure the user is removed from the live list when this goroutine exits
+	// Always ensure the user is removed from the active list when this goroutine exits
 	defer func() {
-		urlsMu.Lock()
-		delete(urls, user)
-		urlsMu.Unlock()
-		log.Debugf("Removed %s from live list", user)
+		activeUsersMu.Lock()
+		delete(activeUsers, user)
+		activeUsersMu.Unlock()
+		log.Debugf("Removed %s from active list", user)
 	}()
 
 	// Always ensure base directories have correct permissions first
@@ -121,6 +122,13 @@ func downloadStream(user string, url string, outLoc string, moveLoc string, subf
 
 	attempt := 0
 	for {
+		// Resolve a fresh stream URL for each attempt to avoid stale tokens
+		url, err := getStream(site, user, quality)
+		if err != nil {
+			log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+			return
+		}
+
 		buf := &bytes.Buffer{}
 		cmd := fluentffmpeg.
 			NewCommand("").
