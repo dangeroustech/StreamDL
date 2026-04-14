@@ -185,9 +185,10 @@ func main() {
 								time.Sleep(backoffs[attempt])
 							}
 
-							// Probe whether the user is live; the URL is discarded since
-							// downloadStream resolves a fresh URL right before FFmpeg starts.
-							_, err := getStream(site.Site, streamer.User, streamer.Quality)
+							// Probe whether the user is live and capture the URL for the
+							// initial FFmpeg attempt. Retries inside downloadStream will
+							// resolve a fresh URL in case the token expires.
+							probeResult, err := getStream(site.Site, streamer.User, streamer.Quality)
 							if attempt == 0 {
 								time.Sleep(time.Second * time.Duration(*batchTime))
 							}
@@ -197,7 +198,7 @@ func main() {
 								activeUsers[streamer.User] = true
 								activeUsersMu.Unlock()
 								log.Debugf("Discovered live stream for user=%s", streamer.User)
-								go downloadStream(streamer.User, site.Site, streamer.Quality, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
+								go downloadStream(streamer.User, site.Site, streamer.Quality, probeResult, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
 								break
 							}
 

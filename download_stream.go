@@ -81,9 +81,10 @@ func createDirWithUmask(path string) error {
 }
 
 // downloadStream records a live stream via FFmpeg, retrying on transient failures.
-// It resolves a fresh stream URL before each FFmpeg attempt to avoid stale tokens.
+// It uses the provided initialURLs for the first FFmpeg attempt and resolves a fresh
+// URL on retries to avoid stale tokens.
 // It removes the user from the active list on exit and moves the finished file to moveLoc.
-func downloadStream(user string, site string, quality string, outLoc string, moveLoc string, subfolder bool, postScript string, control <-chan bool, response chan<- bool) {
+func downloadStream(user string, site string, quality string, initialURLs StreamURLs, outLoc string, moveLoc string, subfolder bool, postScript string, control <-chan bool, response chan<- bool) {
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
@@ -142,38 +143,42 @@ func downloadStream(user string, site string, quality string, outLoc string, mov
 
 	attempt := 0
 	for {
-		// Resolve a fresh stream URL for each attempt to avoid stale tokens.
-		// Serialized per-site to prevent concurrent goroutines from triggering rate limits.
-		mu := getSiteResolveMu(site)
-		mu.Lock()
+		// Use the initial URLs from the liveness probe on the first attempt.
+		// On retries, resolve a fresh URL in case the token expired.
 		var streamURLs StreamURLs
-		resolveBackoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
-		resolved := false
-		for ri, backoff := range resolveBackoffs {
-			if backoff > 0 {
-				log.Warnf("Rate limited resolving URL for %s, sleeping %v", user, backoff)
-				time.Sleep(backoff)
+		if attempt == 0 {
+			streamURLs = initialURLs
+		} else {
+			mu := getSiteResolveMu(site)
+			mu.Lock()
+			resolveBackoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
+			resolved := false
+			for ri, backoff := range resolveBackoffs {
+				if backoff > 0 {
+					log.Warnf("Rate limited resolving URL for %s, sleeping %v", user, backoff)
+					time.Sleep(backoff)
+				}
+				var err error
+				streamURLs, err = getStream(site, user, quality)
+				if err == nil {
+					resolved = true
+					break
+				}
+				if err.Error() != "rate limited" {
+					log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+					mu.Unlock()
+					return
+				}
+				if ri == len(resolveBackoffs)-1 {
+					log.Errorf("Rate limited resolving URL for %s after %d attempts, giving up", user, ri+1)
+					mu.Unlock()
+					return
+				}
 			}
-			var err error
-			streamURLs, err = getStream(site, user, quality)
-			if err == nil {
-				resolved = true
-				break
-			}
-			if err.Error() != "rate limited" {
-				log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
-				mu.Unlock()
+			mu.Unlock()
+			if !resolved {
 				return
 			}
-			if ri == len(resolveBackoffs)-1 {
-				log.Errorf("Rate limited resolving URL for %s after %d attempts, giving up", user, ri+1)
-				mu.Unlock()
-				return
-			}
-		}
-		mu.Unlock()
-		if !resolved {
-			return
 		}
 		url := streamURLs.Video
 
