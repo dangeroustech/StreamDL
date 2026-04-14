@@ -282,6 +282,26 @@ def get_vods(site, user, limit=10):
         return {"error": 500}
 
 
+def _extract_url(info_dict):
+    """Extract the best stream URL from a yt-dlp info dict.
+
+    When yt-dlp merges formats (e.g. bestvideo+bestaudio), there is no top-level
+    'url' key — the URLs live inside 'requested_formats'. We prefer the video
+    stream URL since FFmpeg can handle HLS manifests that contain both tracks.
+    """
+    url = info_dict.get("url")
+    if url:
+        return url
+    requested = info_dict.get("requested_formats")
+    if requested:
+        # Prefer the video stream; fall back to the first entry
+        for rf in requested:
+            if rf.get("vcodec") and rf.get("vcodec") != "none":
+                return rf.get("url", "")
+        return requested[0].get("url", "")
+    return ""
+
+
 def get_stream(r):
     """Resolve a stream URL using Streamlink, falling back to yt-dlp on failure."""
     logger.debug(
@@ -341,7 +361,7 @@ def get_stream(r):
                 ytdlp_url = r.site + "/" + r.user
                 logger.debug("yt_dlp.extract_info(url=%s)", ytdlp_url)
                 info_dict = ydl.extract_info(ytdlp_url, download=False)
-                return {"url": info_dict.get("url", "")}
+                return {"url": _extract_url(info_dict)}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
             return {"error": 403}
@@ -370,7 +390,7 @@ def get_stream(r):
                     fallback_url = r.site + "/" + r.user
                     logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
                     info_dict = ydl_temp.extract_info(fallback_url, download=False)
-                    url = info_dict.get("url", "")
+                    url = _extract_url(info_dict)
                     if url:
                         logger.info(
                             "Fallback format selection succeeded for %s", r.user
