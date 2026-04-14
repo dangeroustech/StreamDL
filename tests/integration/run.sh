@@ -252,8 +252,9 @@ rm -rf "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/*
 rm -rf "$SCRIPT_DIR/data"
 mkdir -p "$SCRIPT_DIR/data"
 
-# Pick a channel we know has VODs (the same live channel likely has them)
-VOD_CHANNEL="$LIVE_CHANNEL"
+# Use a dedicated VOD channel with known past broadcasts.
+# Override with VOD_CHANNEL env var if needed.
+VOD_CHANNEL="${VOD_CHANNEL:-kaicenat}"
 
 cat > "$CONFIG_DIR/config.yml" <<EOF
 - site: twitch.tv
