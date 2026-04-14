@@ -131,12 +131,12 @@ StreamDL can download past broadcasts (VODs) from Twitch. Enable per-channel wit
 
 **How it works:**
 - On each tick, StreamDL checks for new VODs using yt-dlp
-- Downloaded VODs are tracked in a SQLite database (`/app/data/streamdl.db`) to avoid re-downloading
+- Downloaded VODs are tracked in a SQLite database (default `/app/data/streamdl.db`, configurable via `-data`) to avoid re-downloading
 - In-progress downloads are tracked so interrupted downloads are retried after a stale threshold
 - VOD files are named: `{user}_vod_{id}_{title}.mp4`
 - Stream copy is used by default (no re-encoding) for fast downloads
 
-**Docker volume:** Mount `/app/data` to persist the VOD tracking database across container restarts:
+**Docker volume:** Mount the data directory to persist the VOD tracking database across container restarts. If using the default `-data` path:
 
 ```yaml
 volumes:
