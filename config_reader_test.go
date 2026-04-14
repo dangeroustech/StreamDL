@@ -75,6 +75,36 @@ func TestParseConfig_VODFields(t *testing.T) {
 	}
 }
 
+func TestParseConfig_PostScript(t *testing.T) {
+	yamlData := []byte(`
+- site: twitch.tv
+  post_script: /scripts/transcode.sh
+  channels:
+  - name: testuser
+    quality: best
+- site: youtube.com
+  channels:
+  - name: otheruser
+    quality: best
+`)
+	config, err := parseConfig(yamlData)
+	if err != nil {
+		t.Fatalf("Failed to parse config: %v", err)
+	}
+
+	if len(config) != 2 {
+		t.Fatalf("Expected 2 site configs, got %d", len(config))
+	}
+
+	if config[0].PostScript != "/scripts/transcode.sh" {
+		t.Errorf("Expected PostScript '/scripts/transcode.sh', got %q", config[0].PostScript)
+	}
+
+	if config[1].PostScript != "" {
+		t.Errorf("Expected empty PostScript for second site, got %q", config[1].PostScript)
+	}
+}
+
 func TestParseConfig_MalformedYAML(t *testing.T) {
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "bad.yml")

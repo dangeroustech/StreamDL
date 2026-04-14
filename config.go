@@ -2,8 +2,9 @@ package main
 
 // Config represents a streaming site and its list of channels to monitor.
 type Config struct {
-	Site      string     `yaml:"site"`
-	Streamers []Streamer `yaml:"channels"`
+	Site       string     `yaml:"site"`
+	Streamers  []Streamer `yaml:"channels"`
+	PostScript string     `yaml:"post_script"`
 }
 
 // Streamer represents a single channel to monitor, with quality and VOD settings.
