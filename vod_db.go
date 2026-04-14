@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -79,24 +80,40 @@ func (v *VodDB) ClaimVOD(vodID, user, site, title string, staleThreshold time.Du
 // MarkVODCompleted marks a VOD as successfully downloaded.
 func (v *VodDB) MarkVODCompleted(vodID string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := v.db.Exec(
+	res, err := v.db.Exec(
 		"UPDATE downloaded_vods SET status='completed', completed_at=? WHERE vod_id=?",
 		now, vodID,
 	)
 	if err != nil {
 		log.Errorf("Failed to mark VOD %s as completed: %v", vodID, err)
+		return err
 	}
-	return err
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("VOD %s not found in database", vodID)
+	}
+	return nil
 }
 
 // MarkVODFailed marks a VOD download as failed so it will be retried.
 func (v *VodDB) MarkVODFailed(vodID string) error {
-	_, err := v.db.Exec(
+	res, err := v.db.Exec(
 		"UPDATE downloaded_vods SET status='failed' WHERE vod_id=?",
 		vodID,
 	)
 	if err != nil {
 		log.Errorf("Failed to mark VOD %s as failed: %v", vodID, err)
+		return err
 	}
-	return err
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("VOD %s not found in database", vodID)
+	}
+	return nil
 }
