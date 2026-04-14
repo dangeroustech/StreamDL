@@ -1,0 +1,8 @@
+version: v1.25.0
+ignore:
+  'snyk:lic:*':
+    - '*':
+        reason: 'License scanning not required'
+exclude:
+  global:
+    - Dockerfile.*

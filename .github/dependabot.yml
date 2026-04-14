@@ -1,18 +1,31 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  target-branch: staging
-  reviewers:
-  - biodrone
-  assignees:
-  - biodrone
-  labels:
-  - dependencies
-  commit-message:
-    prefix: "chore 🤖"
-    prefix-development: "chore 🤖"
-    include: "scope"
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    target-branch: staging
+    assignees:
+      - biodrone
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore 🤖
+      prefix-development: chore 🤖
+      include: scope
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    target-branch: staging
+    assignees:
+      - biodrone
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: chore 🤖
+      prefix-development: chore 🤖
+      include: scope

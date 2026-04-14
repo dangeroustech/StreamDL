@@ -1,0 +1,37 @@
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.server
+    environment:
+      - STREAMDL_GRPC_PORT=50051
+      - LOG_LEVEL=DEBUG
+      - PUID=1000
+      - PGID=1000
+    healthcheck:
+      test: [CMD, curl, --fail, --max-time, 5, http://localhost:8080/health]
+      interval: 5s
+      timeout: 10s
+      start_period: 10s
+      retries: 5
+
+  client:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.client
+    environment:
+      - STREAMDL_GRPC_ADDR=server
+      - STREAMDL_GRPC_PORT=50051
+      - TICK_TIME=5
+      - LOG_LEVEL=DEBUG
+      - PUID=1000
+      - PGID=1000
+      - FFMPEG_EXTRA_OUTPUT_OPTS=-t 15
+    volumes:
+      - ./output/incomplete:/app/dl
+      - ./output/complete:/app/out
+      - ./config:/app/config
+      - ./data:/app/data
+    depends_on:
+      server:
+        condition: service_healthy

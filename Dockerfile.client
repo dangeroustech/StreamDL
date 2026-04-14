@@ -1,21 +1,33 @@
-FROM mwader/static-ffmpeg:4.4.1 as ffmpeg
+FROM mwader/static-ffmpeg:8.0 AS ffmpeg
 
 # Go Binary Builder
-FROM golang:1.21.4-alpine3.17 as go-build
+FROM golang:1.25.3-alpine AS go-build
 WORKDIR /app
 COPY . .
-RUN go get -v
-RUN go build -o streamdl
+RUN go get -v && \
+    go build -o streamdl
 
 # Golang Protobuf Client and Logic
-FROM golang:1.21.4-alpine3.17 as client
+FROM golang:1.25.3-alpine AS client
+
+# Install su-exec and curl for running as non-root and health checks
+RUN apk add --no-cache su-exec=0.2-r3 curl=8.14.1-r2
+
 WORKDIR /app
-RUN mkdir -p /app/dl /app/out
+
 # Copy FFMPEG Binaries
 COPY --from=ffmpeg /ffmpeg /usr/local/bin/
 COPY --from=ffmpeg /ffprobe /usr/local/bin/
-COPY --from=ffmpeg /qt-faststart /usr/local/bin/
 COPY --from=go-build /app/streamdl .
-COPY entrypoint_client.sh .
-# HEALTHCHECK --interval=60s --timeout=15s --start-period=5s --retries=3 CMD curl --fail http://streamdl-client:8080/health || exit 1
+COPY entrypoint_client.sh /app/entrypoint_client.sh
+COPY streamdl_client_entrypoint.sh /app/streamdl_client_entrypoint.sh
+
+# Make entrypoint scripts executable
+RUN chmod +x /app/entrypoint_client.sh /app/streamdl_client_entrypoint.sh
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl --fail --max-time 5 --silent --output /dev/null http://localhost:8080/health || exit 1
+
+# Entrypoint script handles user creation and switching
 ENTRYPOINT ["/bin/sh", "/app/entrypoint_client.sh"]

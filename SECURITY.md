@@ -2,12 +2,14 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-|  3.x.x  | :white_check_mark: |
-|  2.3.x  | :white_check_mark: |
-| <= 1.3  | :x:                |
+| Version     | Supported          |
+| ----------- | ------------------ |
+| >= 3.3.0    | :white_check_mark: |
+| 3.0.0-3.2.x | :warning:          |
+| < 3.0.0     | :x:                |
 
 ## Reporting a Vulnerability
 
 Please file an issue using the SECURITY template, giving as much detail as possible.
+
+Please feel free to also submit a PR to fix the issue.
