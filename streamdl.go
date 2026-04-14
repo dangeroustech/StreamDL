@@ -129,12 +129,12 @@ func main() {
 						staleThreshold = 10 * time.Minute
 					}
 					for _, vod := range vods {
-						shouldDL, err := vodDB.ShouldDownloadVOD(vod.ID, staleThreshold)
+						claimed, err := vodDB.ClaimVOD(vod.ID, streamer.User, site.Site, vod.Title, staleThreshold)
 						if err != nil {
-							log.Errorf("Error checking VOD %s: %v", vod.ID, err)
+							log.Errorf("Error claiming VOD %s: %v", vod.ID, err)
 							continue
 						}
-						if !shouldDL {
+						if !claimed {
 							log.Tracef("VOD %s already completed or in progress, skipping", vod.ID)
 							continue
 						}

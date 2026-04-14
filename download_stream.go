@@ -480,13 +480,6 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 	newPath := filepath.Join(moveLoc, fileBase+".mp4")
 	log.Infof("Starting VOD download for %s: %s", user, vod.Title)
 
-	// Mark as in-progress before starting FFmpeg
-	if vodDB != nil {
-		if err := vodDB.MarkVODStarted(vod.ID, user, "twitch.tv", vod.Title); err != nil {
-			log.Errorf("Failed to mark VOD %s as started: %v", vod.ID, err)
-		}
-	}
-
 	// Single control listener
 	go func() {
 		for {

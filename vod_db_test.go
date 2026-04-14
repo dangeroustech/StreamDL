@@ -31,28 +31,22 @@ func TestVodDB_FullLifecycle(t *testing.T) {
 
 	staleThreshold := 10 * time.Minute
 
-	// Should need downloading initially
-	should, err := db.ShouldDownloadVOD("12345", staleThreshold)
+	// Should claim successfully (new VOD)
+	claimed, err := db.ClaimVOD("12345", "testuser", "twitch.tv", "Test Stream Title", staleThreshold)
 	if err != nil {
-		t.Fatalf("ShouldDownloadVOD failed: %v", err)
+		t.Fatalf("ClaimVOD failed: %v", err)
 	}
-	if !should {
-		t.Error("VOD not in DB should need downloading")
+	if !claimed {
+		t.Error("VOD not in DB should be claimable")
 	}
 
-	// Mark as started
-	err = db.MarkVODStarted("12345", "testuser", "twitch.tv", "Test Stream Title")
+	// Second claim should fail (already in progress, not stale)
+	claimed, err = db.ClaimVOD("12345", "testuser", "twitch.tv", "Test Stream Title", staleThreshold)
 	if err != nil {
-		t.Fatalf("MarkVODStarted failed: %v", err)
+		t.Fatalf("ClaimVOD failed: %v", err)
 	}
-
-	// In-progress VOD should NOT be downloaded (not stale yet)
-	should, err = db.ShouldDownloadVOD("12345", staleThreshold)
-	if err != nil {
-		t.Fatalf("ShouldDownloadVOD failed: %v", err)
-	}
-	if should {
-		t.Error("Recently started VOD should not need re-downloading")
+	if claimed {
+		t.Error("Recently started VOD should not be re-claimable")
 	}
 
 	// Mark as completed
@@ -61,13 +55,13 @@ func TestVodDB_FullLifecycle(t *testing.T) {
 		t.Fatalf("MarkVODCompleted failed: %v", err)
 	}
 
-	// Completed VOD should NOT be downloaded
-	should, err = db.ShouldDownloadVOD("12345", staleThreshold)
+	// Completed VOD should NOT be claimable
+	claimed, err = db.ClaimVOD("12345", "testuser", "twitch.tv", "Test Stream Title", staleThreshold)
 	if err != nil {
-		t.Fatalf("ShouldDownloadVOD failed: %v", err)
+		t.Fatalf("ClaimVOD failed: %v", err)
 	}
-	if should {
-		t.Error("Completed VOD should not need re-downloading")
+	if claimed {
+		t.Error("Completed VOD should not be claimable")
 	}
 }
 
@@ -81,15 +75,25 @@ func TestVodDB_FailedVODIsRetried(t *testing.T) {
 
 	staleThreshold := 10 * time.Minute
 
-	db.MarkVODStarted("12345", "testuser", "twitch.tv", "Title")
-	db.MarkVODFailed("12345")
-
-	should, err := db.ShouldDownloadVOD("12345", staleThreshold)
+	claimed, err := db.ClaimVOD("12345", "testuser", "twitch.tv", "Title", staleThreshold)
 	if err != nil {
-		t.Fatalf("ShouldDownloadVOD failed: %v", err)
+		t.Fatalf("ClaimVOD failed: %v", err)
 	}
-	if !should {
-		t.Error("Failed VOD should be retried")
+	if !claimed {
+		t.Fatal("Initial claim should succeed")
+	}
+
+	err = db.MarkVODFailed("12345")
+	if err != nil {
+		t.Fatalf("MarkVODFailed failed: %v", err)
+	}
+
+	claimed, err = db.ClaimVOD("12345", "testuser", "twitch.tv", "Title", staleThreshold)
+	if err != nil {
+		t.Fatalf("ClaimVOD failed: %v", err)
+	}
+	if !claimed {
+		t.Error("Failed VOD should be re-claimable")
 	}
 }
 
@@ -101,15 +105,23 @@ func TestVodDB_StaleDownloadIsRetried(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.MarkVODStarted("12345", "testuser", "twitch.tv", "Title")
+	staleThreshold := 10 * time.Minute
+
+	claimed, err := db.ClaimVOD("12345", "testuser", "twitch.tv", "Title", staleThreshold)
+	if err != nil {
+		t.Fatalf("ClaimVOD failed: %v", err)
+	}
+	if !claimed {
+		t.Fatal("Initial claim should succeed")
+	}
 
 	// With a zero threshold, the download is immediately considered stale
-	should, err := db.ShouldDownloadVOD("12345", 0)
+	claimed, err = db.ClaimVOD("12345", "testuser", "twitch.tv", "Title", 0)
 	if err != nil {
-		t.Fatalf("ShouldDownloadVOD failed: %v", err)
+		t.Fatalf("ClaimVOD failed: %v", err)
 	}
-	if !should {
-		t.Error("Stale downloading VOD should be retried")
+	if !claimed {
+		t.Error("Stale downloading VOD should be re-claimable")
 	}
 }
 
@@ -123,22 +135,39 @@ func TestVodDB_DifferentVODsAreIndependent(t *testing.T) {
 
 	staleThreshold := 10 * time.Minute
 
-	db.MarkVODStarted("111", "user1", "twitch.tv", "Title A")
-	db.MarkVODCompleted("111")
-	db.MarkVODStarted("222", "user2", "twitch.tv", "Title B")
-	db.MarkVODCompleted("222")
+	claimed, err := db.ClaimVOD("111", "user1", "twitch.tv", "Title A", staleThreshold)
+	if err != nil {
+		t.Fatalf("ClaimVOD 111 failed: %v", err)
+	}
+	if !claimed {
+		t.Fatal("Claim 111 should succeed")
+	}
+	if err := db.MarkVODCompleted("111"); err != nil {
+		t.Fatalf("MarkVODCompleted 111 failed: %v", err)
+	}
 
-	d1, _ := db.ShouldDownloadVOD("111", staleThreshold)
-	d2, _ := db.ShouldDownloadVOD("222", staleThreshold)
-	d3, _ := db.ShouldDownloadVOD("333", staleThreshold)
+	claimed, err = db.ClaimVOD("222", "user2", "twitch.tv", "Title B", staleThreshold)
+	if err != nil {
+		t.Fatalf("ClaimVOD 222 failed: %v", err)
+	}
+	if !claimed {
+		t.Fatal("Claim 222 should succeed")
+	}
+	if err := db.MarkVODCompleted("222"); err != nil {
+		t.Fatalf("MarkVODCompleted 222 failed: %v", err)
+	}
+
+	d1, _ := db.ClaimVOD("111", "user1", "twitch.tv", "Title A", staleThreshold)
+	d2, _ := db.ClaimVOD("222", "user2", "twitch.tv", "Title B", staleThreshold)
+	d3, _ := db.ClaimVOD("333", "user3", "twitch.tv", "Title C", staleThreshold)
 
 	if d1 {
-		t.Error("VOD 111 is completed, should not need downloading")
+		t.Error("VOD 111 is completed, should not be claimable")
 	}
 	if d2 {
-		t.Error("VOD 222 is completed, should not need downloading")
+		t.Error("VOD 222 is completed, should not be claimable")
 	}
 	if !d3 {
-		t.Error("VOD 333 is not in DB, should need downloading")
+		t.Error("VOD 333 is not in DB, should be claimable")
 	}
 }

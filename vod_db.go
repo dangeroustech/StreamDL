@@ -48,52 +48,32 @@ func (v *VodDB) Close() error {
 	return v.db.Close()
 }
 
-// ShouldDownloadVOD returns true if the VOD should be (re)downloaded:
-// not in DB, status is 'failed', or status is 'downloading' with started_at
-// older than staleThreshold (crash recovery).
-func (v *VodDB) ShouldDownloadVOD(vodID string, staleThreshold time.Duration) (bool, error) {
-	var status string
-	var startedAt string
-	err := v.db.QueryRow(
-		"SELECT status, started_at FROM downloaded_vods WHERE vod_id = ?", vodID,
-	).Scan(&status, &startedAt)
-	if err == sql.ErrNoRows {
-		return true, nil
-	}
+// ClaimVOD atomically checks whether a VOD should be downloaded and marks it as
+// in-progress in a single operation. Returns true if the claim was successful
+// (VOD is new, failed, or stale). Returns false if the VOD is completed or
+// already being downloaded by another goroutine.
+func (v *VodDB) ClaimVOD(vodID, user, site, title string, staleThreshold time.Duration) (bool, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	staleCutoff := time.Now().Add(-staleThreshold).UTC().Format(time.RFC3339)
+
+	res, err := v.db.Exec(
+		`INSERT INTO downloaded_vods (vod_id, user, site, title, status, started_at)
+		 VALUES (?, ?, ?, ?, 'downloading', ?)
+		 ON CONFLICT(vod_id) DO UPDATE SET status='downloading', started_at=?, completed_at=NULL
+		 WHERE downloaded_vods.status = 'failed'
+		    OR (downloaded_vods.status = 'downloading' AND downloaded_vods.started_at <= ?)`,
+		vodID, user, site, title, now, now, staleCutoff,
+	)
 	if err != nil {
+		log.Errorf("Failed to claim VOD %s: %v", vodID, err)
 		return false, err
 	}
 
-	switch status {
-	case "completed":
-		return false, nil
-	case "failed":
-		return true, nil
-	case "downloading":
-		started, err := time.Parse(time.RFC3339, startedAt)
-		if err != nil {
-			log.Warnf("Could not parse started_at for VOD %s: %v", vodID, err)
-			return true, nil
-		}
-		return time.Since(started) > staleThreshold, nil
-	default:
-		return true, nil
-	}
-}
-
-// MarkVODStarted records a VOD as in-progress. Resets status if retrying.
-func (v *VodDB) MarkVODStarted(vodID, user, site, title string) error {
-	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := v.db.Exec(
-		`INSERT INTO downloaded_vods (vod_id, user, site, title, status, started_at)
-		 VALUES (?, ?, ?, ?, 'downloading', ?)
-		 ON CONFLICT(vod_id) DO UPDATE SET status='downloading', started_at=?, completed_at=NULL`,
-		vodID, user, site, title, now, now,
-	)
+	rows, err := res.RowsAffected()
 	if err != nil {
-		log.Errorf("Failed to mark VOD %s as started: %v", vodID, err)
+		return false, err
 	}
-	return err
+	return rows > 0, nil
 }
 
 // MarkVODCompleted marks a VOD as successfully downloaded.
