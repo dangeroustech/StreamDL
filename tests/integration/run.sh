@@ -254,7 +254,7 @@ mkdir -p "$SCRIPT_DIR/data"
 
 # Use a dedicated VOD channel with known past broadcasts.
 # Override with VOD_CHANNEL env var if needed.
-VOD_CHANNEL="${VOD_CHANNEL:-kaicenat}"
+VOD_CHANNEL="${VOD_CHANNEL:-teampgp}"
 
 cat > "$CONFIG_DIR/config.yml" <<EOF
 - site: twitch.tv
