@@ -65,12 +65,13 @@ func main() {
 	}
 	log.Infof("Starting StreamDL...")
 
-	vodDB, err := InitVodDB(filepath.Join(*dataDir, "streamdl.db"))
-	if err != nil {
-		log.Fatalf("Failed to initialize VOD database: %v", err)
-	}
-	defer vodDB.Close()
-	log.Infof("VOD tracking database initialized at %s", filepath.Join(*dataDir, "streamdl.db"))
+	// VOD database is lazily initialized on first VOD tick
+	var vodDB *VodDB
+	defer func() {
+		if vodDB != nil {
+			vodDB.Close()
+		}
+	}()
 
 	log.Tracef("Config: %v", config)
 
@@ -108,6 +109,17 @@ func main() {
 				log.Debugf("Checking user=%s on site=%s quality=%s vod=%v", streamer.User, site.Site, streamer.Quality, streamer.VOD)
 
 				if streamer.VOD {
+					// Lazy init VOD database on first use
+					if vodDB == nil {
+						var initErr error
+						vodDB, initErr = InitVodDB(filepath.Join(*dataDir, "streamdl.db"))
+						if initErr != nil {
+							log.Errorf("Failed to initialize VOD database: %v", initErr)
+							continue
+						}
+						log.Infof("VOD tracking database initialized at %s", filepath.Join(*dataDir, "streamdl.db"))
+					}
+
 					// VOD mode: check for new VODs to download
 					limit := streamer.VODLimit
 					if limit <= 0 {
