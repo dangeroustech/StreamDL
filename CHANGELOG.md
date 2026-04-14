@@ -1,3 +1,10 @@
+### [3.7.1](https://github.com/dangeroustech/StreamDL/compare/v3.7.0...v3.7.1) (2026-04-14)
+
+
+### 🐛 Bug Fixes
+
+* replace nested rate-limit retry with loop and add missing docstrings ([31ef9b0](https://github.com/dangeroustech/StreamDL/commit/31ef9b0095b16d3003d168311b0ba2d6259272b9)), closes [#555](https://github.com/dangeroustech/StreamDL/issues/555) [#554](https://github.com/dangeroustech/StreamDL/issues/554)
+
 ## [3.7.0](https://github.com/dangeroustech/StreamDL/compare/v3.6.0...v3.7.0) (2026-04-14)
 
 
