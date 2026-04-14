@@ -23,6 +23,7 @@ type VodResult struct {
 	DurationSeconds int64
 }
 
+// getVods calls the gRPC server to list recent VODs for a user on the given site.
 func getVods(site string, user string, limit int) ([]VodResult, error) {
 	addr := os.Getenv("STREAMDL_GRPC_ADDR")
 	if addr == "" {
@@ -83,6 +84,7 @@ func getVods(site string, user string, limit int) ([]VodResult, error) {
 	return results, nil
 }
 
+// getStream calls the gRPC server to resolve a stream URL for the given site, user, and quality.
 func getStream(site string, user string, quality string) (string, error) {
 	addr := os.Getenv("STREAMDL_GRPC_ADDR")
 	if addr == "" {

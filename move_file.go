@@ -14,6 +14,7 @@ import (
 // renameFunc is used to allow testing of cross-device fallbacks by stubbing.
 var renameFunc = os.Rename
 
+// moveFile moves a file from oldPath to newPath, falling back to copy+delete for cross-device moves.
 func moveFile(oldPath string, newPath string) error {
 	log.Infof("Moving file from %v to %v", oldPath, newPath)
 
@@ -108,6 +109,7 @@ func moveFile(oldPath string, newPath string) error {
 	return nil
 }
 
+// isCrossDeviceLink returns true if err indicates an EXDEV (cross-device link) failure.
 func isCrossDeviceLink(err error) bool {
 	if err == nil {
 		return false

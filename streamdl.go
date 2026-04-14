@@ -1,3 +1,5 @@
+// Package main implements StreamDL, a daemon that monitors configured streaming
+// sites and automatically records live streams and VODs via FFmpeg.
 package main
 
 import (
@@ -174,39 +176,35 @@ func main() {
 					urlsMu.RUnlock()
 					if !exists {
 						log.Tracef("No active URL cached for %s; requesting new stream URL", streamer.User)
-						url, err := getStream(site.Site, streamer.User, streamer.Quality)
-						time.Sleep(time.Second * time.Duration(*batchTime))
-						if err == nil {
-							urlsMu.Lock()
-							urls[streamer.User] = url
-							urlsMu.Unlock()
-							log.Debugf("Discovered live stream for user=%s", streamer.User)
-							go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
-						} else if err.Error() == "rate limited" {
-							log.Errorf("Rate Limited, Sleeping for 30 seconds")
-							time.Sleep(time.Second * 30)
+						backoffs := []time.Duration{0, 30 * time.Second, 60 * time.Second}
+
+						for attempt := range backoffs {
+							if backoffs[attempt] > 0 {
+								log.Errorf("Rate Limited, Sleeping for %v", backoffs[attempt])
+								time.Sleep(backoffs[attempt])
+							}
+
 							url, err := getStream(site.Site, streamer.User, streamer.Quality)
+							if attempt == 0 {
+								time.Sleep(time.Second * time.Duration(*batchTime))
+							}
+
 							if err == nil {
 								urlsMu.Lock()
 								urls[streamer.User] = url
 								urlsMu.Unlock()
+								log.Debugf("Discovered live stream for user=%s", streamer.User)
 								go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
-							} else if err.Error() == "rate limited" {
-								log.Errorf("Rate Limited, Sleeping for 60 seconds")
-								time.Sleep(time.Second * 60)
-								url, err = getStream(site.Site, streamer.User, streamer.Quality)
-								if err == nil {
-									urlsMu.Lock()
-									urls[streamer.User] = url
-									urlsMu.Unlock()
-									go downloadStream(streamer.User, url, *outLoc, *moveLoc, *subfolder, control, response)
-								} else if err.Error() == "rate limited" {
-									log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
-								} else {
-									log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
-								}
-							} else {
+								break
+							}
+
+							if err.Error() != "rate limited" {
 								log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
+								break
+							}
+
+							if attempt == len(backoffs)-1 {
+								log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
 							}
 						}
 					}
