@@ -318,10 +318,20 @@ def get_stream(r):
         logger.debug(f"Streamlink is unable to find a plugin for {r.site}")
         logger.debug("Falling back to yt_dlp")
         # Fallback to yt_dlp
+        # Map Streamlink-style quality names to yt-dlp compound format selectors.
+        # Bare "best"/"worst" broke in newer yt-dlp for some extractors (e.g. Chaturbate)
+        # where formats are split into separate video/audio streams.
+        yt_dlp_format_map = {
+            "best": "bestvideo*+bestaudio/best",
+            "worst": "worstvideo*+worstaudio/worst",
+        }
+        yt_dlp_format = yt_dlp_format_map.get(
+            r.quality, r.quality if r.quality else "bestvideo*+bestaudio/best"
+        )
         try:
             with yt_dlp.YoutubeDL(
                 {
-                    "format": r.quality if r.quality else "best",
+                    "format": yt_dlp_format,
                     "quiet": yt_dlp_quiet,
                     "no_warnings": yt_dlp_no_warnings,
                     "verbose": False,
@@ -344,6 +354,11 @@ def get_stream(r):
         except DownloadError as e:
             logger.error(f"DownloadError: {e}")
             if "Requested format is not available" in str(e):
+                logger.warning(
+                    "Format %s not available for %s, retrying with default selection",
+                    yt_dlp_format,
+                    r.user,
+                )
                 with yt_dlp.YoutubeDL(
                     {
                         "quiet": yt_dlp_quiet,
@@ -355,17 +370,13 @@ def get_stream(r):
                     fallback_url = r.site + "/" + r.user
                     logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
                     info_dict = ydl_temp.extract_info(fallback_url, download=False)
-                    logger.critical("Requested format is not available")
-                    logger.critical("Available formats:")
-                    # List available formats
-                    formats = info_dict.get("formats", [])
-                    for f in formats:
-                        fmt_id = f.get("format_id", "?")
-                        width = f.get("width", "?")
-                        height = f.get("height", "?")
-                        logger.critical(
-                            f"Format code: {fmt_id}, resolution: {width}x{height}"
+                    url = info_dict.get("url", "")
+                    if url:
+                        logger.info(
+                            "Fallback format selection succeeded for %s", r.user
                         )
+                        return {"url": url}
+                    logger.error("Fallback format selection returned no URL for %s", r.user)
                     return {"error": 415}  # Format Not Available
             elif "HTTP Error 429: Too Many Requests " in str(e):
                 return {"error": 429}  # Too Many Requests
