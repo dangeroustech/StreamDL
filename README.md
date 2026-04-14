@@ -150,6 +150,29 @@ volumes:
 - To download both live streams and VODs, add the same channel twice with different modes
 - Currently supported for Twitch only
 
+## Post-Download Script Hook
+
+You can configure a script to run automatically after each successful download. The script is set per-site using the `post_script` field:
+
+```yaml
+- site: twitch.tv
+  post_script: /scripts/transcode.sh
+  channels:
+  - name: kaicenat
+    quality: best
+```
+
+The script receives the file path as its first argument, and additional context via environment variables:
+
+| Variable | Description | Example |
+|---|---|---|
+| `STREAMDL_FILE` | Absolute path to the downloaded file | `/data/complete/user_2026-04-14.mp4` |
+| `STREAMDL_USER` | Channel/user name | `kaicenat` |
+| `STREAMDL_SITE` | Site domain | `twitch.tv` |
+| `STREAMDL_TYPE` | Download type | `live` or `vod` |
+
+The script runs asynchronously and will not block other downloads. If the script fails, an error is logged but StreamDL continues operating normally.
+
 ## Environment Variables
 
 StreamDL supports configuration through environment variables for certain system-level settings.
