@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -132,9 +133,9 @@ func main() {
 					time.Sleep(time.Second * time.Duration(*batchTime))
 					if err != nil {
 						if err.Error() == "rate limited" {
-							log.Errorf("Rate limited checking VODs for %s, skipping", streamer.User)
+							tickNotices.Error(streamer.User, "Rate limited checking VODs, skipping this tick")
 						} else {
-							log.Warnf("GetVods failed for user=%s: %v", streamer.User, err)
+							tickNotices.Warn(streamer.User, fmt.Sprintf("GetVods failed: %v", err))
 						}
 						continue
 					}
@@ -158,7 +159,7 @@ func main() {
 						resolved, err := getStream(site.Site, "videos/"+vod.ID, streamer.Quality)
 						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err != nil {
-							log.Warnf("Failed to resolve VOD %s: %v", vod.ID, err)
+							tickNotices.Warn(streamer.User, fmt.Sprintf("Failed to resolve VOD %s: %v", vod.ID, err))
 							if markErr := vodDB.MarkVODFailed(vod.ID); markErr != nil {
 								log.Errorf("Failed to mark VOD %s as failed: %v", vod.ID, markErr)
 							}
@@ -198,17 +199,20 @@ func main() {
 								activeUsers[streamer.User] = true
 								activeUsersMu.Unlock()
 								log.Debugf("Discovered live stream for user=%s", streamer.User)
+								if probeResult.Warning != "" {
+									tickNotices.Warn(streamer.User, probeResult.Warning)
+								}
 								go downloadStream(streamer.User, site.Site, streamer.Quality, probeResult, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
 								break
 							}
 
 							if err.Error() != "rate limited" {
-								log.Warnf("GetStream failed for user=%s: %v", streamer.User, err)
+								tickNotices.Warn(streamer.User, err.Error())
 								break
 							}
 
 							if attempt == len(backoffs)-1 {
-								log.Errorf("Rate Limited Thrice, Skipping %v", streamer.User)
+								tickNotices.Error(streamer.User, "Rate limited three times, skipping this tick")
 							}
 						}
 					}
@@ -224,7 +228,7 @@ func main() {
 		activeUsersMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
-		log.Tracef("Sleeping...")
+		tickNotices.Flush(*tickTime)
 
 		select {
 		case <-c:

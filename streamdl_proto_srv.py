@@ -149,6 +149,8 @@ class StreamServicer(pb_grpc.Stream):
         res = get_stream(request)
         if not res.get("error"):
             context.set_code(grpc.StatusCode.OK)
+            if res.get("warning"):
+                context.send_initial_metadata((("x-streamdl-warning", res["warning"]),))
             logger.debug(
                 "GetStream success user=%s",
                 request.user,
@@ -156,47 +158,52 @@ class StreamServicer(pb_grpc.Stream):
             return pb.StreamResponse(url=res["url"], audio_url=res.get("audio_url", ""))
         else:
             error_code = res["error"]
+            detail = res.get("message", f"Error {error_code}")
             logger.debug(
-                "GetStream failure user=%s site=%s quality=%s error=%s",
+                "GetStream failure user=%s site=%s quality=%s error=%s detail=%s",
                 request.user,
                 request.site,
                 request.quality,
                 error_code,
+                detail,
             )
             match error_code:
                 case 400:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                    context.set_details(f"{res['error']} - Invalid request")
+                    context.set_details(detail)
                 case 403:
                     context.set_code(grpc.StatusCode.UNAUTHENTICATED)
-                    context.set_details(f"{res['error']} - Unauthenticated")
+                    context.set_details(detail)
                 case 404:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                    context.set_details(f"{res['error']} - Not found")
+                    context.set_details(detail)
                 case 408:
                     context.set_code(grpc.StatusCode.DEADLINE_EXCEEDED)
-                    context.set_details(f"{res['error']} - Deadline exceeded")
+                    context.set_details(detail)
                 case 412:
                     context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
-                    context.set_details(f"{res['error']} - Failed precondition")
+                    context.set_details(detail)
+                case 414:
+                    context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                    context.set_details(detail)
                 case 415:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                    context.set_details(f"{res['error']} - Invalid format")
+                    context.set_details(detail)
                 case 418:
                     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-                    context.set_details(f"{res['error']} - Unimplemented")
+                    context.set_details(detail)
                 case 429:
                     context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
-                    context.set_details(f"{res['error']} - Resource exhausted")
+                    context.set_details(detail)
                 case 450:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                    context.set_details(f"{res['error']} - User is offline")
+                    context.set_details(detail)
                 case 500:
                     context.set_code(grpc.StatusCode.INTERNAL)
-                    context.set_details(f"{res['error']} - Internal server error")
+                    context.set_details(detail)
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
-                    context.set_details(f"{res['error']} - Unknown error")
+                    context.set_details(detail)
             return pb.StreamResponse(error=error_code)
 
 
@@ -326,8 +333,11 @@ def get_stream(r):
         stream = session.streams(url=resolve_url, options=options)
 
         if not stream:
-            logger.warning(f"No streams found for user {r.user}")
-            return {"error": 404}
+            logger.warning("No streams found for user %s", r.user)
+            return {
+                "error": 404,
+                "message": f"No live streams found for '{r.user}' on {r.site}",
+            }
         else:
             try:
                 selected_quality = r.quality if r.quality else "best"
@@ -338,8 +348,13 @@ def get_stream(r):
                 )
                 return {"url": stream[selected_quality].url}
             except KeyError:
-                logger.critical("Stream quality not found - exiting")
-                return {"error": 414}
+                available = ", ".join(sorted(stream.keys()))
+                message = (
+                    f"Requested quality '{selected_quality}' not available. "
+                    f"Available: {available}"
+                )
+                logger.warning(message)
+                return {"error": 414, "message": message}
     except NoPluginError:
         logger.debug(f"Streamlink is unable to find a plugin for {r.site}")
         logger.debug("Falling back to yt_dlp")
@@ -371,13 +386,13 @@ def get_stream(r):
                 return {"url": video_url, "audio_url": audio_url}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
-            return {"error": 403}
+            return {"error": 403, "message": f"Geo-restricted: {e}"}
         except UnavailableVideoError as e:
             logger.error(f"UnavailableVideoError: {e}")
-            return {"error": 404}
+            return {"error": 404, "message": f"Stream unavailable: {e}"}
         except ExtractorError as e:
             logger.error(f"ExtractorError: {e}")
-            return {"error": 500}
+            return {"error": 500, "message": f"Extractor error: {e}"}
         except DownloadError as e:
             logger.error(f"DownloadError: {e}")
             if "Requested format is not available" in str(e):
@@ -399,24 +414,37 @@ def get_stream(r):
                     info_dict = ydl_temp.extract_info(fallback_url, download=False)
                     video_url, audio_url = _extract_urls(info_dict)
                     if video_url:
-                        logger.info(
-                            "Fallback format selection succeeded for %s", r.user
+                        warning = (
+                            f"Requested format '{yt_dlp_format}' unavailable; "
+                            "using default selection"
                         )
-                        return {"url": video_url, "audio_url": audio_url}
+                        logger.info("Fallback format selection succeeded for %s", r.user)
+                        return {
+                            "url": video_url,
+                            "audio_url": audio_url,
+                            "warning": warning,
+                        }
+                    message = (
+                        f"Requested format '{yt_dlp_format}' not available "
+                        f"for '{r.user}'"
+                    )
                     logger.error("Fallback format selection returned no URL for %s", r.user)
-                    return {"error": 415}  # Format Not Available
+                    return {"error": 415, "message": message}
             elif "HTTP Error 429: Too Many Requests " in str(e):
-                return {"error": 429}  # Too Many Requests
+                return {"error": 429, "message": "Rate limited by site"}
             elif "currently offline" in str(e):
-                return {"error": 450}  # offline
+                return {
+                    "error": 450,
+                    "message": f"Channel '{r.user}' is offline",
+                }
             else:
-                return {"error": 500}  # Generic Download Error
+                return {"error": 500, "message": f"Download error: {e}"}
         except Exception as e:
             logger.error(f"Generic Error: {e}")
-            return {"error": 500}  # Generic Error
+            return {"error": 500, "message": f"Unexpected error: {e}"}
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
-        return {"error": 500}  # Generic Plugin Error
+        return {"error": 500, "message": f"Plugin error: {err}"}
 
 
 if __name__ == "__main__":

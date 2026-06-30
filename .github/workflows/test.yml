@@ -32,6 +32,7 @@ jobs:
       - name: Run Python Tests
         run: |
           uv run bandit -ll -c .bandit.yml streamdl_proto_srv.py
+          uv run pytest tests/ -v
       - name: Run Go Tests
         env:
           STREAMDL_GRPC_PORT: "50051"

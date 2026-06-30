@@ -425,4 +425,76 @@ else
   echo "  WARN: VOD hook marker not found"
 fi
 
+# --- Phase 6: Tick notice buffer tests ---
+echo ""
+echo "=== Tick Notice Buffer Tests ==="
+
+assert_notice_after_wait() {
+  local logs="$1"
+  local channel="$2"
+  printf '%s' "$logs" | python3 -c "
+import sys
+logs = sys.stdin.read()
+wait_idx = logs.rfind('Waiting')
+notice = '[${channel}]'
+notice_idx = logs.rfind(notice)
+if wait_idx == -1:
+    print('wait line not found', file=sys.stderr)
+    raise SystemExit(1)
+if notice_idx == -1:
+    print('notice not found for ${channel}', file=sys.stderr)
+    raise SystemExit(1)
+if notice_idx < wait_idx:
+    print('notice appears before wait line', file=sys.stderr)
+    raise SystemExit(1)
+"
+}
+
+# Phase 6b: Kick / yt-dlp fallback (offline channel — deterministic)
+echo "--- Phase 6b: Kick offline notice ---"
+cat > "$CONFIG_DIR/config.yml" <<EOF
+- site: kick.com
+  channels:
+  - name: nonexistent_user_12345
+    quality: best
+EOF
+
+export LOG_LEVEL=INFO
+$DC -f "$COMPOSE_FILE" up -d --force-recreate client
+sleep 8
+
+KICK_LOGS=$($DC -f "$COMPOSE_FILE" logs client 2>&1)
+if assert_notice_after_wait "$KICK_LOGS" "nonexistent_user_12345"; then
+  echo "  PASS: Kick offline notice appears after wait line"
+else
+  echo "  FAIL: Kick offline notice not found in expected order"
+  echo "$KICK_LOGS" | tail -40
+  exit 1
+fi
+
+# Phase 6a: Twitch invalid quality (requires live channel from Phase 1)
+if [ -n "$LIVE_CHANNEL" ]; then
+  echo "--- Phase 6a: Twitch invalid quality notice ---"
+  cat > "$CONFIG_DIR/config.yml" <<EOF
+- site: twitch.tv
+  channels:
+  - name: $LIVE_CHANNEL
+    quality: this_quality_does_not_exist
+EOF
+
+  $DC -f "$COMPOSE_FILE" up -d --force-recreate client
+  sleep 8
+
+  TWITCH_LOGS=$($DC -f "$COMPOSE_FILE" logs client 2>&1)
+  if assert_notice_after_wait "$TWITCH_LOGS" "$LIVE_CHANNEL"; then
+    echo "  PASS: Twitch quality notice appears after wait line"
+  else
+    echo "  FAIL: Twitch quality notice not found in expected order"
+    echo "$TWITCH_LOGS" | tail -40
+    exit 1
+  fi
+else
+  echo "SKIP: Phase 6a (no live Twitch channel from Phase 1)"
+fi
+
 echo "=== PASS: All integration tests succeeded ==="

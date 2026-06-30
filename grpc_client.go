@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	pb "dangerous.tech/streamdl/protos"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -86,8 +88,9 @@ func getVods(site string, user string, limit int) ([]VodResult, error) {
 
 // StreamURLs holds the resolved video and optional audio stream URLs.
 type StreamURLs struct {
-	Video string
-	Audio string
+	Video   string
+	Audio   string
+	Warning string // non-fatal notice from server (e.g. format fallback)
 }
 
 // getStream calls the gRPC server to resolve a stream URL for the given site, user, and quality.
@@ -118,34 +121,55 @@ func getStream(site string, user string, quality string) (StreamURLs, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	log.Debugf("Calling GetStream site=%s user=%s quality=%s timeout=%s", site, user, quality, timeout.String())
-	msg, err := c.GetStream(ctx, &pb.StreamInfo{Site: site, User: user, Quality: quality}, grpc.WaitForReady(true))
+	var header metadata.MD
+	msg, err := c.GetStream(
+		ctx,
+		&pb.StreamInfo{Site: site, User: user, Quality: quality},
+		grpc.WaitForReady(true),
+		grpc.Header(&header),
+	)
 	if err != nil {
 		if e, ok := status.FromError(err); ok {
 			statusCode := e.Code()
 			statusMessage := e.Message()
-			log.Errorf("Failed to Get Stream for %v: %s", user, statusMessage)
+			log.Debugf("GetStream failed for %s: %s", user, statusMessage)
 
 			switch statusCode {
 			case codes.NotFound:
-				return StreamURLs{}, errors.New("stream not found or offline")
+				return StreamURLs{}, streamResolveError(statusMessage, "stream not found or offline")
 			case codes.DeadlineExceeded:
-				return StreamURLs{}, errors.New("request timed out")
+				return StreamURLs{}, streamResolveError(statusMessage, "request timed out")
 			case codes.Unavailable:
-				return StreamURLs{}, errors.New("service unavailable")
+				return StreamURLs{}, streamResolveError(statusMessage, "service unavailable")
 			case codes.ResourceExhausted:
 				return StreamURLs{}, errors.New("rate limited")
+			case codes.InvalidArgument:
+				return StreamURLs{}, streamResolveError(statusMessage, "invalid stream request")
 			default:
-				return StreamURLs{}, errors.New("failed to get stream: " + statusCode.String())
+				return StreamURLs{}, streamResolveError(statusMessage, "failed to get stream")
 			}
 		}
 		log.Errorf("GetStream RPC failed (non-gRPC error) for user=%s: %v", user, err)
 		return StreamURLs{}, err
-	} else {
-		if msg.GetError() != 0 {
-			log.Debugf("Server returned error code: %d", msg.GetError())
-			return StreamURLs{}, errors.New("server error")
-		}
-		log.Tracef("Stream for %v Fetched: %v", user, msg.Url)
 	}
-	return StreamURLs{Video: msg.Url, Audio: msg.GetAudioUrl()}, nil
+	if msg.GetError() != 0 {
+		log.Debugf("Server returned error code: %d", msg.GetError())
+		return StreamURLs{}, errors.New("server error")
+	}
+	log.Tracef("Stream for %v Fetched: %v", user, msg.Url)
+
+	warning := ""
+	if vals := header.Get("x-streamdl-warning"); len(vals) > 0 {
+		warning = vals[0]
+	}
+	return StreamURLs{Video: msg.Url, Audio: msg.GetAudioUrl(), Warning: warning}, nil
+}
+
+// streamResolveError prefers the gRPC status message when it is user-facing.
+func streamResolveError(statusMessage, fallback string) error {
+	msg := strings.TrimSpace(statusMessage)
+	if msg == "" || strings.Contains(msg, " - Unknown error") {
+		return errors.New(fallback)
+	}
+	return errors.New(msg)
 }

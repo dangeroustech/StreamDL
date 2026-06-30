@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -94,6 +95,7 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 		activeUsersMu.Lock()
 		delete(activeUsers, user)
 		activeUsersMu.Unlock()
+		tickNotices.ClearChannel(user)
 		log.Debugf("Removed %s from active list", user)
 	}()
 
@@ -165,12 +167,12 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 					break
 				}
 				if err.Error() != "rate limited" {
-					log.Warnf("Failed to resolve stream URL for %s: %v", user, err)
+					tickNotices.Warn(user, fmt.Sprintf("Failed to resolve stream URL: %v", err))
 					mu.Unlock()
 					return
 				}
 				if ri == len(resolveBackoffs)-1 {
-					log.Errorf("Rate limited resolving URL for %s after %d attempts, giving up", user, ri+1)
+					tickNotices.Error(user, "Rate limited resolving stream URL after multiple attempts")
 					mu.Unlock()
 					return
 				}
@@ -325,6 +327,7 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 					}
 				}
 				log.Errorf("FFmpeg failed for %s after %d attempts: %v", user, attempt, err)
+				tickNotices.Error(user, fmt.Sprintf("Recording failed after %d attempts: %v", attempt, err))
 				// Ensure cleanup so the next tick can retry fresh
 				return
 			}
@@ -649,8 +652,9 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 			log.Warnf("FFmpeg failed for VOD %s: %v", vod.ID, err)
 			ffLog := tailString(buf.String(), 50)
 			if ffLog != "" {
-				log.Warnf("FFmpeg log tail for VOD %s:\n%s", vod.ID, sanitizeLog(ffLog))
+				log.Debugf("FFmpeg log tail for VOD %s:\n%s", vod.ID, sanitizeLog(ffLog))
 			}
+			tickNotices.Warn(user, fmt.Sprintf("VOD %s recording failed: %v", vod.ID, err))
 			if vodDB != nil {
 				vodDB.MarkVODFailed(vod.ID)
 			}
