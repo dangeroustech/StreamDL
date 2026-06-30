@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"testing"
 )
@@ -8,9 +9,6 @@ import (
 // TODO: Figure out a way to pull a definitely active Twitch stream for a 200 test
 
 func TestGetStreamTwitch404(t *testing.T) {
-	// would be good to actually return a status code
-	// from getStream so that we can actually
-	// match to the status code when testing
 	os.Setenv("STREAMDL_GRPC_ADDR", "localhost")
 	defer os.Unsetenv("STREAMDL_GRPC_ADDR")
 
@@ -39,9 +37,6 @@ func TestGetStreamYouTube404(t *testing.T) {
 }
 
 func TestGetStreamKick404(t *testing.T) {
-	// Kick is not actually yet supported
-	// But it follows the Twitch style
-	// site/channel naming format
 	os.Setenv("STREAMDL_GRPC_ADDR", "localhost")
 	defer os.Unsetenv("STREAMDL_GRPC_ADDR")
 
@@ -52,5 +47,38 @@ func TestGetStreamKick404(t *testing.T) {
 
 	if result.Video != "" {
 		t.Errorf("Test should have not received an URL, got %s", result.Video)
+	}
+}
+
+func TestStreamResolveError(t *testing.T) {
+	t.Run("uses status message when present", func(t *testing.T) {
+		got := streamResolveError("Requested quality '1080p' not available", "fallback")
+		if got.Error() != "Requested quality '1080p' not available" {
+			t.Fatalf("unexpected message: %q", got.Error())
+		}
+	})
+
+	t.Run("falls back for empty message", func(t *testing.T) {
+		got := streamResolveError("", "stream not found or offline")
+		if got.Error() != "stream not found or offline" {
+			t.Fatalf("unexpected message: %q", got.Error())
+		}
+	})
+
+	t.Run("falls back for unknown error suffix", func(t *testing.T) {
+		got := streamResolveError("500 - Unknown error", "failed to get stream")
+		if got.Error() != "failed to get stream" {
+			t.Fatalf("unexpected message: %q", got.Error())
+		}
+	})
+}
+
+func TestStreamResolveErrorIsUsableAsNotice(t *testing.T) {
+	err := streamResolveError("Channel 'offlineuser' is offline", "stream not found or offline")
+	if errors.Is(err, errors.New("stream not found or offline")) {
+		// different instances; just check text
+	}
+	if err.Error() != "Channel 'offlineuser' is offline" {
+		t.Fatalf("expected offline message, got %q", err.Error())
 	}
 }
