@@ -156,7 +156,7 @@ func main() {
 						}
 						log.Infof("VOD to download for %s: %s (%s)", streamer.User, vod.Title, vod.ID)
 						// Resolve the VOD URL through GetStream (Streamlink → yt-dlp fallback)
-						resolved, err := getStream(site.Site, "videos/"+vod.ID, streamer.Quality)
+						resolved, err := getStream(site.Site, vodStreamUser(vod.ID), streamer.Quality)
 						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err != nil {
 							tickNotices.Warn(streamer.User, fmt.Sprintf("Failed to resolve VOD %s: %v", vod.ID, err))
@@ -254,4 +254,11 @@ func main() {
 			log.Tracef("Ticking: %v", t)
 		}
 	}
+}
+
+// vodStreamUser returns the GetStream user path for a VOD ID from GetVods.
+// yt-dlp returns Twitch IDs with a leading "v" (e.g. v2807766672); GetStream
+// expects twitch.tv/videos/<numeric_id>.
+func vodStreamUser(vodID string) string {
+	return "videos/" + strings.TrimPrefix(vodID, "v")
 }
