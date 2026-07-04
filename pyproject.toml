@@ -15,7 +15,7 @@ dependencies = [
   "protobuf<6.0.0,>=5.29.0",
   "streamlink>=8.4.0",
   "wheel>=0.47.0,<1.0.0",
-  "yt-dlp>=2026.3.17",
+  "yt-dlp>=2026.6.9",
 ]
 name = "StreamDL"
 version = "3.6.0"
