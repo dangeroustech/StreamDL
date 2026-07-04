@@ -450,6 +450,11 @@ def get_stream(r):
                         "Fallback yt-dlp extractor error for %s: %s", r.user, fallback_err
                     )
                     return {"error": 500, "message": f"Extractor error: {fallback_err}"}
+                except Exception as fallback_err:
+                    logger.error(
+                        "Unexpected fallback yt-dlp error for %s: %s", r.user, fallback_err
+                    )
+                    return {"error": 500, "message": f"Unexpected error: {fallback_err}"}
             elif "HTTP Error 429: Too Many Requests " in str(e):
                 return {"error": 429, "message": "Rate limited by site"}
             elif "currently offline" in str(e):

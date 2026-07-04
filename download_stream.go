@@ -218,7 +218,8 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 			iIdx := indexOf(cmd.Args, "-i")
 			if iIdx != -1 && iIdx+1 < len(cmd.Args) {
 				insertAt := iIdx + 2 // after "-i" and the video URL
-				audioArgs := []string{"-i", streamURLs.Audio, "-map", "0:v", "-map", "1:a", "-c", "copy"}
+				audioHygiene := buildNetworkHygieneArgs()
+				audioArgs := append(audioHygiene, "-i", streamURLs.Audio, "-map", "0:v", "-map", "1:a", "-c", "copy")
 				newArgs := make([]string, 0, len(cmd.Args)+len(audioArgs))
 				newArgs = append(newArgs, cmd.Args[:insertAt]...)
 				newArgs = append(newArgs, audioArgs...)

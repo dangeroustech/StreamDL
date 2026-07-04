@@ -106,3 +106,20 @@ def test_ytdlp_format_fallback_second_failure_returns_error(mock_streamlink, moc
 
     assert res["error"] == 500
     assert "testuser" in res["message"]
+
+
+@patch("streamdl_proto_srv.yt_dlp.YoutubeDL")
+@patch("streamdl_proto_srv.Streamlink")
+def test_ytdlp_format_fallback_unexpected_error_returns_error(mock_streamlink, mock_ydl):
+    session = mock_streamlink.return_value
+    session.streams.side_effect = srv.NoPluginError("no plugin")
+    ydl_instance = mock_ydl.return_value.__enter__.return_value
+    ydl_instance.extract_info.side_effect = [
+        srv.DownloadError("ERROR: Requested format is not available"),
+        RuntimeError("unexpected fallback failure"),
+    ]
+
+    res = srv.get_stream(_request(site="kick.com", quality="worst"))
+
+    assert res["error"] == 500
+    assert "unexpected fallback failure" in res["message"]
