@@ -6,6 +6,10 @@ set -euo pipefail
 # Usage: ./tests/integration/run.sh
 #
 # Requires: docker compose, ffprobe
+#
+# Env:
+#   INTEGRATION_FORCE_BUILD=1  Rebuild the client image on every start_client call
+#                              (default: build once, then recreate only)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.integration.yml"
@@ -50,6 +54,7 @@ CANDIDATE_CHANNELS=(
 
 HOOKS_DIR="$SCRIPT_DIR/hooks"
 LIVE_CHANNEL=""
+CLIENT_BUILT=0
 
 cleanup() {
   echo "--- Tearing down ---"
@@ -58,9 +63,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Rebuild and recreate the client without restarting the server.
+# Recreate the client without restarting the server. Build the image once per run
+# unless INTEGRATION_FORCE_BUILD=1 (config/mount changes still apply via recreate).
 start_client() {
-  $DC -f "$COMPOSE_FILE" up -d --build --force-recreate --no-deps client
+  local build_args=()
+  if [ "${INTEGRATION_FORCE_BUILD:-0}" = "1" ] || [ "$CLIENT_BUILT" -eq 0 ]; then
+    build_args=(--build)
+  fi
+  CLIENT_BUILT=1
+  $DC -f "$COMPOSE_FILE" up -d "${build_args[@]}" --force-recreate --no-deps client
 }
 
 assert_notice_after_wait() {
