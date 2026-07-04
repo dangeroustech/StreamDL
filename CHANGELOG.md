@@ -1,3 +1,61 @@
+## [3.8.0](https://github.com/dangeroustech/StreamDL/compare/v3.7.3...v3.8.0) (2026-07-04)
+
+
+### 🧪 Tests
+
+* add post_script hook verification to integration test ([52a45c3](https://github.com/dangeroustech/StreamDL/commit/52a45c3827b68ff9d6b8b0805f44dd44968deffa))
+* add Python tests for format mapping, error classification, and VOD parsing ([dba0762](https://github.com/dangeroustech/StreamDL/commit/dba07623d3254ee9a697ca991b78bec94f13cff5))
+* add unit tests for _extract_urls video/audio splitting ([600172d](https://github.com/dangeroustech/StreamDL/commit/600172d11258c57386e6e47a87cc7954dc6d3153))
+
+
+### 🎉 New Features
+
+* add post_script field to Config struct ([3eeb2d9](https://github.com/dangeroustech/StreamDL/commit/3eeb2d9c2fe60f880c1cd59db684563c5b302416))
+* add runPostScript function with tests ([a17f403](https://github.com/dangeroustech/StreamDL/commit/a17f40322dec19736eb7a6a508a11202217a971e))
+* post-download script hook (WIP) ([2fe9f7a](https://github.com/dangeroustech/StreamDL/commit/2fe9f7aa9fc1e6a22ff53cddbd7de179274af0ce))
+* tick-scoped notice buffer flushed after wait message ([fa6c159](https://github.com/dangeroustech/StreamDL/commit/fa6c1593e6c161ec427c76f84329cd6acfc58dde)), closes [#573](https://github.com/dangeroustech/StreamDL/issues/573)
+* wire post_script into downloadStream ([88e22f3](https://github.com/dangeroustech/StreamDL/commit/88e22f3c047015eb1b654a1d03a1f88a570e48ed))
+* wire post_script into downloadVOD ([ab67aab](https://github.com/dangeroustech/StreamDL/commit/ab67aab61cdc20bc58a90a53f51a328fae924fdb))
+
+
+### 📚 Documentation
+
+* add post_script hook documentation to README ([e1a3551](https://github.com/dangeroustech/StreamDL/commit/e1a3551db54dae26796924fdc64d9bfb579da49f))
+* fill README gaps for post_script, notices, and config example ([017f08b](https://github.com/dangeroustech/StreamDL/commit/017f08b92c5c9637307271d9a56cd9fb49a8edec))
+
+
+### ✍ Chore
+
+* **deps:** bump FFmpeg from 8.0 to 8.1 ([7e0fe74](https://github.com/dangeroustech/StreamDL/commit/7e0fe7407a31124bb4d660e6d13e4cf5ca56e07d))
+* **deps:** bump golang.org/x/net from 0.49.0 to 0.55.0 ([d6881f6](https://github.com/dangeroustech/StreamDL/commit/d6881f650637bbc5847fecabacde62707719b390)), closes [#575](https://github.com/dangeroustech/StreamDL/issues/575)
+
+
+### 🐛 Bug Fixes
+
+* add executability check to runPostScript ([b8b10fe](https://github.com/dangeroustech/StreamDL/commit/b8b10fe823bfc2ae13a75c26a9cbae92621ebc30))
+* add explicit stream mapping for dual-input FFmpeg commands ([c5fae62](https://github.com/dangeroustech/StreamDL/commit/c5fae62f91bc5da88f09c963fa191a81bfe276d5))
+* add graceful shutdown and timeout for post-script hooks ([5be9793](https://github.com/dangeroustech/StreamDL/commit/5be97930aa209635da6672334e42d44dd466b6eb))
+* address CodeRabbit review feedback from [#581](https://github.com/dangeroustech/StreamDL/issues/581) ([0b64e8d](https://github.com/dangeroustech/StreamDL/commit/0b64e8d722e197d1626e01f26762426fc50f7a19))
+* apply FFmpeg hygiene to audio input and guard yt-dlp fallback ([4741dd5](https://github.com/dangeroustech/StreamDL/commit/4741dd5f8c52c15864189749398fb153583fb190))
+* build integration client image once per run ([cdbaadf](https://github.com/dangeroustech/StreamDL/commit/cdbaadf14284f3724e03bd58b75bd01e310a9eeb)), closes [#576](https://github.com/dangeroustech/StreamDL/issues/576)
+* **deps:** bump grpc and go-jose to resolve Snyk CVE-2026-34986 ([7da7e70](https://github.com/dangeroustech/StreamDL/commit/7da7e70fa62150e8e9727cd947581e44506c03aa))
+* eliminate double URL resolution to reduce rate limiting ([a8e6022](https://github.com/dangeroustech/StreamDL/commit/a8e602287269a82ff5a12bc264303220f9273863))
+* extract stream URL from merged yt-dlp format results ([ca7ee6c](https://github.com/dangeroustech/StreamDL/commit/ca7ee6c62dfa0186f49d4bb01e84ce2e688a1f83))
+* keep notice tests running when VOD fails ([ce3e4e4](https://github.com/dangeroustech/StreamDL/commit/ce3e4e4ae290a7e3aa3787887fe579af0fdae3e8))
+* map quality names to compound yt-dlp format selectors ([89fc58f](https://github.com/dangeroustech/StreamDL/commit/89fc58f5a03ae8bd9276c56a36e2d48e2f17207a))
+* pass probe URL to first FFmpeg attempt, only re-resolve on retries ([55e98fd](https://github.com/dangeroustech/StreamDL/commit/55e98fdb239cf41b1a925f189bc64a0b9e79853e))
+* prefer HLS master manifest URL for merged format streams ([326c383](https://github.com/dangeroustech/StreamDL/commit/326c383fcb83a5943b19e26bfeb8b7d77d75a12f))
+* regenerate root-level Python proto files with audio_url field ([dd64e19](https://github.com/dangeroustech/StreamDL/commit/dd64e19bd4c9e2dbf6ff9babe53c3d2201a51627))
+* resolve stream URL immediately before FFmpeg starts ([067df90](https://github.com/dangeroustech/StreamDL/commit/067df90519035bb544fa5a8cc80a9182655592f6))
+* restore liveness probe to avoid launching goroutines for offline users ([558b1ad](https://github.com/dangeroustech/StreamDL/commit/558b1add752c8ea01ab45eceeefc53324e8b5d01))
+* return video stream URL instead of manifest URL ([5f5ff25](https://github.com/dangeroustech/StreamDL/commit/5f5ff25461266fddbf8afead5c7a09e297380f0b))
+* serialize URL resolution per-site to prevent rate limit storms ([eca487a](https://github.com/dangeroustech/StreamDL/commit/eca487ab701b073b8dd893ded1011da922e9e188))
+* skip reconnect flags for HLS split-format streams ([abef4fa](https://github.com/dangeroustech/StreamDL/commit/abef4fa64374b893e678fb9cdfc6ad0040d8fa52))
+* strip v prefix from Twitch VOD IDs for GetStream ([8e1eb97](https://github.com/dangeroustech/StreamDL/commit/8e1eb97aa39b169dfdcd8731f7843624d769cd8f))
+* support split video/audio streams from yt-dlp ([dce32b7](https://github.com/dangeroustech/StreamDL/commit/dce32b7b5db119088f076e5674b8367aeac27ac8))
+* use process group for post-script timeout cleanup ([9a81e2a](https://github.com/dangeroustech/StreamDL/commit/9a81e2ad662b63d7de169bf26775263401fc3d4a))
+* validate yt-dlp URLs and guard format fallback errors ([e9995ca](https://github.com/dangeroustech/StreamDL/commit/e9995cad574dc8da5b133ed7976fd97dab7faccf))
+
 ### [3.7.3](https://github.com/dangeroustech/StreamDL/compare/v3.7.2...v3.7.3) (2026-07-04)
 
 
