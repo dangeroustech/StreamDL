@@ -101,7 +101,7 @@ uv run python streamdl.py -config ./config/config.yml -time 300
 
 ## Config File
 
-Basic YAML format. See `config/config.yaml.example` for a couple of test sites.
+Basic YAML format. See `config/config.yml.example` for a couple of test sites.
 
 ```yaml
 - site: twitch.tv
@@ -150,6 +150,48 @@ volumes:
 - To download both live streams and VODs, add the same channel twice with different modes
 - Currently supported for Twitch only
 
+## Post-Download Script Hook
+
+You can configure a script to run automatically after each successful download — for both live streams and VODs. The script is set per-site using the `post_script` field:
+
+```yaml
+- site: twitch.tv
+  post_script: /scripts/transcode.sh
+  channels:
+  - name: kaicenat
+    quality: best
+```
+
+The script must exist and be executable (`chmod +x /scripts/transcode.sh`). It receives the file path as its first argument, and additional context via environment variables:
+
+| Variable | Description | Example |
+|---|---|---|
+| `STREAMDL_FILE` | Path to the downloaded file | `/data/complete/user_2026-04-14.mp4` |
+| `STREAMDL_USER` | Channel/user name | `kaicenat` |
+| `STREAMDL_SITE` | Site domain | `twitch.tv` |
+| `STREAMDL_TYPE` | Download type | `live` or `vod` |
+
+The script runs asynchronously and will not block other downloads. If the script fails or exceeds the timeout, an error is logged but StreamDL continues operating normally. Use `STREAMDL_POST_SCRIPT_TIMEOUT` (seconds, default `1800`) to cap how long a hook may run.
+
+**Docker:** Mount your script directory into the container and point `post_script` at the in-container path:
+
+```yaml
+volumes:
+  - ./scripts:/scripts:ro
+```
+
+## Tick Notices
+
+At the end of each check cycle, StreamDL logs a wait line followed by any actionable notices collected during that tick:
+
+```
+Waiting 60s until next check...
+--- notices ---
+[day9tv] Requested format '1080p60' unavailable; using default selection
+```
+
+Notices cover things like quality fallbacks, rate-limit skips, and download failures. Each notice is shown at most once per channel until the channel goes offline (live) or the condition clears, so repeated warnings within a tick are deduplicated.
+
 ## Environment Variables
 
 StreamDL supports configuration through environment variables for certain system-level settings.
@@ -165,6 +207,7 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 | `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
 | `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
 | `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
+| `STREAMDL_POST_SCRIPT_TIMEOUT` | Maximum seconds a post-download hook may run before being killed                          | `1800`   |
 
 ### User ID and Group ID Configuration
 

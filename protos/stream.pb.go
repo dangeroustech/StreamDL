@@ -93,6 +93,7 @@ type StreamResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	Error         int32                  `protobuf:"varint,2,opt,name=error,proto3" json:"error,omitempty"`
+	AudioUrl      string                 `protobuf:"bytes,3,opt,name=audio_url,json=audioUrl,proto3" json:"audio_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,6 +140,13 @@ func (x *StreamResponse) GetError() int32 {
 		return x.Error
 	}
 	return 0
+}
+
+func (x *StreamResponse) GetAudioUrl() string {
+	if x != nil {
+		return x.AudioUrl
+	}
+	return ""
 }
 
 type VodRequest struct {
@@ -331,10 +339,11 @@ const file_protos_stream_proto_rawDesc = "" +
 	"\x04site\x18\x01 \x01(\tR\x04site\x12\x12\n" +
 	"\x04user\x18\x02 \x01(\tR\x04user\x12\x18\n" +
 	"\aquality\x18\x03 \x01(\tR\aquality\x12'\n" +
-	"\x0foutput_template\x18\x04 \x01(\tR\x0eoutputTemplate\"8\n" +
+	"\x0foutput_template\x18\x04 \x01(\tR\x0eoutputTemplate\"U\n" +
 	"\x0eStreamResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\x05R\x05error\"J\n" +
+	"\x05error\x18\x02 \x01(\x05R\x05error\x12\x1b\n" +
+	"\taudio_url\x18\x03 \x01(\tR\baudioUrl\"J\n" +
 	"\n" +
 	"VodRequest\x12\x12\n" +
 	"\x04site\x18\x01 \x01(\tR\x04site\x12\x12\n" +

@@ -1,4 +1,5 @@
 - site: twitch.tv
+  # post_script: /scripts/transcode.sh  # Optional: run after each live/VOD download
   channels:
   - name: kaypealol
     quality: best
