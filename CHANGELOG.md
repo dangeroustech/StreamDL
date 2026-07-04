@@ -1,3 +1,10 @@
+### [3.7.2](https://github.com/dangeroustech/StreamDL/compare/v3.7.1...v3.7.2) (2026-07-04)
+
+
+### ✍ Chore
+
+* **deps:** bump streamlink from 8.3.0 to 8.4.0 ([80f25ac](https://github.com/dangeroustech/StreamDL/commit/80f25ac6ee750fd6db800ec7135bd911ee29f93e))
+
 ### [3.7.1](https://github.com/dangeroustech/StreamDL/compare/v3.7.0...v3.7.1) (2026-04-14)
 
 
