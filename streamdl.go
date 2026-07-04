@@ -156,7 +156,10 @@ func main() {
 						}
 						log.Infof("VOD to download for %s: %s (%s)", streamer.User, vod.Title, vod.ID)
 						// Resolve the VOD URL through GetStream (Streamlink → yt-dlp fallback)
+						resolveMu := getSiteResolveMu(site.Site)
+						resolveMu.Lock()
 						resolved, err := getStream(site.Site, vodStreamUser(vod.ID), streamer.Quality)
+						resolveMu.Unlock()
 						time.Sleep(time.Second * time.Duration(*batchTime))
 						if err != nil {
 							tickNotices.Warn(streamer.User, fmt.Sprintf("Failed to resolve VOD %s: %v", vod.ID, err))
@@ -189,7 +192,10 @@ func main() {
 							// Probe whether the user is live and capture the URL for the
 							// initial FFmpeg attempt. Retries inside downloadStream will
 							// resolve a fresh URL in case the token expires.
+							resolveMu := getSiteResolveMu(site.Site)
+							resolveMu.Lock()
 							probeResult, err := getStream(site.Site, streamer.User, streamer.Quality)
+							resolveMu.Unlock()
 							if attempt == 0 {
 								time.Sleep(time.Second * time.Duration(*batchTime))
 							}

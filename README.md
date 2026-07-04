@@ -184,7 +184,7 @@ volumes:
 
 At the end of each check cycle, StreamDL logs a wait line followed by any actionable notices collected during that tick:
 
-```
+```text
 Waiting 60s until next check...
 --- notices ---
 [day9tv] Requested format '1080p60' unavailable; using default selection

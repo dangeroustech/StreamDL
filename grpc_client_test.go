@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"testing"
 )
@@ -75,9 +74,6 @@ func TestStreamResolveError(t *testing.T) {
 
 func TestStreamResolveErrorIsUsableAsNotice(t *testing.T) {
 	err := streamResolveError("Channel 'offlineuser' is offline", "stream not found or offline")
-	if errors.Is(err, errors.New("stream not found or offline")) {
-		// different instances; just check text
-	}
 	if err.Error() != "Channel 'offlineuser' is offline" {
 		t.Fatalf("expected offline message, got %q", err.Error())
 	}

@@ -193,23 +193,23 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 			OutputLogs(buf).
 			Build()
 
-		// Inject resilient network flags before the FFmpeg input ("-i") argument.
-		// Skip reconnect flags for HLS split-format streams — the HLS demuxer handles
-		// segment transitions natively, and reconnect_streamed/reconnect_at_eof cause
-		// 403 loops when segment session tokens expire between reconnect attempts.
+		// Inject network hygiene before the FFmpeg input ("-i") argument.
+		// Reconnect flags are skipped for split A/V streams — reconnect_streamed/reconnect_at_eof
+		// cause 403 loops when HLS segment session tokens expire between reconnect attempts.
+		networkArgs := buildNetworkHygieneArgs()
 		if streamURLs.Audio == "" {
-			reconnectArgs := buildReconnectArgs()
-			if len(reconnectArgs) > 0 {
-				idx := indexOf(cmd.Args, "-i")
-				if idx == -1 {
-					cmd.Args = append(reconnectArgs, cmd.Args...)
-				} else {
-					newArgs := make([]string, 0, len(cmd.Args)+len(reconnectArgs))
-					newArgs = append(newArgs, cmd.Args[:idx]...)
-					newArgs = append(newArgs, reconnectArgs...)
-					newArgs = append(newArgs, cmd.Args[idx:]...)
-					cmd.Args = newArgs
-				}
+			networkArgs = append(networkArgs, buildReconnectFlags()...)
+		}
+		if len(networkArgs) > 0 {
+			idx := indexOf(cmd.Args, "-i")
+			if idx == -1 {
+				cmd.Args = append(networkArgs, cmd.Args...)
+			} else {
+				newArgs := make([]string, 0, len(cmd.Args)+len(networkArgs))
+				newArgs = append(newArgs, cmd.Args[:idx]...)
+				newArgs = append(newArgs, networkArgs...)
+				newArgs = append(newArgs, cmd.Args[idx:]...)
+				cmd.Args = newArgs
 			}
 		}
 		// If a separate audio URL is available, add it as a second input with
@@ -352,40 +352,14 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 	}
 }
 
-// buildReconnectArgs constructs FFmpeg network resilience flags, taking optional overrides
-// from environment variables. Defaults are conservative and safe for most HLS/HTTP streams.
-// Environment variables (all optional):
-//
-//	FFMPEG_RECONNECT=1|0
-//	FFMPEG_RECONNECT_DELAY_MAX=seconds (default 5)
-//	FFMPEG_RW_TIMEOUT_US=microseconds (default 15000000 → 15s)
-//	FFMPEG_USER_AGENT=custom UA string
-func buildReconnectArgs() []string {
-	// Toggle reconnect features (enabled by default)
-	reconnectEnabled := strings.ToLower(os.Getenv("FFMPEG_RECONNECT"))
-	if reconnectEnabled == "0" || reconnectEnabled == "false" {
-		return nil
-	}
-
-	delayMaxStr := os.Getenv("FFMPEG_RECONNECT_DELAY_MAX")
-	if delayMaxStr == "" {
-		delayMaxStr = "15"
-	}
-
-	// Socket I/O timeout in microseconds (many protocols honor -rw_timeout)
+// buildNetworkHygieneArgs returns FFmpeg input options that are safe for all stream types.
+func buildNetworkHygieneArgs() []string {
 	rwdTimeoutStr := os.Getenv("FFMPEG_RW_TIMEOUT_US")
 	if rwdTimeoutStr == "" {
 		rwdTimeoutStr = "15000000" // 15s default
 	}
 
-	args := []string{
-		"-reconnect", "1",
-		"-reconnect_at_eof", "1",
-		"-reconnect_streamed", "1",
-		"-reconnect_delay_max", delayMaxStr,
-		// Use -rw_timeout for broad protocol coverage (microseconds)
-		"-rw_timeout", rwdTimeoutStr,
-	}
+	args := []string{"-rw_timeout", rwdTimeoutStr}
 
 	if pw := strings.TrimSpace(os.Getenv("FFMPEG_PROTOCOL_WHITELIST")); pw != "" {
 		args = append(args, "-protocol_whitelist", pw)
@@ -396,6 +370,30 @@ func buildReconnectArgs() []string {
 	}
 
 	return args
+}
+
+// buildReconnectFlags returns FFmpeg reconnect flags for single-input streams.
+// Environment variables (all optional):
+//
+//	FFMPEG_RECONNECT=1|0
+//	FFMPEG_RECONNECT_DELAY_MAX=seconds (default 15)
+func buildReconnectFlags() []string {
+	reconnectEnabled := strings.ToLower(os.Getenv("FFMPEG_RECONNECT"))
+	if reconnectEnabled == "0" || reconnectEnabled == "false" {
+		return nil
+	}
+
+	delayMaxStr := os.Getenv("FFMPEG_RECONNECT_DELAY_MAX")
+	if delayMaxStr == "" {
+		delayMaxStr = "15"
+	}
+
+	return []string{
+		"-reconnect", "1",
+		"-reconnect_at_eof", "1",
+		"-reconnect_streamed", "1",
+		"-reconnect_delay_max", delayMaxStr,
+	}
 }
 
 // indexOf returns the index of the first occurrence of target in slice, or -1.
