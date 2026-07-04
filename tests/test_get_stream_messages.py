@@ -75,3 +75,34 @@ def test_ytdlp_format_fallback_sets_warning(mock_streamlink, mock_ydl):
     assert res["url"] == "http://example/video"
     assert "worst" in res["warning"]
     assert "default selection" in res["warning"]
+
+
+@patch("streamdl_proto_srv.yt_dlp.YoutubeDL")
+@patch("streamdl_proto_srv.Streamlink")
+def test_ytdlp_empty_video_url_returns_error(mock_streamlink, mock_ydl):
+    session = mock_streamlink.return_value
+    session.streams.side_effect = srv.NoPluginError("no plugin")
+    ydl_instance = mock_ydl.return_value.__enter__.return_value
+    ydl_instance.extract_info.return_value = {}
+
+    res = srv.get_stream(_request(site="kick.com"))
+
+    assert res["error"] == 500
+    assert "testuser" in res["message"]
+
+
+@patch("streamdl_proto_srv.yt_dlp.YoutubeDL")
+@patch("streamdl_proto_srv.Streamlink")
+def test_ytdlp_format_fallback_second_failure_returns_error(mock_streamlink, mock_ydl):
+    session = mock_streamlink.return_value
+    session.streams.side_effect = srv.NoPluginError("no plugin")
+    ydl_instance = mock_ydl.return_value.__enter__.return_value
+    ydl_instance.extract_info.side_effect = [
+        srv.DownloadError("ERROR: Requested format is not available"),
+        srv.DownloadError("ERROR: fallback extraction failed"),
+    ]
+
+    res = srv.get_stream(_request(site="kick.com", quality="worst"))
+
+    assert res["error"] == 500
+    assert "testuser" in res["message"]

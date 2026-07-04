@@ -383,6 +383,12 @@ def get_stream(r):
                 logger.debug("yt_dlp.extract_info(url=%s)", ytdlp_url)
                 info_dict = ydl.extract_info(ytdlp_url, download=False)
                 video_url, audio_url = _extract_urls(info_dict)
+                if not video_url:
+                    logger.error("No video URL resolved for %s", r.user)
+                    return {
+                        "error": 500,
+                        "message": f"Unable to resolve stream URL for '{r.user}'",
+                    }
                 return {"url": video_url, "audio_url": audio_url}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
@@ -401,35 +407,49 @@ def get_stream(r):
                     yt_dlp_format,
                     r.user,
                 )
-                with yt_dlp.YoutubeDL(
-                    {
-                        "quiet": yt_dlp_quiet,
-                        "no_warnings": yt_dlp_no_warnings,
-                        "verbose": False,
-                        "logger": None,  # Disable yt-dlp's internal logger
-                    }
-                ) as ydl_temp:
-                    fallback_url = r.site + "/" + r.user
-                    logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
-                    info_dict = ydl_temp.extract_info(fallback_url, download=False)
-                    video_url, audio_url = _extract_urls(info_dict)
-                    if video_url:
-                        warning = (
-                            f"Requested format '{yt_dlp_format}' unavailable; "
-                            "using default selection"
-                        )
-                        logger.info("Fallback format selection succeeded for %s", r.user)
-                        return {
-                            "url": video_url,
-                            "audio_url": audio_url,
-                            "warning": warning,
+                try:
+                    with yt_dlp.YoutubeDL(
+                        {
+                            "quiet": yt_dlp_quiet,
+                            "no_warnings": yt_dlp_no_warnings,
+                            "verbose": False,
+                            "logger": None,  # Disable yt-dlp's internal logger
                         }
-                    message = (
-                        f"Requested format '{yt_dlp_format}' not available "
-                        f"for '{r.user}'"
+                    ) as ydl_temp:
+                        fallback_url = r.site + "/" + r.user
+                        logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
+                        info_dict = ydl_temp.extract_info(fallback_url, download=False)
+                        video_url, audio_url = _extract_urls(info_dict)
+                        if video_url:
+                            warning = (
+                                f"Requested format '{yt_dlp_format}' unavailable; "
+                                "using default selection"
+                            )
+                            logger.info("Fallback format selection succeeded for %s", r.user)
+                            return {
+                                "url": video_url,
+                                "audio_url": audio_url,
+                                "warning": warning,
+                            }
+                        message = (
+                            f"Requested format '{yt_dlp_format}' not available "
+                            f"for '{r.user}'"
+                        )
+                        logger.error("Fallback format selection returned no URL for %s", r.user)
+                        return {"error": 415, "message": message}
+                except DownloadError as fallback_err:
+                    logger.error(
+                        "Fallback yt-dlp extraction failed for %s: %s", r.user, fallback_err
                     )
-                    logger.error("Fallback format selection returned no URL for %s", r.user)
-                    return {"error": 415, "message": message}
+                    return {
+                        "error": 500,
+                        "message": f"Unable to resolve stream URL for '{r.user}'",
+                    }
+                except ExtractorError as fallback_err:
+                    logger.error(
+                        "Fallback yt-dlp extractor error for %s: %s", r.user, fallback_err
+                    )
+                    return {"error": 500, "message": f"Extractor error: {fallback_err}"}
             elif "HTTP Error 429: Too Many Requests " in str(e):
                 return {"error": 429, "message": "Rate limited by site"}
             elif "currently offline" in str(e):
