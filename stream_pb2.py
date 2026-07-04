@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cstream.proto\x12\x06protos\"R\n\nStreamInfo\x12\x0c\n\x04site\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0f\n\x07quality\x18\x03 \x01(\t\x12\x17\n\x0foutput_template\x18\x04 \x01(\t\",\n\x0eStreamResponse\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\x05\"7\n\nVodRequest\x12\x0c\n\x04site\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\r\n\x05limit\x18\x03 \x01(\x05\"T\n\x07VodInfo\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x14\n\x0cpublished_at\x18\x03 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x04 \x01(\x03\";\n\x0bVodResponse\x12\x1d\n\x04vods\x18\x01 \x03(\x0b\x32\x0f.protos.VodInfo\x12\r\n\x05\x65rror\x18\x02 \x01(\x05\x32u\n\x06Stream\x12\x37\n\tGetStream\x12\x12.protos.StreamInfo\x1a\x16.protos.StreamResponse\x12\x32\n\x07GetVods\x12\x12.protos.VodRequest\x1a\x13.protos.VodResponseB\"Z dangerous.tech/streamdl;streamdlb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cstream.proto\x12\x06protos\"R\n\nStreamInfo\x12\x0c\n\x04site\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0f\n\x07quality\x18\x03 \x01(\t\x12\x17\n\x0foutput_template\x18\x04 \x01(\t\"?\n\x0eStreamResponse\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\r\n\x05\x65rror\x18\x02 \x01(\x05\x12\x11\n\taudio_url\x18\x03 \x01(\t\"7\n\nVodRequest\x12\x0c\n\x04site\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\r\n\x05limit\x18\x03 \x01(\x05\"T\n\x07VodInfo\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x14\n\x0cpublished_at\x18\x03 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x04 \x01(\x03\";\n\x0bVodResponse\x12\x1d\n\x04vods\x18\x01 \x03(\x0b\x32\x0f.protos.VodInfo\x12\r\n\x05\x65rror\x18\x02 \x01(\x05\x32u\n\x06Stream\x12\x37\n\tGetStream\x12\x12.protos.StreamInfo\x1a\x16.protos.StreamResponse\x12\x32\n\x07GetVods\x12\x12.protos.VodRequest\x1a\x13.protos.VodResponseB\"Z dangerous.tech/streamdl;streamdlb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,13 +35,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_STREAMINFO']._serialized_start=24
   _globals['_STREAMINFO']._serialized_end=106
   _globals['_STREAMRESPONSE']._serialized_start=108
-  _globals['_STREAMRESPONSE']._serialized_end=152
-  _globals['_VODREQUEST']._serialized_start=154
-  _globals['_VODREQUEST']._serialized_end=209
-  _globals['_VODINFO']._serialized_start=211
-  _globals['_VODINFO']._serialized_end=295
-  _globals['_VODRESPONSE']._serialized_start=297
-  _globals['_VODRESPONSE']._serialized_end=356
-  _globals['_STREAM']._serialized_start=358
-  _globals['_STREAM']._serialized_end=475
+  _globals['_STREAMRESPONSE']._serialized_end=171
+  _globals['_VODREQUEST']._serialized_start=173
+  _globals['_VODREQUEST']._serialized_end=228
+  _globals['_VODINFO']._serialized_start=230
+  _globals['_VODINFO']._serialized_end=314
+  _globals['_VODRESPONSE']._serialized_start=316
+  _globals['_VODRESPONSE']._serialized_end=375
+  _globals['_STREAM']._serialized_start=377
+  _globals['_STREAM']._serialized_end=494
 # @@protoc_insertion_point(module_scope)

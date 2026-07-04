@@ -149,54 +149,61 @@ class StreamServicer(pb_grpc.Stream):
         res = get_stream(request)
         if not res.get("error"):
             context.set_code(grpc.StatusCode.OK)
+            if res.get("warning"):
+                context.send_initial_metadata((("x-streamdl-warning", res["warning"]),))
             logger.debug(
                 "GetStream success user=%s",
                 request.user,
             )
-            return pb.StreamResponse(url=res["url"])
+            return pb.StreamResponse(url=res["url"], audio_url=res.get("audio_url", ""))
         else:
             error_code = res["error"]
+            detail = res.get("message", f"Error {error_code}")
             logger.debug(
-                "GetStream failure user=%s site=%s quality=%s error=%s",
+                "GetStream failure user=%s site=%s quality=%s error=%s detail=%s",
                 request.user,
                 request.site,
                 request.quality,
                 error_code,
+                detail,
             )
             match error_code:
                 case 400:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                    context.set_details(f"{res['error']} - Invalid request")
+                    context.set_details(detail)
                 case 403:
                     context.set_code(grpc.StatusCode.UNAUTHENTICATED)
-                    context.set_details(f"{res['error']} - Unauthenticated")
+                    context.set_details(detail)
                 case 404:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                    context.set_details(f"{res['error']} - Not found")
+                    context.set_details(detail)
                 case 408:
                     context.set_code(grpc.StatusCode.DEADLINE_EXCEEDED)
-                    context.set_details(f"{res['error']} - Deadline exceeded")
+                    context.set_details(detail)
                 case 412:
                     context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
-                    context.set_details(f"{res['error']} - Failed precondition")
+                    context.set_details(detail)
+                case 414:
+                    context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                    context.set_details(detail)
                 case 415:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                    context.set_details(f"{res['error']} - Invalid format")
+                    context.set_details(detail)
                 case 418:
                     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-                    context.set_details(f"{res['error']} - Unimplemented")
+                    context.set_details(detail)
                 case 429:
                     context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
-                    context.set_details(f"{res['error']} - Resource exhausted")
+                    context.set_details(detail)
                 case 450:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                    context.set_details(f"{res['error']} - User is offline")
+                    context.set_details(detail)
                 case 500:
                     context.set_code(grpc.StatusCode.INTERNAL)
-                    context.set_details(f"{res['error']} - Internal server error")
+                    context.set_details(detail)
                 case _:
                     context.set_code(grpc.StatusCode.UNKNOWN)
-                    context.set_details(f"{res['error']} - Unknown error")
+                    context.set_details(detail)
             return pb.StreamResponse(error=error_code)
 
 
@@ -282,6 +289,32 @@ def get_vods(site, user, limit=10):
         return {"error": 500}
 
 
+def _extract_urls(info_dict):
+    """Extract video and audio stream URLs from a yt-dlp info dict.
+
+    Returns (video_url, audio_url). audio_url may be empty when the video URL
+    already contains both tracks (e.g. older extractors or Streamlink results).
+    When yt-dlp merges formats, we return separate video and audio URLs so
+    FFmpeg can combine them as two inputs.
+    """
+    url = info_dict.get("url")
+    if url:
+        return url, ""
+    requested = info_dict.get("requested_formats")
+    if requested:
+        video_url = ""
+        audio_url = ""
+        for rf in requested:
+            vcodec = rf.get("vcodec", "none")
+            acodec = rf.get("acodec", "none")
+            if vcodec and vcodec != "none" and not video_url:
+                video_url = rf.get("url", "")
+            elif (not vcodec or vcodec == "none") and not audio_url:
+                audio_url = rf.get("url", "")
+        return video_url or (requested[0].get("url", "")), audio_url
+    return "", ""
+
+
 def get_stream(r):
     """Resolve a stream URL using Streamlink, falling back to yt-dlp on failure."""
     logger.debug(
@@ -300,8 +333,11 @@ def get_stream(r):
         stream = session.streams(url=resolve_url, options=options)
 
         if not stream:
-            logger.warning(f"No streams found for user {r.user}")
-            return {"error": 404}
+            logger.warning("No streams found for user %s", r.user)
+            return {
+                "error": 404,
+                "message": f"No live streams found for '{r.user}' on {r.site}",
+            }
         else:
             try:
                 selected_quality = r.quality if r.quality else "best"
@@ -312,16 +348,31 @@ def get_stream(r):
                 )
                 return {"url": stream[selected_quality].url}
             except KeyError:
-                logger.critical("Stream quality not found - exiting")
-                return {"error": 414}
+                available = ", ".join(sorted(stream.keys()))
+                message = (
+                    f"Requested quality '{selected_quality}' not available. "
+                    f"Available: {available}"
+                )
+                logger.warning(message)
+                return {"error": 414, "message": message}
     except NoPluginError:
         logger.debug(f"Streamlink is unable to find a plugin for {r.site}")
         logger.debug("Falling back to yt_dlp")
         # Fallback to yt_dlp
+        # Map Streamlink-style quality names to yt-dlp compound format selectors.
+        # Bare "best"/"worst" broke in newer yt-dlp for some extractors (e.g. Chaturbate)
+        # where formats are split into separate video/audio streams.
+        yt_dlp_format_map = {
+            "best": "bestvideo*+bestaudio/best",
+            "worst": "worstvideo*+worstaudio/worst",
+        }
+        yt_dlp_format = yt_dlp_format_map.get(
+            r.quality, r.quality if r.quality else "bestvideo*+bestaudio/best"
+        )
         try:
             with yt_dlp.YoutubeDL(
                 {
-                    "format": r.quality if r.quality else "best",
+                    "format": yt_dlp_format,
                     "quiet": yt_dlp_quiet,
                     "no_warnings": yt_dlp_no_warnings,
                     "verbose": False,
@@ -331,54 +382,94 @@ def get_stream(r):
                 ytdlp_url = r.site + "/" + r.user
                 logger.debug("yt_dlp.extract_info(url=%s)", ytdlp_url)
                 info_dict = ydl.extract_info(ytdlp_url, download=False)
-                return {"url": info_dict.get("url", "")}
+                video_url, audio_url = _extract_urls(info_dict)
+                if not video_url:
+                    logger.error("No video URL resolved for %s", r.user)
+                    return {
+                        "error": 500,
+                        "message": f"Unable to resolve stream URL for '{r.user}'",
+                    }
+                return {"url": video_url, "audio_url": audio_url}
         except GeoRestrictedError as e:
             logger.error(f"GeoRestrictedError: {e}")
-            return {"error": 403}
+            return {"error": 403, "message": f"Geo-restricted: {e}"}
         except UnavailableVideoError as e:
             logger.error(f"UnavailableVideoError: {e}")
-            return {"error": 404}
+            return {"error": 404, "message": f"Stream unavailable: {e}"}
         except ExtractorError as e:
             logger.error(f"ExtractorError: {e}")
-            return {"error": 500}
+            return {"error": 500, "message": f"Extractor error: {e}"}
         except DownloadError as e:
             logger.error(f"DownloadError: {e}")
             if "Requested format is not available" in str(e):
-                with yt_dlp.YoutubeDL(
-                    {
-                        "quiet": yt_dlp_quiet,
-                        "no_warnings": yt_dlp_no_warnings,
-                        "verbose": False,
-                        "logger": None,  # Disable yt-dlp's internal logger
-                    }
-                ) as ydl_temp:
-                    fallback_url = r.site + "/" + r.user
-                    logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
-                    info_dict = ydl_temp.extract_info(fallback_url, download=False)
-                    logger.critical("Requested format is not available")
-                    logger.critical("Available formats:")
-                    # List available formats
-                    formats = info_dict.get("formats", [])
-                    for f in formats:
-                        fmt_id = f.get("format_id", "?")
-                        width = f.get("width", "?")
-                        height = f.get("height", "?")
-                        logger.critical(
-                            f"Format code: {fmt_id}, resolution: {width}x{height}"
+                logger.warning(
+                    "Format %s not available for %s, retrying with default selection",
+                    yt_dlp_format,
+                    r.user,
+                )
+                try:
+                    with yt_dlp.YoutubeDL(
+                        {
+                            "quiet": yt_dlp_quiet,
+                            "no_warnings": yt_dlp_no_warnings,
+                            "verbose": False,
+                            "logger": None,  # Disable yt-dlp's internal logger
+                        }
+                    ) as ydl_temp:
+                        fallback_url = r.site + "/" + r.user
+                        logger.debug("yt_dlp.extract_info (fallback) url=%s", fallback_url)
+                        info_dict = ydl_temp.extract_info(fallback_url, download=False)
+                        video_url, audio_url = _extract_urls(info_dict)
+                        if video_url:
+                            warning = (
+                                f"Requested format '{yt_dlp_format}' unavailable; "
+                                "using default selection"
+                            )
+                            logger.info("Fallback format selection succeeded for %s", r.user)
+                            return {
+                                "url": video_url,
+                                "audio_url": audio_url,
+                                "warning": warning,
+                            }
+                        message = (
+                            f"Requested format '{yt_dlp_format}' not available "
+                            f"for '{r.user}'"
                         )
-                    return {"error": 415}  # Format Not Available
+                        logger.error("Fallback format selection returned no URL for %s", r.user)
+                        return {"error": 415, "message": message}
+                except DownloadError as fallback_err:
+                    logger.error(
+                        "Fallback yt-dlp extraction failed for %s: %s", r.user, fallback_err
+                    )
+                    return {
+                        "error": 500,
+                        "message": f"Unable to resolve stream URL for '{r.user}'",
+                    }
+                except ExtractorError as fallback_err:
+                    logger.error(
+                        "Fallback yt-dlp extractor error for %s: %s", r.user, fallback_err
+                    )
+                    return {"error": 500, "message": f"Extractor error: {fallback_err}"}
+                except Exception as fallback_err:
+                    logger.error(
+                        "Unexpected fallback yt-dlp error for %s: %s", r.user, fallback_err
+                    )
+                    return {"error": 500, "message": f"Unexpected error: {fallback_err}"}
             elif "HTTP Error 429: Too Many Requests " in str(e):
-                return {"error": 429}  # Too Many Requests
+                return {"error": 429, "message": "Rate limited by site"}
             elif "currently offline" in str(e):
-                return {"error": 450}  # offline
+                return {
+                    "error": 450,
+                    "message": f"Channel '{r.user}' is offline",
+                }
             else:
-                return {"error": 500}  # Generic Download Error
+                return {"error": 500, "message": f"Download error: {e}"}
         except Exception as e:
             logger.error(f"Generic Error: {e}")
-            return {"error": 500}  # Generic Error
+            return {"error": 500, "message": f"Unexpected error: {e}"}
     except PluginError as err:
         logger.error(f"Plugin error: {err}")
-        return {"error": 500}  # Generic Plugin Error
+        return {"error": 500, "message": f"Plugin error: {err}"}
 
 
 if __name__ == "__main__":
