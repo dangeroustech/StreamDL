@@ -22,6 +22,7 @@ import (
 var (
 	activeUsers    = make(map[string]bool)
 	activeUsersMu  sync.RWMutex
+	downloadWg     sync.WaitGroup
 	vodWg          sync.WaitGroup
 	postScriptWg   sync.WaitGroup
 )
@@ -55,7 +56,6 @@ func main() {
 		config = parsed
 	}
 	control := make(chan bool)
-	response := make(chan bool)
 
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
@@ -208,7 +208,11 @@ func main() {
 								if probeResult.Warning != "" {
 									tickNotices.Warn(streamer.User, probeResult.Warning)
 								}
-								go downloadStream(streamer.User, site.Site, streamer.Quality, probeResult, *outLoc, *moveLoc, *subfolder, site.PostScript, control, response)
+								downloadWg.Add(1)
+								go func() {
+									defer downloadWg.Done()
+									downloadStream(streamer.User, site.Site, streamer.Quality, probeResult, *outLoc, *moveLoc, *subfolder, site.PostScript, control)
+								}()
 								break
 							}
 
@@ -244,13 +248,7 @@ func main() {
 			log.Tracef("Ticker Stopped")
 			log.Tracef("Closing Control Channel")
 			close(control)
-
-			activeUsersMu.RLock()
-			urlsLen := len(activeUsers)
-			activeUsersMu.RUnlock()
-			for i := 0; i < urlsLen; i++ {
-				<-response
-			}
+			downloadWg.Wait()
 			vodWg.Wait()
 			postScriptWg.Wait()
 			time.Sleep(time.Second * 3)
