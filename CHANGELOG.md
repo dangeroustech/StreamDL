@@ -1,3 +1,22 @@
+### [3.8.1](https://github.com/dangeroustech/StreamDL/compare/v3.8.0...v3.8.1) (2026-07-15)
+
+
+### ✍ Chore
+
+* gitignore integration test VOD data directory ([5bb2704](https://github.com/dangeroustech/StreamDL/commit/5bb27044f3e8904afed53d6fb504c5a72eb1fff9))
+
+
+### 🤖 CI/CD
+
+* separate PR builds from staging deployment ([5d02fcb](https://github.com/dangeroustech/StreamDL/commit/5d02fcb4a414c7d62c4c242446f9893e10e25348))
+
+
+### 🐛 Bug Fixes
+
+* avoid brittle OS package revision pins ([2f31b99](https://github.com/dangeroustech/StreamDL/commit/2f31b995e848e65885a63b770bb8fe09a9d3dd00))
+* **deps:** refresh Python security dependencies ([5334000](https://github.com/dangeroustech/StreamDL/commit/533400089e4e5aa074606d756b18402f49431e1d))
+* wait on download WaitGroup at shutdown instead of response channel ([cf7bcf8](https://github.com/dangeroustech/StreamDL/commit/cf7bcf858cf291445227982467b0eefefc3a8a26))
+
 ## [3.8.0](https://github.com/dangeroustech/StreamDL/compare/v3.7.3...v3.8.0) (2026-07-04)
 
 
