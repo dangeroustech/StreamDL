@@ -14,6 +14,21 @@ updates:
       prefix: chore 🤖
       prefix-development: chore 🤖
       include: scope
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    target-branch: staging
+    assignees:
+      - biodrone
+    labels:
+      - dependencies
+      - go
+    commit-message:
+      prefix: chore 🤖
+      prefix-development: chore 🤖
+      include: scope
   - package-ecosystem: github-actions
     directory: /
     schedule:
