@@ -6,7 +6,7 @@ toolchain go1.25.3
 
 require (
 	github.com/modfy/fluent-ffmpeg v0.1.0
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
