@@ -1,3 +1,15 @@
+### [3.8.2](https://github.com/dangeroustech/StreamDL/compare/v3.8.1...v3.8.2) (2026-07-15)
+
+
+### ✍ Chore
+
+* **deps:** update actions/setup-node to v7 ([cd9e990](https://github.com/dangeroustech/StreamDL/commit/cd9e990d1524c53d0db050c1d19a86b6a3f4c271))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** refresh Go security modules ([b2746f2](https://github.com/dangeroustech/StreamDL/commit/b2746f237276390221c4a46a15f25490ee7cd6eb))
+
 ### [3.8.1](https://github.com/dangeroustech/StreamDL/compare/v3.8.0...v3.8.1) (2026-07-15)
 
 
