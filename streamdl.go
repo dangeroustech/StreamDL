@@ -238,6 +238,7 @@ func main() {
 		activeUsersMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
+		logActiveDownloadSummary(downloadProgress)
 		tickNotices.Flush(*tickTime)
 
 		select {
