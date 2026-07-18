@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -218,6 +219,11 @@ func TestLogActiveDownloadSummary(t *testing.T) {
 		Valid:     true,
 	})
 
+	var console bytes.Buffer
+	origSummary := consoleSummary
+	consoleSummary = &console
+	t.Cleanup(func() { consoleSummary = origSummary })
+
 	out := captureLogs(func() {
 		logActiveDownloadSummary(store)
 	})
@@ -226,5 +232,8 @@ func TestLogActiveDownloadSummary(t *testing.T) {
 	}
 	if !strings.Contains(out, "[alice] live") {
 		t.Fatalf("missing entry: %s", out)
+	}
+	if !strings.Contains(console.String(), "[alice] live") {
+		t.Fatalf("console summary missing entry: %q", console.String())
 	}
 }

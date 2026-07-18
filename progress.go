@@ -453,14 +453,18 @@ func formatDurationShort(d time.Duration) string {
 	return fmt.Sprintf("%ds", s)
 }
 
-// logActiveDownloadSummary writes an INFO summary of in-flight downloads for the tick.
+// logActiveDownloadSummary writes an INFO summary of in-flight downloads for the
+// tick into the primary log sink, and mirrors a plain Active Downloads block to
+// stdout when logging is file-primary (see setupLogging).
 func logActiveDownloadSummary(store *progressStore) {
 	snap := store.Snapshot()
 	if len(snap) == 0 {
-		return
+		log.Debug("Active Downloads: (none)")
+	} else {
+		log.Info("Active Downloads:")
+		for _, p := range snap {
+			log.Infof("  %s", formatDownloadProgress(p))
+		}
 	}
-	log.Info("Active Downloads:")
-	for _, p := range snap {
-		log.Infof("  %s", formatDownloadProgress(p))
-	}
+	writeConsoleDownloadSummary(store)
 }

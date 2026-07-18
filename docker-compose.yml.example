@@ -17,5 +17,6 @@ services:
       - ./downloads/incomplete:/app/dl # in-progress downloads location
       - ./downloads/complete:/app/out # completed downloads location
       - ./config:/app/config # config folder - using a folder allows host updates without cycling the container
+      - ./data:/app/data # VOD DB + default streamdl.log when LOG_DEST=file/both
     depends_on:
       - server
