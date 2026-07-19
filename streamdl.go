@@ -16,7 +16,6 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var (
@@ -35,7 +34,9 @@ func main() {
 	tickTime := flag.Int("time", 60, "Time to tick (seconds)")
 	batchTime := flag.Int("batch", 5, "Time betwen URL checks (seconds): increase for rate limiting")
 	subfolder := flag.Bool("subfolder", false, "Add streams to a subfolder with the channel name")
-	logLevel := flag.String("log-level", "info", "Log level (trace, debug, info, warn, error, fatal, panic)")
+	logLevel := flag.String("log-level", envOr("LOG_LEVEL", "info"), "Log level (trace, debug, info, warn, error, fatal, panic)")
+	logDest := flag.String("log-dest", envOr("LOG_DEST", "file"), "Where to write primary logs: file, stdout, or both")
+	logFile := flag.String("log-file", os.Getenv("LOG_FILE"), "Log file path (default: <data>/streamdl.log when log-dest is file/both)")
 	dataDir := flag.String("data", "/app/data", "Directory for persistent data (VOD tracking database)")
 	vodOutLoc := flag.String("vod-out", "", "Output location for VOD downloads (defaults to -out)")
 	vodMoveLoc := flag.String("vod-move", "", "Move location for completed VOD downloads (defaults to -move)")
@@ -49,6 +50,13 @@ func main() {
 		vodMoveLoc = moveLoc
 	}
 
+	loggingCfg, logErr := setupLogging(*logLevel, *logDest, *logFile, *dataDir)
+	if logErr != nil {
+		fmt.Fprintf(os.Stderr, "Logging setup failed: %v\n", logErr)
+		os.Exit(1)
+	}
+	defer loggingCfg.Close()
+
 	var ticker = time.NewTicker(time.Second * time.Duration(*tickTime))
 	var config []Config
 	parsed, confErr := parseConfig(readConfig(*confLoc))
@@ -58,16 +66,11 @@ func main() {
 	control := make(chan bool)
 
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-	log.SetFormatter(&prefixed.TextFormatter{FullTimestamp: true})
-
-	ll, err := log.ParseLevel(*logLevel)
-	if err != nil {
-		log.Warnf("Invalid log level '%s', defaulting to info", *logLevel)
-		log.SetLevel(log.InfoLevel)
+	if loggingCfg.Dest == LogDestFile || loggingCfg.Dest == LogDestBoth {
+		log.Infof("Starting StreamDL... (log file: %s, dest: %s)", loggingCfg.FilePath, loggingCfg.Dest)
 	} else {
-		log.SetLevel(ll)
+		log.Infof("Starting StreamDL... (dest: %s)", loggingCfg.Dest)
 	}
-	log.Infof("Starting StreamDL...")
 
 	// VOD database is lazily initialized on first VOD tick
 	var vodDB *VodDB
@@ -238,6 +241,7 @@ func main() {
 		activeUsersMu.RUnlock()
 		sort.Strings(users)
 		log.Infof("Currently Live Users: %v", strings.Join(users, ", "))
+		logActiveDownloadSummary(downloadProgress)
 		tickNotices.Flush(*tickTime)
 
 		select {
