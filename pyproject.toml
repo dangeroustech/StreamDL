@@ -10,7 +10,7 @@ dev-dependencies = [
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
 requires-python = "<4.0,>=3.10"
 dependencies = [
-  "curl-cffi>=0.15.0",
+  "curl-cffi>=0.16.0",
   "grpcio>=1.82.1,<2.0.0",
   "protobuf<6.0.0,>=5.29.0",
   "streamlink>=8.4.0",
