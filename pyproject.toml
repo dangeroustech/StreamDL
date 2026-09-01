@@ -10,12 +10,12 @@ dev-dependencies = [
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
 requires-python = "<4.0,>=3.10"
 dependencies = [
-  "curl-cffi>=0.16.0",
-  "grpcio>=1.83.0,<2.0.0",
-  "protobuf>=7.35.1,<8.0.0",
+  "curl-cffi>=0.16.2",
+  "grpcio>=1.83.1,<2.0.0",
+  "protobuf>=7.36.1,<8.0.0",
   "streamlink>=8.5.0",
   "wheel>=0.48.0,<1.0.0",
-  "yt-dlp>=2026.7.4",
+  "yt-dlp>=2026.8.19",
 ]
 name = "StreamDL"
 version = "3.8.2"
