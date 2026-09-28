@@ -73,6 +73,39 @@ Example directory setup before launching:
 mkdir -p downloads/{,in}complete config data
 ```
 
+### Intel Quick Sync / `/dev/dri` passthrough
+
+StreamDL can optionally receive the host Intel graphics device so hardware encode/decode is possible **when FFmpeg supports it**.
+
+**Important limitations today**
+
+- The default client image uses `mwader/static-ffmpeg`, which does **not** include Quick Sync (QSV) or VAAPI. Passing `/dev/dri` into that image alone will not accelerate encodes.
+- Most StreamDL downloads remux with stream copy (`-c copy` for VODs; optional via `FFMPEG_STREAM_COPY` for live). Remuxing does not use the GPU. Quick Sync only helps when something **re-encodes** (in-process via `FFMPEG_EXTRA_*`, or a `post_script` transcoder).
+- A QSV/VAAPI-capable client image is tracked in #611; first-class hwaccel presets in #612.
+
+**Enable device access (opt-in)**
+
+1. Confirm the host has a render node, e.g. `ls -l /dev/dri`.
+2. Note the `video` / `render` group IDs (they vary by distro):
+   ```shell
+   getent group video render
+   stat -c '%g' /dev/dri/renderD128
+   ```
+3. In `docker-compose.yml`, uncomment the client `devices:` / `group_add:` block from `docker-compose.yml.example` and replace the example GIDs with yours.
+4. Keep `PUID`/`PGID` as usual for download file ownership; `group_add` is separate and only grants DRM device access.
+
+Example (GIDs illustrative only):
+
+```yaml
+devices:
+  - /dev/dri:/dev/dri
+group_add:
+  - "44"   # video
+  - "992"  # render
+```
+
+On TrueNAS / Kubernetes-style apps, map the same device and supplemental groups through the UI or runtime equivalent of Docker `devices` + `group_add`.
+
 ### Logging
 
 StreamDL can send full application logs to a file, container stdout, or both:
