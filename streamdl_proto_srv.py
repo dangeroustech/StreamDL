@@ -31,7 +31,7 @@ import stream_pb2_grpc as pb_grpc
 # raise AttributeError. Point yt-dlp's wrapper straight at the real regex instead.
 _percent_re_override = urllib3.util.url._PERCENT_RE
 _original_percent_re = getattr(
-    type(getattr(_percent_re_override, "re", None)), "_re_percent_encoding", None
+    getattr(_percent_re_override, "re", None), "_re_percent_encoding", None
 )
 if isinstance(_original_percent_re, re.Pattern):
     _percent_re_override.re = _original_percent_re
