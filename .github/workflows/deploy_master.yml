@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
           check-latest: true
 
       - name: Install Changelog NPM Package
