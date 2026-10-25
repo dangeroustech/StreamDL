@@ -6,8 +6,11 @@ import threading
 from concurrent import futures
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import re
+
 import grpc
 import streamlink
+import urllib3.util.url
 import yt_dlp
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
@@ -21,6 +24,17 @@ from yt_dlp.utils import (
 
 import stream_pb2 as pb
 import stream_pb2_grpc as pb_grpc
+
+# streamlink and yt-dlp both monkey-patch urllib3's _PERCENT_RE. yt-dlp wraps
+# streamlink's override and forwards attributes via __getattribute__, which skips
+# streamlink's __getattr__ passthrough, so urllib3>=2.8's `_PERCENT_RE.sub` calls
+# raise AttributeError. Point yt-dlp's wrapper straight at the real regex instead.
+_percent_re_override = urllib3.util.url._PERCENT_RE
+_original_percent_re = getattr(
+    type(getattr(_percent_re_override, "re", None)), "_re_percent_encoding", None
+)
+if isinstance(_original_percent_re, re.Pattern):
+    _percent_re_override.re = _original_percent_re
 
 # Configure root logger first to capture all logs, honoring SERVER_LOG_LEVEL
 level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
