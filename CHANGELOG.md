@@ -1,3 +1,29 @@
+## [3.9.0](https://github.com/dangeroustech/StreamDL/compare/v3.8.2...v3.9.0) (2026-10-25)
+
+
+### 🎉 New Features
+
+* parse FFmpeg progress and configurable log destinations ([#603](https://github.com/dangeroustech/StreamDL/issues/603)) ([1fc11cf](https://github.com/dangeroustech/StreamDL/commit/1fc11cfed585b5601d481ecaa3d44472ad4270b6)), closes [#577](https://github.com/dangeroustech/StreamDL/issues/577)
+
+
+### 📚 Documentation
+
+* opt-in Intel /dev/dri passthrough for Quick Sync hosts ([a6f0fd7](https://github.com/dangeroustech/StreamDL/commit/a6f0fd75ff9d548e0893e767bcb1ca975beb4e60)), closes [#610](https://github.com/dangeroustech/StreamDL/issues/610)
+
+
+### ✍ Chore
+
+* **deps:** apply safe Dependabot updates on staging ([#602](https://github.com/dangeroustech/StreamDL/issues/602)) ([44b658b](https://github.com/dangeroustech/StreamDL/commit/44b658be3f5cbf905960990ea74100e80158bf97)), closes [#598](https://github.com/dangeroustech/StreamDL/issues/598)
+* **deps:** apply safe Dependabot updates on staging ([#629](https://github.com/dangeroustech/StreamDL/issues/629)) ([406e731](https://github.com/dangeroustech/StreamDL/commit/406e731f75a424bef80fae20cc284a2d36862d68)), closes [#614](https://github.com/dangeroustech/StreamDL/issues/614)
+* **deps:** apply safe Dependabot updates on staging ([#645](https://github.com/dangeroustech/StreamDL/issues/645)) ([c310dfc](https://github.com/dangeroustech/StreamDL/commit/c310dfc88ba4104c053dac7a5693b1c06d18ff88))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** patch open security alerts on staging ([82928f7](https://github.com/dangeroustech/StreamDL/commit/82928f7688f5ae78c14d467ae337af4a036b715b))
+* handle class-shaped streamlink _PERCENT_RE override ([c79ba80](https://github.com/dangeroustech/StreamDL/commit/c79ba806c05d763c25a9974941e6739300499ee8))
+* unwrap yt-dlp/streamlink urllib3 _PERCENT_RE override clash ([4d97e0c](https://github.com/dangeroustech/StreamDL/commit/4d97e0cf2691f2ff3e8d836289edbf2073e85550))
+
 ### [3.8.2](https://github.com/dangeroustech/StreamDL/compare/v3.8.1...v3.8.2) (2026-07-15)
 
 
