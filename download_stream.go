@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -89,6 +88,12 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
 	t := time.Now().Format("2006-01-02_15-04-05")
+	progressKey := progressKeyLive(user)
+	downloadProgress.Start(progressKey, ProgressMeta{
+		Channel: user,
+		Kind:    DownloadKindLive,
+	})
+	ffLogs := newFFmpegLogWriter(progressKey, downloadProgress)
 
 	// Always ensure the user is removed from the active list when this goroutine exits
 	defer func() {
@@ -96,6 +101,7 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 		delete(activeUsers, user)
 		activeUsersMu.Unlock()
 		tickNotices.ClearChannel(user)
+		downloadProgress.End(progressKey)
 		log.Debugf("Removed %s from active list", user)
 	}()
 
@@ -184,13 +190,12 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 		}
 		url := streamURLs.Video
 
-		buf := &bytes.Buffer{}
 		cmd := fluentffmpeg.
 			NewCommand("").
 			InputPath(url).
 			OutputFormat("mp4").
 			OutputPath(outPath).
-			OutputLogs(buf).
+			OutputLogs(ffLogs).
 			Build()
 
 		// Inject network hygiene before the FFmpeg input ("-i") argument.
@@ -308,7 +313,7 @@ func downloadStream(user string, site string, quality string, initialURLs Stream
 			if err != nil {
 				// Emit a compact tail of FFmpeg logs to aid diagnosis
 				log.Warnf("FFmpeg failed for %s: %v", user, err)
-				ffLog := tailString(buf.String(), 50)
+				ffLog := tailString(ffLogs.String(), 50)
 				if ffLog != "" {
 					log.Warnf("FFmpeg log tail for %s:\n%s", user, sanitizeLog(ffLog))
 				}
@@ -542,6 +547,20 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 
 	naturalFinish := make(chan error, 1)
 	sigint := make(chan bool)
+	progressKey := progressKeyVOD(user, vod.ID)
+	var totalDur time.Duration
+	if vod.DurationSeconds > 0 {
+		totalDur = time.Duration(vod.DurationSeconds) * time.Second
+	}
+	downloadProgress.Start(progressKey, ProgressMeta{
+		Channel:       user,
+		Kind:          DownloadKindVOD,
+		VodID:         vod.ID,
+		Title:         vod.Title,
+		TotalDuration: totalDur,
+	})
+	ffLogs := newFFmpegLogWriter(progressKey, downloadProgress)
+	defer downloadProgress.End(progressKey)
 
 	// Always ensure base directories have correct permissions first
 	if err := createDirWithUmask(outLoc); err != nil {
@@ -593,13 +612,12 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 		}
 	}()
 
-	buf := &bytes.Buffer{}
 	cmd := fluentffmpeg.
 		NewCommand("").
 		InputPath(url).
 		OutputFormat("mp4").
 		OutputPath(outPath).
-		OutputLogs(buf).
+		OutputLogs(ffLogs).
 		Build()
 
 	// Prefer stream copy for VODs to avoid re-encoding
@@ -647,7 +665,7 @@ func downloadVOD(user string, vod VodResult, url string, outLoc string, moveLoc 
 	case err := <-naturalFinish:
 		if err != nil {
 			log.Warnf("FFmpeg failed for VOD %s: %v", vod.ID, err)
-			ffLog := tailString(buf.String(), 50)
+			ffLog := tailString(ffLogs.String(), 50)
 			if ffLog != "" {
 				log.Debugf("FFmpeg log tail for VOD %s:\n%s", vod.ID, sanitizeLog(ffLog))
 			}

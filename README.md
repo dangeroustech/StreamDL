@@ -29,7 +29,9 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 | `-batch`       | Time betwen URL checks (seconds): increase for rate limiting | `5`               |
 | `-subfolder`   | Add streams to a subfolder with the channel name             | `false`           |
 | `-log-level`   | Set logging level (debug, info, warn, error, etc)            | `info`            |
-| `-data`        | Directory for persistent data (VOD tracking database)        | `/app/data`       |
+| `-log-dest`    | Primary log destination: `file`, `stdout`, or `both`         | `file`            |
+| `-log-file`    | Log file path (used when `-log-dest` is `file` or `both`)    | `<data>/streamdl.log` |
+| `-data`        | Directory for persistent data (VOD tracking database + default log) | `/app/data`  |
 | `-vod-out`     | Output location for VOD downloads (defaults to `-out`)       | Same as `-out`    |
 | `-vod-move`    | Move location for completed VOD downloads (defaults to `-move`) | Same as `-move` |
 
@@ -68,12 +70,53 @@ When using Docker, be aware of the following:
 Example directory setup before launching:
 
 ```shell
-mkdir -p downloads/{,in}complete config
+mkdir -p downloads/{,in}complete config data
 ```
 
-Logs are piped to stdout by default so that `docker compose logs` works.
-_If you know what you're doing, you can change this value in `entrypoint.sh`._
-_Make sure to rebuild the container with `docker compose build` after editing this._
+### Intel Quick Sync / `/dev/dri` passthrough
+
+StreamDL can optionally receive the host Intel graphics device so hardware encode/decode is possible **when FFmpeg supports it**.
+
+**Important limitations today**
+
+- The default client image uses `mwader/static-ffmpeg`, which does **not** include Quick Sync (QSV) or VAAPI. Passing `/dev/dri` into that image alone will not accelerate encodes.
+- Most StreamDL downloads remux with stream copy (`-c copy` for VODs; optional via `FFMPEG_STREAM_COPY` for live). Remuxing does not use the GPU. Quick Sync only helps when something **re-encodes** (in-process via `FFMPEG_EXTRA_*`, or a `post_script` transcoder).
+- A QSV/VAAPI-capable client image is tracked in #611; first-class hwaccel presets in #612.
+
+**Enable device access (opt-in)**
+
+1. Confirm the host has a render node, e.g. `ls -l /dev/dri`.
+2. Note the `video` / `render` group IDs (they vary by distro):
+   ```shell
+   getent group video render
+   stat -c '%g' /dev/dri/renderD128
+   ```
+3. In `docker-compose.yml`, uncomment the client `devices:` / `group_add:` block from `docker-compose.yml.example` and replace the example GIDs with yours.
+4. Keep `PUID`/`PGID` as usual for download file ownership; `group_add` is separate and only grants DRM device access.
+
+Example (GIDs illustrative only):
+
+```yaml
+devices:
+  - /dev/dri:/dev/dri
+group_add:
+  - "44"   # video
+  - "992"  # render
+```
+
+On TrueNAS / Kubernetes-style apps, map the same device and supplemental groups through the UI or runtime equivalent of Docker `devices` + `group_add`.
+
+### Logging
+
+StreamDL can send full application logs to a file, container stdout, or both:
+
+| `LOG_DEST` / `-log-dest` | Primary logs | Container stdout (`docker compose logs`) |
+| ------------------------ | ------------ | ---------------------------------------- |
+| `file` (default)         | `<data>/streamdl.log` | Active Downloads summary each tick only |
+| `stdout`                 | stdout       | Full logs (legacy-style)                 |
+| `both`                   | file + stdout | Full logs, and the same content in the log file |
+
+Override the file path with `LOG_FILE` / `-log-file` when using `file` or `both`. Mount `/app/data` (see `docker-compose.yml.example`) so the default log file and VOD database persist on the host.
 
 ### Bare Metal
 
@@ -204,6 +247,8 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 | `STREAMDL_GRPC_PORT` | The port number for the gRPC server                                                                               | `50051`  |
 | `TICK_TIME`          | Time interval (in seconds) between stream checks                                                                  | `60`     |
 | `LOG_LEVEL`          | Logging verbosity level (DEBUG, INFO, WARN, ERROR)                                                                | `INFO`   |
+| `LOG_DEST`           | Primary log destination: `file`, `stdout`, or `both`                                                              | `file`   |
+| `LOG_FILE`           | Log file path when `LOG_DEST` is `file` or `both`                                                                 | `/app/data/streamdl.log` |
 | `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
 | `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
 | `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
