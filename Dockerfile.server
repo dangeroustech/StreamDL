@@ -1,17 +1,22 @@
-FROM python:3.13-slim-bookworm AS deps
+FROM python:3.14-slim-trixie AS deps
 WORKDIR /app
 COPY . .
-RUN pip install --no-cache-dir uv==0.4.28 && \
+RUN pip install --no-cache-dir uv==0.13.5 && \
     uv sync --all-extras --dev
 RUN which uv
 
+# JS runtime for yt-dlp's YouTube challenge solving (yt-dlp-ejs)
+FROM denoland/deno:bin-2.9.8 AS deno
+
 # Python Protobuf Server
-FROM python:3.13-slim-bookworm AS server
+FROM python:3.14-slim-trixie AS server
 
 # Install gosu and curl for running as non-root and health checks
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gosu curl && \
     rm -rf /var/lib/apt/lists/*
+
+COPY --from=deno /deno /usr/local/bin/deno
 
 WORKDIR /app
 
@@ -25,7 +30,7 @@ COPY --from=deps /app/stream_pb2_grpc.py /app/stream_pb2_grpc.py
 COPY entrypoint_server.sh /app/entrypoint_server.sh
 COPY streamdl_server_entrypoint.sh /app/streamdl_server_entrypoint.sh
 
-RUN pip install --no-cache-dir uv==0.4.28 && uv sync --frozen --no-dev && \
+RUN pip install --no-cache-dir uv==0.13.5 && uv sync --frozen --no-dev && \
     chmod +x /app/entrypoint_server.sh /app/streamdl_server_entrypoint.sh
 
 # Add health check
