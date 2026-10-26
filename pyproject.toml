@@ -18,7 +18,7 @@ dependencies = [
   "yt-dlp[default]>=2026.8.19",
 ]
 name = "StreamDL"
-version = "3.9.0"
+version = "3.9.1"
 description = "Monitor and Download Streams from a Variety of Websites"
 readme = "README.md"
 

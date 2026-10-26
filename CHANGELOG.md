@@ -1,3 +1,20 @@
+### [3.9.1](https://github.com/dangeroustech/StreamDL/compare/v3.9.0...v3.9.1) (2026-10-26)
+
+
+### 🧪 Tests
+
+* **integration:** send client logs to stdout so notice assertions work ([ee3b457](https://github.com/dangeroustech/StreamDL/commit/ee3b4579859067ca59625e0dfe7cd19b0a6eb073)), closes [#603](https://github.com/dangeroustech/StreamDL/issues/603)
+
+
+### ✍ Chore
+
+* **ci:** bump toolchains for CI and Docker images ([aaa71ea](https://github.com/dangeroustech/StreamDL/commit/aaa71eaf7585bdc7c21787b11e9c12b6e8d2d9e9))
+* **ci:** test latest + previous supported Python and Go ([06d3ae5](https://github.com/dangeroustech/StreamDL/commit/06d3ae50458c5018c1d8e57bfe2d8d06b296b642))
+* deno for yt-dlp, slimmer client image, integration tests in CI ([a475e5b](https://github.com/dangeroustech/StreamDL/commit/a475e5bb7dc0f01a9ff6589a40b5214a68bc4894))
+* **deps:** apply safe Dependabot updates on staging ([d1dcb78](https://github.com/dangeroustech/StreamDL/commit/d1dcb78c55ad8e94477ccb94bb745721d82b569f)), closes [#670](https://github.com/dangeroustech/StreamDL/issues/670) [-#673](https://github.com/dangeroustech/-/issues/673) [#675](https://github.com/dangeroustech/StreamDL/issues/675) [#676](https://github.com/dangeroustech/StreamDL/issues/676) [#678](https://github.com/dangeroustech/StreamDL/issues/678) [-#681](https://github.com/dangeroustech/-/issues/681)
+* **deps:** bump cffi 2.1.1 and grpcio-tools 1.84.0 for Python 3.15 wheels ([9614301](https://github.com/dangeroustech/StreamDL/commit/9614301d1acdf6c01767f2e5e3a660bf2f90803d))
+* **docker:** bump client FFmpeg 8.1 -> 9.0.2 ([6ce8c02](https://github.com/dangeroustech/StreamDL/commit/6ce8c020c4d1ca19cb261508f957e75bf3945340))
+
 ## [3.9.0](https://github.com/dangeroustech/StreamDL/compare/v3.8.2...v3.9.0) (2026-10-25)
 
 
