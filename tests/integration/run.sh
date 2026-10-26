@@ -10,6 +10,8 @@ set -euo pipefail
 # Env:
 #   INTEGRATION_FORCE_BUILD=1  Rebuild the client image on every start_client call
 #                              (default: build once, then recreate only)
+#   LIVE_CHANNEL=<name>        Probe this Twitch channel first (falls back to the list below)
+#   VOD_CHANNEL=<name>         Use this channel for the VOD phase instead of probing
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.integration.yml"
@@ -53,6 +55,9 @@ CANDIDATE_CHANNELS=(
 )
 
 HOOKS_DIR="$SCRIPT_DIR/hooks"
+if [ -n "${LIVE_CHANNEL:-}" ]; then
+  CANDIDATE_CHANNELS=("$LIVE_CHANNEL" "${CANDIDATE_CHANNELS[@]}")
+fi
 LIVE_CHANNEL=""
 CLIENT_BUILT=0
 

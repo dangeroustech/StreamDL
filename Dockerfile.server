@@ -5,6 +5,9 @@ RUN pip install --no-cache-dir uv==0.13.5 && \
     uv sync --all-extras --dev
 RUN which uv
 
+# JS runtime for yt-dlp's YouTube challenge solving (yt-dlp-ejs)
+FROM denoland/deno:bin-2.9.8 AS deno
+
 # Python Protobuf Server
 FROM python:3.14-slim-trixie AS server
 
@@ -12,6 +15,8 @@ FROM python:3.14-slim-trixie AS server
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gosu curl && \
     rm -rf /var/lib/apt/lists/*
+
+COPY --from=deno /deno /usr/local/bin/deno
 
 WORKDIR /app
 
