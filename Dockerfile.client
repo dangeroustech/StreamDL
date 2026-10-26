@@ -8,10 +8,12 @@ RUN go get -v && \
     go build -o streamdl
 
 # Golang Protobuf Client and Logic
-FROM golang:1.27.3-alpine AS client
+# The binary is static (CGO disabled), so the runtime doesn't need the Go toolchain
+FROM alpine:3.24.3 AS client
 
-# Install su-exec and curl for running as non-root and health checks
-RUN apk add --no-cache su-exec curl
+# su-exec and curl for running as non-root and health checks;
+# tzdata so TZ works for recording filenames (Go no longer finds GOROOT's zoneinfo)
+RUN apk add --no-cache su-exec curl tzdata ca-certificates
 
 WORKDIR /app
 
