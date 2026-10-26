@@ -8,7 +8,7 @@ dev = [
 
 [project]
 authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
-requires-python = "<4.0,>=3.10"
+requires-python = "<4.0,>=3.14"
 dependencies = [
   "curl-cffi>=0.16.2",
   "grpcio>=1.83.1,<2.0.0",

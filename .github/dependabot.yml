@@ -47,3 +47,22 @@ updates:
       prefix: chore 🤖
       prefix-development: chore 🤖
       include: scope
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    target-branch: staging
+    ignore:
+      # Server image Python follows the CI "LTS" version, bumped by hand each October
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    assignees:
+      - biodrone
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: chore 🤖
+      prefix-development: chore 🤖
+      include: scope
