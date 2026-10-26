@@ -10,13 +10,20 @@ permissions:
 jobs:
   Software_Tests:
     name: Software Tests
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        python-version: ["3.13"]
-        go-version: [1.25]
-        os: [ubuntu-24.04, ubuntu-latest]
+        # Go: setup-go's aliases track the two supported releases automatically.
+        # Python: the two releases still getting bugfixes; bump each October.
+        include:
+          - python-version: "3.14" # matches Dockerfile.server
+            go-version: oldstable
+          - python-version: "3.15"
+            go-version: stable
+    env:
+      # Make uv sync/run use the matrix Python rather than whatever it finds first
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
