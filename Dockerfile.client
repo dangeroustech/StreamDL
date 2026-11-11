@@ -9,7 +9,7 @@ RUN go get -v && \
 
 # Golang Protobuf Client and Logic
 # The binary is static (CGO disabled), so the runtime doesn't need the Go toolchain
-FROM alpine:3.24.3 AS client
+FROM alpine:3.24.4 AS client
 
 # su-exec and curl for running as non-root and health checks;
 # tzdata so TZ works for recording filenames (Go no longer finds GOROOT's zoneinfo)
