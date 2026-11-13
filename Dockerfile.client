@@ -1,7 +1,7 @@
 FROM mwader/static-ffmpeg:9.0.2-1 AS ffmpeg
 
 # Go Binary Builder
-FROM golang:1.27.3-alpine AS go-build
+FROM golang:1.27.4-alpine AS go-build
 WORKDIR /app
 COPY . .
 RUN go get -v && \
