@@ -1,7 +1,9 @@
 import errno
 import logging
 import os
+import shutil
 import stat
+import threading
 
 import pytest
 
@@ -48,6 +50,32 @@ def test_create_dir_leaves_existing_dirs_alone(tmp_path, monkeypatch):
     monkeypatch.setenv("UMASK", "000")
     create_dir_with_umask(str(d))
     assert stat.S_IMODE(d.stat().st_mode) == 0o700
+
+
+def test_create_dir_tolerates_concurrent_creation(tmp_path, monkeypatch):
+    monkeypatch.setenv("UMASK", "027")
+    target = tmp_path / "a" / "b" / "c"
+    for _ in range(20):
+        shutil.rmtree(tmp_path / "a", ignore_errors=True)
+        barrier = threading.Barrier(8)
+        errors = []
+
+        def create():
+            barrier.wait()
+            try:
+                create_dir_with_umask(str(target))
+            except OSError as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=create) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert errors == []
+        for d in (tmp_path / "a", tmp_path / "a" / "b", target):
+            assert stat.S_IMODE(d.stat().st_mode) == 0o750
 
 
 def test_create_dir_rejects_files(tmp_path):

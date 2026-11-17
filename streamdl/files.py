@@ -40,11 +40,12 @@ def create_dir_with_umask(path: str) -> None:
 
     Existing directories are left alone. Modes are set with chmod rather than by
     changing the process umask, so this is safe to call from worker threads.
+
+    Like Go's os.MkdirAll, a directory created concurrently by another caller is
+    accepted (that caller sets its mode); only a non-directory in the way raises.
     """
     if os.path.isdir(path):
         return
-    if os.path.exists(path):
-        raise FileExistsError(errno.EEXIST, "exists and is not a directory", path)
     perms = 0o777 & ~get_umask()
     missing = []
     current = os.path.abspath(path)
@@ -55,8 +56,16 @@ def create_dir_with_umask(path: str) -> None:
         try:
             os.mkdir(directory)
         except FileExistsError:
-            pass
+            if not os.path.isdir(directory):
+                raise _not_a_directory(directory) from None
+            continue  # created meanwhile by another caller
         os.chmod(directory, perms)
+    if not os.path.isdir(path):
+        raise _not_a_directory(path)
+
+
+def _not_a_directory(path: str) -> FileExistsError:
+    return FileExistsError(errno.EEXIST, "exists and is not a directory", path)
 
 
 def is_cross_device(err: OSError) -> bool:
