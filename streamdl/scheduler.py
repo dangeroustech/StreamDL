@@ -115,7 +115,7 @@ class Scheduler:
                     channel.name,
                     site.site,
                     channel.quality,
-                    channel.vod,
+                    str(channel.vod).lower(),
                 )
                 if channel.vod:
                     await self._check_vods(site, channel)

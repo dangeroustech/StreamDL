@@ -192,6 +192,22 @@ async def test_round_logs_live_users(make_runtime, logs):
     assert "Currently Live Users: amy, zed" in [r.getMessage() for r in logs.records]
 
 
+@pytest.mark.parametrize(
+    "config,line",
+    [
+        (LIVE_CONFIG, "Checking user=alice on site=twitch.tv quality=best vod=false"),
+        (VOD_CONFIG, "Checking user=bob on site=twitch.tv quality=best vod=true"),
+    ],
+    ids=["live", "vod"],
+)
+async def test_checking_line_prints_vod_like_go(make_runtime, logs, config, line):
+    rt = make_runtime()
+    rt.resolver.streams = [Offline("offline")]
+    rt.resolver.vod_lists = [[]]
+    await scheduler(rt, config).run_round()
+    assert line in [r.getMessage() for r in logs.records]
+
+
 async def test_each_round_reloads_the_config(make_runtime):
     rt = make_runtime()
     rt.resolver.streams = [Offline("offline")]
