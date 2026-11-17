@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+import warnings
 
 import pytest
 
@@ -152,3 +153,25 @@ def test_write_console():
 
 def test_write_console_without_sink_is_noop():
     log_setup.write_console("ignored")
+
+
+def test_python_warnings_are_logged_until_close(tmp_path):
+    original = warnings.showwarning
+    cfg = setup_logging("info", "file", "", str(tmp_path))
+    with warnings.catch_warnings():
+        warnings.simplefilter("always")
+        warnings.warn("library-warning", UserWarning)
+    assert "] WARNING " in (tmp_path / "streamdl.log").read_text()
+    assert "library-warning" in (tmp_path / "streamdl.log").read_text()
+    cfg.close()
+    assert warnings.showwarning is original
+
+
+def test_close_resets_the_level_only_for_the_active_setup(tmp_path):
+    logger = logging.getLogger("streamdl")
+    first = setup_logging("debug", "file", str(tmp_path / "a.log"), str(tmp_path))
+    second = setup_logging("error", "file", str(tmp_path / "b.log"), str(tmp_path))
+    first.close()
+    assert logger.level == logging.ERROR
+    second.close()
+    assert logger.level == logging.NOTSET

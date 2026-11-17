@@ -92,7 +92,9 @@ class LoggingConfig:
     handlers: list[logging.Handler] = field(default_factory=list)
 
     def close(self) -> None:
+        """Remove this setup's handlers; if it is the active setup, undo the rest too."""
         global console_summary, _summary_owner
+        active = any(handler in _installed for handler in self.handlers)
         root = logging.getLogger()
         for handler in self.handlers:
             root.removeHandler(handler)
@@ -100,6 +102,9 @@ class LoggingConfig:
             if handler in _installed:
                 _installed.remove(handler)
         self.handlers.clear()
+        if active:
+            logging.captureWarnings(False)
+            logging.getLogger(LOGGER_NAME).setLevel(logging.NOTSET)
         if _summary_owner is self:
             console_summary = None
             _summary_owner = None
@@ -147,6 +152,9 @@ def setup_logging(
         handler.setFormatter(formatter)
         root.addHandler(handler)
     logging.getLogger(LOGGER_NAME).setLevel(parse_level(level))
+    # Python warnings from libraries go to the 'py.warnings' logger, so they reach
+    # the same destinations instead of bare stderr.
+    logging.captureWarnings(True)
 
     cfg = LoggingConfig(log_dest, file_path, handlers)
     if log_dest is LogDest.FILE:

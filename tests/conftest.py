@@ -19,11 +19,8 @@ def _reset_streamdl_logging():
         root.removeHandler(handler)
         handler.close()
     log_setup._installed.clear()
-    logger = logging.getLogger(log_setup.LOGGER_NAME)
-    for handler in list(logger.handlers):
-        logger.removeHandler(handler)
-        handler.close()
-    logger.setLevel(logging.NOTSET)
+    logging.captureWarnings(False)
+    logging.getLogger(log_setup.LOGGER_NAME).setLevel(logging.NOTSET)
     log_setup.console_summary = None
     log_setup._summary_owner = None
 
