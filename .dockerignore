@@ -1,5 +1,11 @@
 Dockerfile
-Dockerfile.client
-Dockerfile.server
+.git
+docs
+node_modules
+tests
 docker-compose.yml
 docker-compose.yml.example
+.venv
+.pdm-build
+.pytest_cache
+**/__pycache__
