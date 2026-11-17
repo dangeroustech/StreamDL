@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import threading
 from pathlib import Path
 
 FAKE_FFMPEG = str(Path(__file__).parent / "fakes" / "ffmpeg")
@@ -42,6 +43,23 @@ class FakeSleep:
     async def __call__(self, seconds):
         self.calls.append(seconds)
         await asyncio.sleep(0)
+
+
+class BlockingMove:
+    """Wraps move_file so a test can hold a move in progress until release is set."""
+
+    def __init__(self, move):
+        self.move = move
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    def __call__(self, old_path, new_path):
+        self.started.set()
+        assert self.release.wait(5), "move was never released"
+        self.move(old_path, new_path)
+
+    async def wait_started(self):
+        assert await asyncio.to_thread(self.started.wait, 5), "move never started"
 
 
 def ffmpeg_runs(log_path):

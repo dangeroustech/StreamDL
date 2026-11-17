@@ -57,7 +57,8 @@ class Runtime:
         task.add_done_callback(self._post_scripts.discard)
 
     async def wait_for_post_scripts(self) -> None:
-        if self._post_scripts:
+        """Wait for every running hook, including any spawned while waiting."""
+        while self._post_scripts:
             await asyncio.gather(*list(self._post_scripts), return_exceptions=True)
 
     async def _run_post_script(
@@ -80,3 +81,5 @@ class Runtime:
             )
         except PostScriptError as e:
             log.error("post_script failed for %s: %s", label, e)
+        except Exception:
+            log.exception("post_script failed for %s", label)

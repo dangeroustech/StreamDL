@@ -1,8 +1,9 @@
 import asyncio
 
 import pytest
-from helpers import ffmpeg_runs, wait_for_glob
+from helpers import BlockingMove, ffmpeg_runs, wait_for_glob
 
+from streamdl import recorder
 from streamdl.ffmpeg import build_vod_args
 from streamdl.recorder import record_vod
 from streamdl.resolver import VodInfo
@@ -105,12 +106,79 @@ async def test_progress_knows_the_total_duration(
     claim(db, vod)
     task = asyncio.create_task(record_vod(rt, "bob", "twitch.tv", vod, URL, "", db))
     await wait_for_glob(tmp_path / "dl", "*.mp4.ready")
-    for _ in range(100):
-        p = rt.progress.get("vod:bob:v5")
-        if p and p.percent is not None:
-            break
-        await asyncio.sleep(0.02)
-    assert p.total_duration == 120
-    assert p.percent == pytest.approx(2 / 120 * 100)
-    task.cancel()
-    await asyncio.gather(task, return_exceptions=True)
+    try:
+        for _ in range(100):
+            p = rt.progress.get("vod:bob:v5")
+            if p and p.percent is not None:
+                break
+            await asyncio.sleep(0.02)
+        assert p is not None
+        assert p.total_duration == 120
+        assert p.percent == pytest.approx(2 / 120 * 100)
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+
+async def test_directory_failure_marks_failed(make_runtime, db, ffmpeg_log, tmp_path):
+    (tmp_path / "dl").write_text("a file where the download directory should be")
+    rt = make_runtime()
+    vod = VodInfo("v7", "T")
+    claim(db, vod)
+
+    await record_vod(rt, "bob", "twitch.tv", vod, URL, "", db)
+
+    assert db.status("v7") == "failed"
+    assert ffmpeg_runs(ffmpeg_log) == []
+
+
+async def test_move_failure_marks_failed(make_runtime, db, monkeypatch, tmp_path):
+    def broken_move(old_path, new_path):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(recorder, "move_file", broken_move)
+    rt = make_runtime()
+    marker = tmp_path / "hook.txt"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f"#!/bin/sh\ntouch {marker}\n")
+    hook.chmod(0o755)
+    vod = VodInfo("v8", "T")
+    claim(db, vod)
+
+    await record_vod(rt, "bob", "twitch.tv", vod, URL, str(hook), db)
+    await rt.wait_for_post_scripts()
+
+    assert db.status("v8") == "failed"
+    assert not marker.exists()
+    assert (tmp_path / "dl" / "bob_vod_v8_T.mp4").exists()
+
+
+async def test_cancel_during_move_still_completes_and_runs_the_post_script(
+    make_runtime, db, monkeypatch, tmp_path
+):
+    move = BlockingMove(recorder.move_file)
+    monkeypatch.setattr(recorder, "move_file", move)
+    rt = make_runtime()
+    marker = tmp_path / "hook.txt"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f'#!/bin/sh\necho "$STREAMDL_TYPE|$STREAMDL_USER" > {marker}\n')
+    hook.chmod(0o755)
+    vod = VodInfo("v4", "T")
+    claim(db, vod)
+    task = asyncio.create_task(
+        record_vod(rt, "bob", "twitch.tv", vod, URL, str(hook), db)
+    )
+    try:
+        await move.wait_started()
+        task.cancel()
+        await asyncio.sleep(0)
+    finally:
+        move.release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    await rt.wait_for_post_scripts()
+
+    assert (tmp_path / "out" / "bob_vod_v4_T.mp4").exists()
+    assert db.status("v4") == "completed"
+    assert marker.read_text() == "vod|bob\n"

@@ -7,8 +7,9 @@ import logging
 import os
 import signal
 import sqlite3
+from collections.abc import Coroutine
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .ffmpeg import (
     build_live_args,
@@ -36,7 +37,9 @@ async def run_ffmpeg(args: list[str], writer: FfmpegLogWriter) -> int:
     """Run FFmpeg to completion, streaming its stderr into writer.
 
     If the task is cancelled (shutdown), FFmpeg gets SIGINT so it can finalize the
-    MP4, and we wait for it to exit before re-raising. Raises OSError if FFmpeg
+    MP4, and we wait for it to exit before re-raising. On any other error (or if
+    that wait fails or is cancelled again) FFmpeg is killed and reaped, so it is
+    never left running with nobody reading its stderr. Raises OSError if FFmpeg
     can't be started.
     """
     proc = await asyncio.create_subprocess_exec(
@@ -49,12 +52,49 @@ async def run_ffmpeg(args: list[str], writer: FfmpegLogWriter) -> int:
         return await _drain(proc, writer)
     except asyncio.CancelledError:
         if proc.returncode is None:
-            log.debug("Sending SIGINT to FFmpeg (pid %d)", proc.pid)
-            try:
-                proc.send_signal(signal.SIGINT)
-            except ProcessLookupError:
-                pass  # exited between the check and the signal
-            await _drain(proc, writer)
+            await _interrupt(proc, writer)
+        raise
+    except BaseException:
+        await _kill(proc)
+        raise
+
+
+async def _interrupt(proc: asyncio.subprocess.Process, writer: FfmpegLogWriter) -> None:
+    """SIGINT FFmpeg and wait for it to finalize; kill it if the wait goes wrong."""
+    log.debug("Sending SIGINT to FFmpeg (pid %d)", proc.pid)
+    try:
+        proc.send_signal(signal.SIGINT)
+    except ProcessLookupError:
+        pass  # exited between the check and the signal
+    try:
+        await _drain(proc, writer)
+    except BaseException:
+        await _kill(proc)
+        raise
+
+
+async def _kill(proc: asyncio.subprocess.Process) -> None:
+    """SIGKILL FFmpeg if it is still running; reap it even if cancelled."""
+    if proc.returncode is None:
+        log.debug("Killing FFmpeg (pid %d)", proc.pid)
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
+    await asyncio.shield(proc.wait())
+
+
+async def _run_to_completion(coro: Coroutine[Any, Any, None]) -> None:
+    """Run coro to the end even if the caller is cancelled meanwhile.
+
+    Used for the work after FFmpeg exits on its own (move, database update, hook),
+    which v3 always finished. A cancellation is re-raised once coro is done.
+    """
+    fin = asyncio.ensure_future(coro)
+    try:
+        await asyncio.shield(fin)
+    except asyncio.CancelledError:
+        await fin
         raise
 
 
@@ -174,7 +214,15 @@ async def _record_live(
         await rt.sleep(delay)
 
     log.debug("Stream For %s Ended", user)
-    log.debug("Moving file to %s", move_dir)
+    await _run_to_completion(
+        _finish_live(rt, user, site, post_script, out_path, new_path)
+    )
+
+
+async def _finish_live(
+    rt: Runtime, user: str, site: str, post_script: str, out_path: str, new_path: str
+) -> None:
+    log.debug("Moving file to %s", os.path.dirname(new_path))
     try:
         await asyncio.to_thread(move_file, out_path, new_path)
     except OSError as e:
@@ -279,6 +327,21 @@ async def _record_vod(
         return
 
     log.debug("VOD %s download complete", vod.id)
+    await _run_to_completion(
+        _finish_vod(rt, user, site, vod, post_script, db, out_path, new_path)
+    )
+
+
+async def _finish_vod(
+    rt: Runtime,
+    user: str,
+    site: str,
+    vod: VodInfo,
+    post_script: str,
+    db: VodDB,
+    out_path: str,
+    new_path: str,
+) -> None:
     try:
         await asyncio.to_thread(move_file, out_path, new_path)
     except OSError as e:

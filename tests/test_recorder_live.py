@@ -1,10 +1,13 @@
 import asyncio
 import re
+import signal
 
 import pytest
-from helpers import ffmpeg_runs, wait_for_glob
+from helpers import FAKE_FFMPEG, BlockingMove, ffmpeg_runs, wait_for_glob
 
-from streamdl.recorder import record_live
+from streamdl import recorder
+from streamdl.ffmpeg import build_live_args
+from streamdl.recorder import record_live, run_ffmpeg
 from streamdl.resolver import Offline, RateLimited, StreamURLs
 from streamdl.settings import FfmpegOptions
 
@@ -136,15 +139,18 @@ async def test_progress_is_tracked_while_recording(make_runtime, monkeypatch, tm
     rt = make_runtime()
     task = asyncio.create_task(record_live(rt, "alice", "twitch.tv", "best", URLS, ""))
     await wait_for_glob(tmp_path / "dl", "*.mp4.ready")
-    for _ in range(100):
-        p = rt.progress.get("live:alice")
-        if p and p.size_bytes == 256 * 1024:
-            break
-        await asyncio.sleep(0.02)
-    assert p.size_bytes == 256 * 1024
-    assert p.duration == pytest.approx(2.0)
-    task.cancel()
-    await asyncio.gather(task, return_exceptions=True)
+    try:
+        for _ in range(100):
+            p = rt.progress.get("live:alice")
+            if p and p.size_bytes == 256 * 1024:
+                break
+            await asyncio.sleep(0.02)
+        assert p is not None
+        assert p.size_bytes == 256 * 1024
+        assert p.duration == pytest.approx(2.0)
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 
 async def test_missing_ffmpeg_is_logged_not_raised(make_runtime, ffmpeg_log, tmp_path):
@@ -153,3 +159,74 @@ async def test_missing_ffmpeg_is_logged_not_raised(make_runtime, ffmpeg_log, tmp
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
     assert ffmpeg_runs(ffmpeg_log) == []
     assert "alice" not in rt.active
+
+
+async def test_split_audio_and_video_urls_both_reach_ffmpeg(make_runtime, ffmpeg_log):
+    rt = make_runtime()
+    split = StreamURLs("https://video.example/v.m3u8", "https://audio.example/a.m3u8")
+
+    await record_live(rt, "alice", "twitch.tv", "best", split, "")
+
+    [run] = ffmpeg_runs(ffmpeg_log)
+    assert split.video in run and split.audio in run
+    expected = build_live_args(
+        split.video, split.audio, run[-1], rt.settings.ffmpeg, ffmpeg=FAKE_FFMPEG
+    )
+    assert run == expected[1:]
+
+
+async def test_cancel_during_move_still_moves_and_runs_the_post_script(
+    make_runtime, monkeypatch, tmp_path
+):
+    move = BlockingMove(recorder.move_file)
+    monkeypatch.setattr(recorder, "move_file", move)
+    rt = make_runtime()
+    marker = tmp_path / "hook.txt"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f'#!/bin/sh\necho "$STREAMDL_TYPE|$1" > {marker}\n')
+    hook.chmod(0o755)
+    rt.active.add("alice")
+    task = asyncio.create_task(
+        record_live(rt, "alice", "twitch.tv", "best", URLS, str(hook))
+    )
+    try:
+        await move.wait_started()
+        task.cancel()
+        await asyncio.sleep(0)
+    finally:
+        move.release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    await rt.wait_for_post_scripts()
+
+    [moved] = files(tmp_path / "out")
+    assert marker.read_text() == f"live|{moved}\n"
+    assert "alice" not in rt.active
+
+
+async def test_ffmpeg_is_killed_if_reading_its_output_fails(
+    ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFMPEG_BLOCK", "1")
+    procs = []
+    spawn = asyncio.create_subprocess_exec
+
+    async def recording_spawn(*args, **kwargs):
+        proc = await spawn(*args, **kwargs)
+        procs.append(proc)
+        return proc
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", recording_spawn)
+
+    class BrokenWriter:
+        def write(self, data):
+            raise RuntimeError("writer bug")
+
+    out = tmp_path / "x.mp4"
+    with pytest.raises(RuntimeError, match="writer bug"):
+        await asyncio.wait_for(run_ffmpeg([FAKE_FFMPEG, str(out)], BrokenWriter()), 5)
+
+    [proc] = procs
+    assert proc.returncode == -signal.SIGKILL
+    assert not (tmp_path / "x.mp4.finalized").exists()
