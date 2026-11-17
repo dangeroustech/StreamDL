@@ -1,0 +1,17 @@
+# Throwaway image for running StreamDL's tests, so nothing is installed on the host.
+# The repo is bind-mounted at /src; the venv and uv cache live in named volumes.
+ARG PYTHON_VERSION=3.14
+FROM python:${PYTHON_VERSION}-slim-trixie
+
+RUN pip install --no-cache-dir uv==0.13.5 && \
+    mkdir -p /venv /uv-cache && \
+    chmod 777 /venv /uv-cache
+
+ENV UV_PROJECT_ENVIRONMENT=/venv \
+    UV_CACHE_DIR=/uv-cache \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HOME=/tmp
+
+WORKDIR /src
