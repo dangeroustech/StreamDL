@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+from ruamel.yaml import YAML
 
 from streamdl.config import ConfigError, ConfigLoader, load_config, parse_config
 
@@ -74,6 +75,31 @@ def test_yaml_1_2_words_stay_strings():
     channel = sites[0].channels[0]
     assert channel.name == "off"
     assert channel.quality == "no"
+
+
+@pytest.mark.parametrize(
+    "field,text",
+    [
+        ("name", "true"),
+        ("name", "0x1F"),
+        ("name", "2024-01-01"),
+        ("name", "007"),
+        ("quality", "1.50"),
+    ],
+)
+def test_scalars_keep_their_source_text(field, text):
+    sites = parse_config(f"- site: twitch.tv\n  channels:\n  - {field}: {text}\n")
+    assert getattr(sites[0].channels[0], field) == text
+
+
+@pytest.mark.parametrize("text", ["true", "yes", "True"])
+def test_vod_bool_words(text):
+    sites = parse_config(f"- site: twitch.tv\n  channels:\n  - vod: {text}\n")
+    assert sites[0].channels[0].vod is True
+
+
+def test_global_safe_constructor_is_untouched():
+    assert YAML(typ="safe", pure=True).load("a: 1\nb: true\n") == {"a": 1, "b": True}
 
 
 def test_empty_file_is_empty_config():

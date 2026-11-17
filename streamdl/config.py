@@ -15,6 +15,7 @@ from pydantic import (
     field_validator,
 )
 from ruamel.yaml import YAML
+from ruamel.yaml.constructor import SafeConstructor
 from ruamel.yaml.error import YAMLError
 
 log = logging.getLogger(__name__)
@@ -26,10 +27,24 @@ class ConfigError(Exception):
     """The config file could not be read or parsed."""
 
 
+class _RawScalars(SafeConstructor):
+    """Keeps bool/int/float/timestamp scalars as their source text, like yaml.v3.
+
+    `name: 007` stays "007" and `name: true` stays "true"; pydantic converts the text
+    for typed fields (`vod: yes` -> True, `vod_limit: 5` -> 5). Nulls are untouched.
+    """
+
+
+for _tag in ("bool", "int", "float", "timestamp"):
+    # add_constructor copies the table first, so SafeConstructor itself is unchanged
+    _RawScalars.add_constructor(
+        f"tag:yaml.org,2002:{_tag}", SafeConstructor.construct_scalar
+    )
+
+
 class _Model(BaseModel):
-    # Decode as loosely as the v3 client did: unknown keys are ignored and numbers
-    # are accepted where a string is expected (e.g. `name: 12345`).
-    model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
+    # Decode as loosely as the v3 client did: unknown keys are ignored.
+    model_config = ConfigDict(extra="ignore")
 
     @field_validator("*", mode="before")
     @classmethod
@@ -63,7 +78,9 @@ def parse_config(data: str | bytes) -> list[Site]:
     """Parse config.yml content into sites; raises ConfigError."""
     try:
         text = data.decode("utf-8") if isinstance(data, bytes) else data
-        raw = YAML(typ="safe", pure=True).load(text)
+        yaml = YAML(typ="safe", pure=True)
+        yaml.Constructor = _RawScalars
+        raw = yaml.load(text)
     except (UnicodeDecodeError, YAMLError) as e:
         raise ConfigError(f"invalid YAML: {e}") from e
     if raw is None:
