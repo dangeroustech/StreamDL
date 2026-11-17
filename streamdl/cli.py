@@ -8,6 +8,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 from collections.abc import Callable, Mapping, Sequence
 from typing import NoReturn
 
@@ -154,9 +155,32 @@ def main(
             log.critical("Config Error: %s", e)
             return 1
         log.debug("Config: %s", initial)
-        return asyncio.run(run(settings, ConfigLoader(settings.config_path, initial)))
+        try:
+            rc = asyncio.run(run(settings, ConfigLoader(settings.config_path, initial)))
+        except Exception as e:
+            # Log it while the configured handlers are still in place.
+            log.critical("StreamDL failed: %s", e, exc_info=True)
+            rc = 1
     finally:
         logging_cfg.close()
+    _exit_if_lookups_running(rc)
+    return rc
+
+
+def _exit_if_lookups_running(rc: int) -> None:
+    """Exit now if an abandoned streamlink/yt-dlp lookup thread is still running.
+
+    Python's normal exit joins thread-pool workers, and a hung lookup could outlast
+    docker's stop grace period (then SIGKILL). The default executor (file moves) is
+    already waited for by asyncio.run, so nothing worth keeping is cut short.
+    """
+    if any(
+        thread.name.startswith("resolver") and thread.is_alive()
+        for thread in threading.enumerate()
+    ):
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(rc)
 
 
 async def run(settings: Settings, config: ConfigLoader) -> int:
@@ -186,9 +210,9 @@ async def _serve_web(web: WebServer, stop: asyncio.Event) -> bool:
     try:
         await web.serve()
     except SystemExit:
-        pass
+        log.critical("Web server could not start; stopping")
     except Exception:
-        log.exception("Web server failed")
+        log.critical("Web server failed; stopping", exc_info=True)
     else:
         return True
     stop.set()
@@ -198,12 +222,20 @@ async def _serve_web(web: WebServer, stop: asyncio.Event) -> bool:
 def _signal_handler(
     stop: asyncio.Event, exit_now: Callable[[int], NoReturn] = os._exit
 ) -> Callable[[int], None]:
-    """First signal: shut down cleanly. Second: exit at once, skipping cleanup."""
+    """First signal: shut down cleanly. Second: exit at once, skipping cleanup.
+
+    Exiting at once leaves post-script process groups running; in a container they
+    die with it.
+    """
+    signalled = False  # not stop.is_set(): a web server failure also sets stop
 
     def handle(signum: int) -> None:
-        if stop.is_set():
+        nonlocal signalled
+        if signalled:
             log.warning("Second signal received; exiting immediately")
             exit_now(1)
+            return
+        signalled = True
         log.info("Received %s; shutting down...", signal.Signals(signum).name)
         stop.set()
 

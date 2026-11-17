@@ -11,6 +11,7 @@ import urllib.request
 
 import pytest
 
+from streamdl import cli
 from streamdl.cli import _signal_handler, build_parser, main
 
 
@@ -246,3 +247,81 @@ def test_web_server_startup_failure_exits_1(tmp_path):
         )
     assert result.returncode == 1, result.stdout
     assert re.search(r"\] ERROR .*address already in use", result.stdout)
+    assert "CRITICAL Web server could not start; stopping" in result.stdout
+
+
+def test_first_signal_after_a_web_failure_still_shuts_down_cleanly():
+    stop = asyncio.Event()
+    stop.set()  # what _serve_web does when the server can't start
+    exits = []
+    handle = _signal_handler(stop, exit_now=exits.append)
+    handle(signal.SIGTERM)
+    assert exits == []
+    handle(signal.SIGTERM)
+    assert exits == [1]
+
+
+def test_unexpected_failure_is_logged_to_the_log_file(tmp_path, monkeypatch):
+    async def failing_run(settings, config):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(cli, "run", failing_run)
+    # Leftover resolver threads from other tests must not end the test run.
+    monkeypatch.setattr(cli, "_exit_if_lookups_running", lambda rc: None)
+    config = tmp_path / "config.yml"
+    config.write_text("[]\n")
+    argv = ["-config", str(config), "-log-dest", "file", "-data", str(tmp_path)]
+    assert main(argv, env={}) == 1
+    text = (tmp_path / "streamdl.log").read_text()
+    assert "CRITICAL StreamDL failed: boom" in text
+    assert "RuntimeError: boom" in text  # the traceback
+
+
+# Run as a script: the lookup blocks forever, as a hung streamlink call can.
+_HUNG_LOOKUP = """
+import pathlib, sys, threading
+import streamdl.resolver
+
+def hung(*args):
+    pathlib.Path(sys.argv[1]).touch()
+    threading.Event().wait()
+
+streamdl.resolver.get_stream = hung
+from streamdl.cli import main
+raise SystemExit(main(sys.argv[2:]))
+"""
+
+
+def test_exits_promptly_while_a_lookup_thread_is_still_running(tmp_path):
+    config = tmp_path / "config.yml"
+    config.write_text("- site: twitch.tv\n  channels:\n  - name: someone\n")
+    marker = tmp_path / "lookup-started"
+    proc = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            _HUNG_LOOKUP,
+            str(marker),
+            "-config",
+            str(config),
+            "-log-dest",
+            "stdout",
+            "-data",
+            str(tmp_path),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 20
+        while not marker.exists():
+            assert time.monotonic() < deadline, "lookup never started"
+            time.sleep(0.1)
+        proc.send_signal(signal.SIGTERM)
+        output, _ = proc.communicate(timeout=10)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+    assert proc.returncode == 0, output
+    assert "StreamDL stopped" in output
