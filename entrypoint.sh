@@ -28,4 +28,5 @@ if [ -n "${LOG_FILE:-}" ]; then
 fi
 
 export HOME=/home/streamdl
+export XDG_CACHE_HOME=/home/streamdl/.cache
 exec gosu "${PUID}:${PGID}" /app/.venv/bin/python -m streamdl "$@"
