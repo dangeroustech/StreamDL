@@ -28,6 +28,11 @@ def test_umask_invalid(caplog):
     assert "Invalid UMASK" in caplog.text
 
 
+@pytest.mark.parametrize("raw", [" 027", "0o27", "0_27", "+0o27", "20000000000"])
+def test_umask_rejects_what_go_parseint_rejects(raw):
+    assert get_umask({"UMASK": raw}) == 0o022
+
+
 def test_create_dir_applies_umask_to_new_dirs(tmp_path, monkeypatch):
     monkeypatch.setenv("UMASK", "027")
     target = tmp_path / "a" / "b"

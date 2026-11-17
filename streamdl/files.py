@@ -5,6 +5,7 @@ from __future__ import annotations
 import errno
 import logging
 import os
+import re
 import shutil
 import stat
 from collections.abc import Callable, Mapping
@@ -13,16 +14,23 @@ log = logging.getLogger(__name__)
 
 DEFAULT_UMASK = 0o022
 _UNSAFE = str.maketrans({c: "_" for c in '/\\:*?"<>|\n\r'})
+_RE_OCTAL = re.compile(r"[+-]?[0-7]+")
+_INT32_MIN, _INT32_MAX = -(2**31), 2**31 - 1
 
 
 def get_umask(env: Mapping[str, str] | None = None) -> int:
-    """UMASK env var as octal; invalid values warn and fall back to 022."""
+    """UMASK env var as octal; invalid values warn and fall back to 022.
+
+    Parsed like Go's strconv.ParseInt(s, 8, 32): no whitespace, "0o" prefix or
+    "_" separators, and the value must fit in an int32.
+    """
     value = (os.environ if env is None else env).get("UMASK", "") or "022"
-    try:
-        return int(value, 8)
-    except ValueError:
-        log.warning("Invalid UMASK value %s, using default 022", value)
-        return DEFAULT_UMASK
+    if _RE_OCTAL.fullmatch(value):
+        umask = int(value, 8)
+        if _INT32_MIN <= umask <= _INT32_MAX:
+            return umask
+    log.warning("Invalid UMASK value %s, using default 022", value)
+    return DEFAULT_UMASK
 
 
 def create_dir_with_umask(path: str) -> None:
