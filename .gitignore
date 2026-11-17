@@ -19,10 +19,8 @@ streamdl.egg-info
 .pytest_cache
 __pycache__
 docker-compose.yml
-Dockerfile
 .env
 *.exe
-streamdl
 test/
 .dccache
 docs/

@@ -4,6 +4,8 @@ dev = [
     "bandit",
     "black>=26.3.1",
     "grpcio-tools>=1.82.1",
+    "pytest-asyncio>=1.5.0",
+    "httpx>=0.28.1",
 ]
 
 [project]
@@ -11,9 +13,13 @@ authors = [{ name = "biodrone", email = "biodrone@dangerous.tech" }]
 requires-python = "<4.0,>=3.14"
 dependencies = [
   "curl-cffi>=0.16.2",
+  "fastapi>=0.163.1",
   "grpcio>=1.83.1,<2.0.0",
   "protobuf>=7.36.1,<8.0.0",
+  "pydantic>=2.14.3",
+  "ruamel-yaml>=0.19.1",
   "streamlink>=8.5.0",
+  "uvicorn>=0.54.0",
   "wheel>=0.48.0,<1.0.0",
   "yt-dlp[default]>=2026.8.19",
 ]
@@ -25,3 +31,14 @@ readme = "README.md"
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[project.scripts]
+streamdl = "streamdl.cli:main"
+
+[tool.pdm.build]
+includes = ["streamdl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
