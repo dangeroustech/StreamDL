@@ -28,7 +28,7 @@ Flags accept one or two leading dashes (`-config` or `--config`).
 | `-out`         | Location of output file (folder only)                        | Current directory |
 | `-move`        | Location to move completed downloads to                      | -                 |
 | `-time`        | Time interval to check for streams (in seconds)              | `60`              |
-| `-batch`       | Time betwen URL checks (seconds): increase for rate limiting | `5`               |
+| `-batch`       | Time between URL checks (seconds): increase for rate limiting | `5`               |
 | `-subfolder`   | Add streams to a subfolder with the channel name             | `false`           |
 | `-log-level`   | Set logging level (debug, info, warn, error, etc)            | `info`            |
 | `-log-dest`    | Primary log destination: `file`, `stdout`, or `both`         | `file`            |
@@ -59,19 +59,18 @@ If you skip step 2, the old server container keeps running, but nothing talks to
 Some behaviour changed on purpose in v4:
 
 - Notices from yt-dlp no longer end with its "please report this issue" suffix.
-- A post-download script still running when StreamDL stops is killed, along with any processes it started. See [Post-Download Script Hook](#post-download-script-hook) for giving long scripts time to finish.
 - A long VOD download is no longer started a second time while the first is still running.
-- Stream tokens and signatures are redacted from the logs.
+- Stream tokens and signatures are more thoroughly redacted from the logs.
 - `-time` (and `TICK_TIME`) must be greater than 0.
 
 #### Security Best Practices
 
 StreamDL containers drop privileges at runtime by switching to a non-root user:
 
-- **Default Runtime User**: Entrypoints create/use a `streamdl` user with UID 1000 and GID 1000 unless `PUID`/`PGID` override them
+- **Default Runtime User**: The entrypoint creates/uses a `streamdl` user with UID 1000 and GID 1000 unless `PUID`/`PGID` override them
 - **Runtime User Switching**: Supports dynamic UID/GID switching via `PUID`/`PGID` environment variables
 - **User Tools**: Uses `gosu` to switch to the runtime user and `tini` as PID 1
-- **Directory Permissions**: Entrypoints create the directories they manage at startup
+- **Directory Permissions**: The entrypoint creates the directories it manages at startup
 
 ##### Directory Permissions
 
@@ -149,11 +148,11 @@ Requirements:
 # Clone the repository
 git clone https://github.com/dangeroustech/streamdl && cd streamdl
 
-# Install dependencies into .venv
-uv sync --no-dev
+# Create your config from the example
+cp config/config.yml.example config/config.yml
 
-# Run StreamDL
-uv run streamdl -config ./config/config.yml -out ./downloads/incomplete -move ./downloads/complete -time 300
+# Run StreamDL (uv installs the dependencies into .venv on first run)
+uv run --no-dev streamdl -config ./config/config.yml -out ./downloads/incomplete -move ./downloads/complete -data ./data -time 300
 ```
 
 ## Config File
@@ -230,7 +229,7 @@ The script must exist and be executable (`chmod +x /scripts/transcode.sh`). It r
 
 The script runs asynchronously and will not block other downloads. If the script fails or exceeds the timeout, an error is logged but StreamDL continues operating normally. Use `STREAMDL_POST_SCRIPT_TIMEOUT` (seconds, default `1800`) to cap how long a hook may run.
 
-When StreamDL stops, it waits for running hooks to finish. Docker only waits 10 seconds before killing the container, and any unfinished hook dies with it. If your hooks run longer (a transcode, say), raise the grace period in `docker-compose.yml`:
+When StreamDL stops, it waits for running hooks to finish (a second stop signal makes it exit at once instead). Docker only waits 10 seconds before killing the container, and any unfinished hook dies with it. If your hooks run longer (a transcode, say), raise the grace period on your StreamDL service in `docker-compose.yml` (`client` if you kept the v3 name):
 
 ```yaml
 services:
