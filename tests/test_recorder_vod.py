@@ -182,3 +182,52 @@ async def test_cancel_during_move_still_completes_and_runs_the_post_script(
     assert (tmp_path / "out" / "bob_vod_v4_T.mp4").exists()
     assert db.status("v4") == "completed"
     assert marker.read_text() == "vod|bob\n"
+
+
+async def test_vod_id_is_made_safe_for_the_filename(make_runtime, db, tmp_path):
+    rt = make_runtime()
+    vod = VodInfo("../x/y z", "T")
+    claim(db, vod)
+    await record_vod(rt, "bob", "twitch.tv", vod, URL, "", db)
+    assert (tmp_path / "out" / "bob_vod____x_y_z_T.mp4").exists()
+    assert db.status("../x/y z") == "completed"
+
+
+@pytest.mark.parametrize("vod_id", ["v123456", "dQw4w9WgXcQ", "_a__b-c_"])
+def test_normal_vod_ids_keep_their_filename(vod_id):
+    assert recorder.filename_safe_id(vod_id) == vod_id
+
+
+async def test_second_cancel_during_move_still_completes_and_runs_the_post_script(
+    make_runtime, db, monkeypatch, tmp_path
+):
+    move = BlockingMove(recorder.move_file)
+    monkeypatch.setattr(recorder, "move_file", move)
+    rt = make_runtime()
+    marker = tmp_path / "hook.txt"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f'#!/bin/sh\necho "$STREAMDL_TYPE|$STREAMDL_USER" > {marker}\n')
+    hook.chmod(0o755)
+    vod = VodInfo("v5", "T")
+    claim(db, vod)
+    task = asyncio.create_task(
+        record_vod(rt, "bob", "twitch.tv", vod, URL, str(hook), db)
+    )
+    try:
+        await move.wait_started()
+        task.cancel()
+        for _ in range(3):
+            await asyncio.sleep(0)
+        task.cancel()
+        for _ in range(3):
+            await asyncio.sleep(0)
+    finally:
+        move.release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    await rt.wait_for_post_scripts()
+
+    assert (tmp_path / "out" / "bob_vod_v5_T.mp4").exists()
+    assert db.status("v5") == "completed"
+    assert marker.read_text() == "vod|bob\n"

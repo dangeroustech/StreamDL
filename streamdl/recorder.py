@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import signal
 import sqlite3
 from collections.abc import Coroutine
@@ -31,6 +32,15 @@ log = logging.getLogger(__name__)
 
 RATE_LIMIT_BACKOFFS = (0, 30, 60)
 LOG_TAIL_LINES = 50
+_RE_UNSAFE_ID = re.compile(r"[^A-Za-z0-9_-]")
+
+
+def filename_safe_id(vod_id: str) -> str:
+    """A VOD id for use in a filename: anything but [A-Za-z0-9_-] becomes "_".
+
+    Normal Twitch ("v123456") and YouTube ids are unchanged.
+    """
+    return _RE_UNSAFE_ID.sub("_", vod_id)[:100]
 
 
 async def run_ffmpeg(args: list[str], writer: FfmpegLogWriter) -> int:
@@ -88,14 +98,19 @@ async def _run_to_completion(coro: Coroutine[Any, Any, None]) -> None:
     """Run coro to the end even if the caller is cancelled meanwhile.
 
     Used for the work after FFmpeg exits on its own (move, database update, hook),
-    which v3 always finished. A cancellation is re-raised once coro is done.
+    which v3 always finished. Every cancellation (a second one included) waits for
+    coro to finish, then CancelledError is re-raised.
     """
     fin = asyncio.ensure_future(coro)
-    try:
-        await asyncio.shield(fin)
-    except asyncio.CancelledError:
-        await fin
-        raise
+    cancelled = False
+    while not fin.done():
+        try:
+            await asyncio.shield(fin)
+        except asyncio.CancelledError:
+            cancelled = True
+    fin.result()  # coro's own error, if it failed
+    if cancelled:
+        raise asyncio.CancelledError
 
 
 async def _drain(proc: asyncio.subprocess.Process, writer: FfmpegLogWriter) -> int:
@@ -300,7 +315,11 @@ async def _record_vod(
 ) -> None:
     s = rt.settings
     title = sanitize_filename(vod.title)
-    filename = f"{user}_vod_{vod.id}" + (f"_{title}" if title else "") + ".mp4"
+    filename = (
+        f"{user}_vod_{filename_safe_id(vod.id)}"
+        + (f"_{title}" if title else "")
+        + ".mp4"
+    )
     dirs = await _prepare_dirs(s.vod_out_dir, s.vod_move_dir, user, s.subfolder)
     if dirs is None:
         mark_vod_failed(db, vod.id)
