@@ -6,17 +6,25 @@ import asyncio
 import logging
 import os
 import signal
+import sqlite3
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from .ffmpeg import build_live_args, sanitize_args, sanitize_log, tail_lines
-from .files import create_dir_with_umask, move_file
+from .ffmpeg import (
+    build_live_args,
+    build_vod_args,
+    sanitize_args,
+    sanitize_log,
+    tail_lines,
+)
+from .files import create_dir_with_umask, move_file, sanitize_filename
 from .process import describe_exit
-from .progress import DownloadKind, FfmpegLogWriter, progress_key_live
-from .resolver import RateLimited, ResolverError, StreamURLs
+from .progress import DownloadKind, FfmpegLogWriter, progress_key_live, progress_key_vod
+from .resolver import RateLimited, ResolverError, StreamURLs, VodInfo
 
 if TYPE_CHECKING:
     from .runtime import Runtime
+    from .vod_db import VodDB
 
 log = logging.getLogger(__name__)
 
@@ -199,3 +207,97 @@ async def _resolve_retry_url(
                 rt.notices.warn(user, f"Failed to resolve stream URL: {e}")
                 return None
     return None
+
+
+async def record_vod(
+    rt: Runtime,
+    user: str,
+    site: str,
+    vod: VodInfo,
+    url: str,
+    post_script: str,
+    db: VodDB,
+) -> None:
+    """Download one VOD with stream copy and record the outcome in the database.
+
+    A download cancelled by shutdown stays 'downloading', so the stale threshold
+    re-claims it in a later round.
+    """
+    key = progress_key_vod(user, vod.id)
+    rt.progress.start(
+        key,
+        channel=user,
+        kind=DownloadKind.VOD,
+        vod_id=vod.id,
+        title=vod.title,
+        total_duration=float(max(vod.duration_seconds, 0)),
+    )
+    writer = FfmpegLogWriter(key, rt.progress)
+    try:
+        await _record_vod(rt, user, site, vod, url, post_script, db, writer)
+    finally:
+        rt.progress.end(key)
+
+
+async def _record_vod(
+    rt: Runtime,
+    user: str,
+    site: str,
+    vod: VodInfo,
+    url: str,
+    post_script: str,
+    db: VodDB,
+    writer: FfmpegLogWriter,
+) -> None:
+    s = rt.settings
+    title = sanitize_filename(vod.title)
+    filename = f"{user}_vod_{vod.id}" + (f"_{title}" if title else "") + ".mp4"
+    dirs = await _prepare_dirs(s.vod_out_dir, s.vod_move_dir, user, s.subfolder)
+    if dirs is None:
+        mark_vod_failed(db, vod.id)
+        return
+    out_dir, move_dir = dirs
+    out_path = os.path.join(out_dir, filename)
+    new_path = os.path.join(move_dir, filename)
+    log.info("Starting VOD download for %s: %s", user, vod.title)
+
+    args = build_vod_args(url, out_path, ffmpeg=s.ffmpeg_path)
+    log.debug("FFmpeg VOD args (sanitized): %s", sanitize_args(args))
+    try:
+        returncode = await run_ffmpeg(args, writer)
+    except OSError as e:
+        log.error("Failed to start FFmpeg for VOD %s: %s", vod.id, e)
+        mark_vod_failed(db, vod.id)
+        return
+    if returncode != 0:
+        reason = describe_exit(returncode)
+        log.warning("FFmpeg failed for VOD %s: %s", vod.id, reason)
+        if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
+            log.debug("FFmpeg log tail for VOD %s:\n%s", vod.id, sanitize_log(tail))
+        rt.notices.warn(user, f"VOD {vod.id} recording failed: {reason}")
+        mark_vod_failed(db, vod.id)
+        return
+
+    log.debug("VOD %s download complete", vod.id)
+    try:
+        await asyncio.to_thread(move_file, out_path, new_path)
+    except OSError as e:
+        log.error("Failed to move VOD file: %s", e)
+        mark_vod_failed(db, vod.id)
+        return
+    log.debug("Moved VOD to %s", new_path)
+    try:
+        db.mark_completed(vod.id)
+    except (LookupError, sqlite3.Error) as e:
+        log.error("Failed to mark VOD %s as completed: %s", vod.id, e)
+    rt.spawn_post_script(
+        post_script, new_path, user, site, "vod", label=f"VOD {vod.id}"
+    )
+
+
+def mark_vod_failed(db: VodDB, vod_id: str) -> None:
+    """Mark a VOD failed so a later round retries it; errors are logged, not raised."""
+    try:
+        db.mark_failed(vod_id)
+    except (LookupError, sqlite3.Error) as e:
+        log.error("Failed to mark VOD %s as failed: %s", vod_id, e)
