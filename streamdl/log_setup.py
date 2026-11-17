@@ -65,6 +65,22 @@ def parse_level(value: str) -> int:
     return _LEVELS.get(value.strip().lower(), logging.INFO)
 
 
+class _Formatter(logging.Formatter):
+    """Always prints upper-case level names.
+
+    Importing streamlink renames the standard levels to lower case ("info") for the
+    whole process; v3 printed "INFO".
+    """
+
+    def formatMessage(self, record: logging.LogRecord) -> str:
+        levelname = record.levelname
+        record.levelname = levelname.upper()
+        try:
+            return super().formatMessage(record)
+        finally:
+            record.levelname = levelname
+
+
 @dataclass
 class LoggingConfig:
     dest: LogDest
@@ -103,7 +119,7 @@ def setup_logging(
         else:
             console_summary = sys.stdout
 
-    formatter = logging.Formatter(_FORMAT, _DATEFMT)
+    formatter = _Formatter(_FORMAT, _DATEFMT)
     logger = logging.getLogger(LOGGER_NAME)
     for handler in list(logger.handlers):
         logger.removeHandler(handler)

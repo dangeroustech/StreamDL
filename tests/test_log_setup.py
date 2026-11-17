@@ -85,6 +85,15 @@ def test_line_format(tmp_path):
     assert re.fullmatch(r"\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\] INFO hello", line)
 
 
+def test_level_names_stay_upper_case_after_importing_streamlink(tmp_path):
+    import streamlink.logger  # noqa: F401  renames the levels to lower case
+
+    setup_logging("info", "file", "", str(tmp_path))
+    logging.getLogger("streamdl").warning("hello")
+    line = (tmp_path / "streamdl.log").read_text().splitlines()[-1]
+    assert line.endswith("] WARNING hello")
+
+
 def test_write_console():
     buf = io.StringIO()
     log_setup.console_summary = buf
