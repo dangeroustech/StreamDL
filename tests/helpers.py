@@ -26,6 +26,9 @@ class FakeResolver:
         self.vod_calls.append((site, user, limit))
         return self._next(self.vod_lists)
 
+    def close(self):
+        pass
+
     @staticmethod
     def _next(queue):
         item = queue.pop(0) if len(queue) > 1 else queue[0]

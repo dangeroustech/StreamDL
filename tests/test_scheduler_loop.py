@@ -21,23 +21,35 @@ def scheduler(rt, text):
 
 async def test_stops_promptly_while_waiting_for_the_next_round(make_runtime):
     rt = make_runtime(tick_seconds=3600)
+    sched = scheduler(rt, "[]\n")
+    round_done = asyncio.Event()
+    run_round = sched.run_round
+
+    async def tracked_round():
+        await run_round()
+        round_done.set()
+
+    sched.run_round = tracked_round
     stop = asyncio.Event()
-    task = asyncio.create_task(scheduler(rt, "[]\n").run(stop))
-    await asyncio.sleep(0.1)
+    task = asyncio.create_task(sched.run(stop))
+    await asyncio.wait_for(round_done.wait(), 1)
     stop.set()
     await asyncio.wait_for(task, 1)
 
 
 async def test_stops_a_round_in_progress(make_runtime):
+    started = asyncio.Event()
+
     class Hanging(FakeResolver):
         async def stream(self, site, user, quality):
+            started.set()
             await asyncio.Event().wait()
 
     rt = make_runtime()
     rt.resolver = Hanging()
     stop = asyncio.Event()
     task = asyncio.create_task(scheduler(rt, LIVE_CONFIG).run(stop))
-    await asyncio.sleep(0.1)
+    await asyncio.wait_for(started.wait(), 1)
     stop.set()
     await asyncio.wait_for(task, 1)
 
@@ -164,6 +176,9 @@ async def test_ten_thousand_rounds_keep_the_stack_and_memory_flat(make_runtime):
 
         async def vods(self, site, user, limit):
             raise AssertionError("no VOD channels configured")
+
+        def close(self):
+            pass
 
     async def no_sleep(seconds):
         await asyncio.sleep(0)

@@ -284,6 +284,7 @@ async def record_vod(
     try:
         await _record_vod(rt, user, site, vod, url, post_script, db, writer)
     finally:
+        rt.active_vods.discard(vod.id)
         rt.progress.end(key)
 
 

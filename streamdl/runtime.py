@@ -26,6 +26,7 @@ class Runtime:
     progress: ProgressStore = field(default_factory=ProgressStore)
     notices: NoticeBuffer = field(default_factory=NoticeBuffer)
     active: set[str] = field(default_factory=set)  # live channels being recorded
+    active_vods: set[str] = field(default_factory=set)  # VOD ids being downloaded
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep  # replaced in tests
     _site_locks: dict[str, asyncio.Lock] = field(default_factory=dict)
     _post_scripts: set[asyncio.Task[None]] = field(default_factory=set)

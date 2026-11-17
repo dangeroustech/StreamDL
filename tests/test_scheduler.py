@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import pytest
+from helpers import wait_for_glob
 
 from streamdl.config import ConfigLoader, load_config
 from streamdl.resolver import (
@@ -12,6 +13,7 @@ from streamdl.resolver import (
     StreamURLs,
     VodInfo,
 )
+from streamdl import scheduler as scheduler_module
 from streamdl.scheduler import Scheduler, vod_stream_user
 from streamdl.vod_db import VodDB
 
@@ -146,6 +148,7 @@ async def test_vod_channel_downloads_new_vods_once(make_runtime, tmp_path):
         "bob_vod_v1_First.mp4",
         "bob_vod_v2_Second.mp4",
     ]
+    assert rt.active_vods == set()
 
     await sched.run_round()
     assert len(rt.resolver.stream_calls) == 2  # completed VODs aren't fetched again
@@ -199,3 +202,49 @@ async def test_each_round_reloads_the_config(make_runtime):
     )
     await sched.run_round()
     assert rt.resolver.stream_calls[-1] == ("kick.com", "carol", "")
+
+
+async def test_running_vod_is_not_claimed_again(
+    make_runtime, monkeypatch, logs, tmp_path
+):
+    # Even when the stale cutoff has passed, a VOD still downloading in this
+    # process must not get a second FFmpeg (v3 started one every stale window).
+    monkeypatch.setenv("FAKE_FFMPEG_BLOCK", "1")
+    monkeypatch.setattr(scheduler_module, "MIN_STALE_SECONDS", 0)
+    rt = make_runtime(tick_seconds=0)
+    rt.resolver.vod_lists = [[VodInfo("v1", "First")]]
+    rt.resolver.streams = [StreamURLs("https://vod/1.m3u8")]
+    sched = scheduler(rt, VOD_CONFIG)
+
+    await sched.run_round()
+    await wait_for_glob(tmp_path / "dl", "*.mp4.ready")
+    assert rt.active_vods == {"v1"}
+
+    await sched.run_round()
+    assert len(rt.resolver.stream_calls) == 1
+    assert [t.get_name() for t in sched.recordings] == ["vod:v1"]
+    assert "VOD v1 is already being downloaded, skipping" in [
+        r.getMessage() for r in logs.records
+    ]
+
+    await sched.shutdown()
+    assert rt.active_vods == set()
+
+
+async def test_recording_task_failure_is_logged_with_its_name(
+    make_runtime, monkeypatch, logs
+):
+    async def broken(*args):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(scheduler_module, "record_live", broken)
+    rt = make_runtime()
+    rt.resolver.streams = [URLS]
+    sched = scheduler(rt, LIVE_CONFIG)
+    await sched.run_round()
+    await asyncio.gather(*sched.recordings, return_exceptions=True)
+    await asyncio.sleep(0)
+
+    [record] = [r for r in logs.records if r.getMessage().startswith("Recording task")]
+    assert record.getMessage() == "Recording task record:alice failed: kaboom"
+    assert record.levelno == logging.ERROR

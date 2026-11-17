@@ -93,12 +93,14 @@ class Scheduler:
                 log.info("Waiting for %d post-script(s) to finish...", pending)
             await self.rt.wait_for_post_scripts()
         finally:
-            close = getattr(self.rt.resolver, "close", None)
-            if callable(close):
-                close()
+            self.rt.resolver.close()
             if self._vod_db is not None:
-                self._vod_db.close()
-                self._vod_db = None
+                if all(task.done() for task in recordings):
+                    self._vod_db.close()
+                    self._vod_db = None
+                else:
+                    # Shutdown was itself cancelled: recordings may still update it.
+                    log.debug("Recordings still running; VOD database left open")
 
     async def run_round(self) -> None:
         """Check every channel once, then log live users, progress and notices."""
@@ -156,7 +158,8 @@ class Scheduler:
                         channel.quality,
                         urls,
                         site.post_script,
-                    )
+                    ),
+                    name=f"record:{channel.name}",
                 )
                 return
             if not isinstance(error, RateLimited):
@@ -192,6 +195,12 @@ class Scheduler:
 
         stale = max(2 * rt.settings.tick_seconds, MIN_STALE_SECONDS)
         for vod in vods:
+            if vod.id in rt.active_vods:
+                # Still downloading in this process: never start a second FFmpeg on
+                # it, however long it runs (v3 re-claimed it after the stale cutoff).
+                # The stale re-claim below is for downloads lost to a crash.
+                log.debug("VOD %s is already being downloaded, skipping", vod.id)
+                continue
             try:
                 claimed = db.claim(vod.id, channel.name, site.site, vod.title, stale)
             except sqlite3.Error as e:
@@ -201,6 +210,8 @@ class Scheduler:
                 log.debug("VOD %s already completed or in progress, skipping", vod.id)
                 continue
             log.info("VOD to download for %s: %s (%s)", channel.name, vod.title, vod.id)
+            # If the round is cancelled during this lookup (shutdown), the claim stays
+            # 'downloading' until the stale cutoff lets a later run retry it, as in v3.
             try:
                 async with rt.site_lock(site.site):
                     urls = await rt.resolver.stream(
@@ -212,10 +223,12 @@ class Scheduler:
                 mark_vod_failed(db, vod.id)
                 continue
             await rt.sleep(rt.settings.batch_seconds)
+            rt.active_vods.add(vod.id)
             self._spawn(
                 record_vod(
                     rt, channel.name, site.site, vod, urls.video, site.post_script, db
-                )
+                ),
+                name=f"vod:{vod.id}",
             )
 
     def _vod_database(self) -> VodDB | None:
@@ -230,12 +243,14 @@ class Scheduler:
             log.info("VOD tracking database initialized at %s", path)
         return self._vod_db
 
-    def _spawn(self, coro: Coroutine[Any, Any, None]) -> None:
-        task = asyncio.create_task(coro)
+    def _spawn(self, coro: Coroutine[Any, Any, None], *, name: str) -> None:
+        task = asyncio.create_task(coro, name=name)
         self._recordings.add(task)
         task.add_done_callback(self._recording_done)
 
     def _recording_done(self, task: asyncio.Task[None]) -> None:
         self._recordings.discard(task)
         if not task.cancelled() and (exc := task.exception()) is not None:
-            log.error("Recording task failed: %s", exc, exc_info=exc)
+            log.error(
+                "Recording task %s failed: %s", task.get_name(), exc, exc_info=exc
+            )

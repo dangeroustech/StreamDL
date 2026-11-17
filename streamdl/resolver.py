@@ -353,6 +353,8 @@ class Resolver(Protocol):
 
     async def vods(self, site: str, user: str, limit: int) -> list[VodInfo]: ...
 
+    def close(self) -> None: ...
+
 
 class LibraryResolver:
     """Runs the blocking streamlink/yt-dlp calls in worker threads with a time limit.
