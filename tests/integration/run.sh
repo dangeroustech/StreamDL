@@ -5,16 +5,17 @@ set -euo pipefail
 #
 # Usage: ./tests/integration/run.sh
 #
-# Requires: docker compose, ffprobe
+# Requires: docker compose (ffprobe and Python run inside the StreamDL image)
 #
 # Env:
-#   INTEGRATION_FORCE_BUILD=1  Rebuild the client image on every start_client call
+#   INTEGRATION_FORCE_BUILD=1  Rebuild the image on every start_streamdl call
 #                              (default: build once, then recreate only)
 #   LIVE_CHANNEL=<name>        Probe this Twitch channel first (falls back to the list below)
 #   VOD_CHANNEL=<name>         Use this channel for the VOD phase instead of probing
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.integration.yml"
+IMAGE="streamdl-integration:local"
 CONFIG_DIR="$SCRIPT_DIR/config"
 OUTPUT_DIR="$SCRIPT_DIR/output"
 TIMEOUT_SECONDS=120
@@ -31,6 +32,11 @@ else
   echo "ERROR: docker compose not found"
   exit 1
 fi
+
+# Python from the StreamDL image, so the host needs nothing but Docker
+image_python() {
+  docker run --rm -i --entrypoint /app/.venv/bin/python "$IMAGE" "$@"
+}
 
 # High-traffic Twitch channels likely to be live at any given time.
 # The test iterates until one is found online.
@@ -59,7 +65,6 @@ if [ -n "${LIVE_CHANNEL:-}" ]; then
   CANDIDATE_CHANNELS=("$LIVE_CHANNEL" "${CANDIDATE_CHANNELS[@]}")
 fi
 LIVE_CHANNEL=""
-CLIENT_BUILT=0
 
 cleanup() {
   echo "--- Tearing down ---"
@@ -68,36 +73,55 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Recreate the client without restarting the server. Build the image once per run
-# unless INTEGRATION_FORCE_BUILD=1 (config/mount changes still apply via recreate).
-start_client() {
-  local build_args=()
-  if [ "${INTEGRATION_FORCE_BUILD:-0}" = "1" ] || [ "$CLIENT_BUILT" -eq 0 ]; then
-    build_args=(--build)
+# Recreate the container so config/mount changes apply. The image is built once in
+# Phase 1; INTEGRATION_FORCE_BUILD=1 rebuilds it on every start.
+start_streamdl() {
+  if [ "${INTEGRATION_FORCE_BUILD:-0}" = "1" ]; then
+    $DC -f "$COMPOSE_FILE" build streamdl
   fi
-  CLIENT_BUILT=1
-  $DC -f "$COMPOSE_FILE" up -d "${build_args[@]}" --force-recreate --no-deps client
+  $DC -f "$COMPOSE_FILE" up -d --force-recreate streamdl
 }
 
+# The channel's first notice must come after a wait line and its notices header.
+# Later rounds print more wait lines without it (notices are shown once).
 assert_notice_after_wait() {
   local logs="$1"
   local channel="$2"
-  printf '%s' "$logs" | python3 -c "
+  printf '%s' "$logs" | image_python -c "
 import sys
 logs = sys.stdin.read()
-wait_idx = logs.rfind('Waiting')
 notice = '[${channel}]'
-notice_idx = logs.rfind(notice)
-if wait_idx == -1:
-    print('wait line not found', file=sys.stderr)
-    raise SystemExit(1)
+notice_idx = logs.find(notice)
 if notice_idx == -1:
     print('notice not found for ${channel}', file=sys.stderr)
     raise SystemExit(1)
-if notice_idx < wait_idx:
-    print('notice appears before wait line', file=sys.stderr)
+wait_idx = logs.rfind('Waiting', 0, notice_idx)
+if wait_idx == -1:
+    print('notice appears before any wait line', file=sys.stderr)
+    raise SystemExit(1)
+if logs.find('--- notices ---', wait_idx, notice_idx) == -1:
+    print('notice not in the notices block after the wait line', file=sys.stderr)
     raise SystemExit(1)
 "
+}
+
+# Poll the logs until the notice shows up: a fresh container needs a few seconds to
+# start, look the channel up and sleep -batch before its first wait line.
+# Leaves the last logs read in NOTICE_LOGS.
+wait_for_notice() {
+  local channel="$1"
+  local deadline=$((SECONDS + 45))
+  while :; do
+    NOTICE_LOGS=$($DC -f "$COMPOSE_FILE" logs streamdl 2>&1)
+    if assert_notice_after_wait "$NOTICE_LOGS" "$channel" 2>/dev/null; then
+      return 0
+    fi
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      assert_notice_after_wait "$NOTICE_LOGS" "$channel" || true
+      return 1
+    fi
+    sleep 2
+  done
 }
 
 run_notice_tests() {
@@ -114,15 +138,13 @@ run_notice_tests() {
 EOF
 
   export LOG_LEVEL=INFO
-  start_client
-  sleep 8
+  start_streamdl
 
-  KICK_LOGS=$($DC -f "$COMPOSE_FILE" logs client 2>&1)
-  if assert_notice_after_wait "$KICK_LOGS" "nonexistent_user_12345"; then
+  if wait_for_notice "nonexistent_user_12345"; then
     echo "  PASS: Kick offline notice appears after wait line"
   else
     echo "  FAIL: Kick offline notice not found in expected order"
-    echo "$KICK_LOGS" | tail -40
+    echo "$NOTICE_LOGS" | tail -40
     FAILED=1
   fi
 
@@ -136,15 +158,13 @@ EOF
     quality: this_quality_does_not_exist
 EOF
 
-    start_client
-    sleep 8
+    start_streamdl
 
-    TWITCH_LOGS=$($DC -f "$COMPOSE_FILE" logs client 2>&1)
-    if assert_notice_after_wait "$TWITCH_LOGS" "$LIVE_CHANNEL"; then
+    if wait_for_notice "$LIVE_CHANNEL"; then
       echo "  PASS: Twitch quality notice appears after wait line"
     else
       echo "  FAIL: Twitch quality notice not found in expected order"
-      echo "$TWITCH_LOGS" | tail -40
+      echo "$NOTICE_LOGS" | tail -40
       FAILED=1
     fi
   else
@@ -166,22 +186,9 @@ echo "${STREAMDL_TYPE}|${STREAMDL_USER}|${STREAMDL_SITE}|${STREAMDL_FILE}" > "/a
 HOOKEOF
 chmod +x "$HOOKS_DIR/post_hook.sh"
 
-# --- Phase 1: Start the server and find a live stream ---
-echo "--- Building and starting server ---"
-$DC -f "$COMPOSE_FILE" up -d --build server
-
-# Wait for server health check — use --wait if supported, otherwise poll
-echo "Waiting for server health check..."
-if $DC -f "$COMPOSE_FILE" up --help 2>&1 | grep -q -- '--wait'; then
-  $DC -f "$COMPOSE_FILE" up -d --wait server
-else
-  for i in $(seq 1 30); do
-    if $DC -f "$COMPOSE_FILE" exec -T server curl -sf http://localhost:8080/health &>/dev/null; then
-      break
-    fi
-    sleep 2
-  done
-fi
+# --- Phase 1: Build the image and find a live stream ---
+echo "--- Building the StreamDL image ---"
+$DC -f "$COMPOSE_FILE" build streamdl
 
 echo ""
 echo "--- Probing for a live Twitch stream ---"
@@ -189,10 +196,8 @@ echo "--- Probing for a live Twitch stream ---"
 for channel in "${CANDIDATE_CHANNELS[@]}"; do
   echo -n "  Trying $channel... "
 
-  # Use the server container's Python + Streamlink to check if the channel is live.
-  # This calls the same code path the gRPC server uses.
-  RESULT=$($DC -f "$COMPOSE_FILE" exec -T server \
-    /app/.venv/bin/python -c "
+  # Use the image's Python + Streamlink to check if the channel is live.
+  RESULT=$(image_python -c "
 import socket
 socket.setdefaulttimeout(15)
 from streamlink import Streamlink
@@ -231,7 +236,7 @@ fi
 echo ""
 echo "--- Using channel: $LIVE_CHANNEL ---"
 
-# --- Phase 2: Generate config and start the client ---
+# --- Phase 2: Generate config and start StreamDL ---
 cat > "$CONFIG_DIR/config.yml" <<EOF
 - site: twitch.tv
   post_script: /app/hooks/post_hook.sh
@@ -240,8 +245,8 @@ cat > "$CONFIG_DIR/config.yml" <<EOF
     quality: worst
 EOF
 
-echo "--- Starting client (will download ~10 seconds) ---"
-start_client
+echo "--- Starting StreamDL (will download ~10 seconds) ---"
+start_streamdl
 
 # --- Phase 3: Wait for a completed mp4 file ---
 echo "--- Waiting for download to complete (timeout: ${TIMEOUT_SECONDS}s) ---"
@@ -270,11 +275,8 @@ if [ -z "$FOUND_FILE" ]; then
   echo ""
   echo "FAIL: No completed mp4 file found after ${TIMEOUT_SECONDS}s"
   echo ""
-  echo "--- Client logs ---"
-  $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -50
-  echo ""
-  echo "--- Server logs ---"
-  $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
+  echo "--- StreamDL logs ---"
+  $DC -f "$COMPOSE_FILE" logs streamdl 2>&1 | tail -50
   FAILED=1
 else
   echo ""
@@ -283,17 +285,13 @@ else
   # --- Phase 4: Validate the mp4 with ffprobe ---
   echo "--- Validating with ffprobe ---"
 
-  # Use local ffprobe if available, otherwise run it in a plain ffmpeg container
-  if command -v ffprobe &>/dev/null; then
-    PROBE_OUTPUT=$(ffprobe -v quiet -print_format json -show_format -show_streams "$FOUND_FILE" 2>&1) || true
-  else
-    PROBE_OUTPUT=$(docker run --rm -v "$OUTPUT_DIR/complete:/data:ro" \
-      --entrypoint ffprobe mwader/static-ffmpeg:8.1 \
-      -v quiet -print_format json -show_format -show_streams "/data/$(basename "$FOUND_FILE")" 2>&1) || true
-  fi
+  # ffprobe from the StreamDL image, so the host needs nothing but Docker
+  PROBE_OUTPUT=$(docker run --rm -v "$OUTPUT_DIR/complete:/data:ro" \
+    --entrypoint ffprobe "$IMAGE" \
+    -v quiet -print_format json -show_format -show_streams "/data/$(basename "$FOUND_FILE")" 2>&1) || true
 
   # Parse validation results
-  DURATION=$(echo "$PROBE_OUTPUT" | python3 -c "
+  DURATION=$(echo "$PROBE_OUTPUT" | image_python -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -302,7 +300,7 @@ except:
     print('0')
 " 2>/dev/null) || DURATION="0"
 
-  VIDEO_STREAMS=$(echo "$PROBE_OUTPUT" | python3 -c "
+  VIDEO_STREAMS=$(echo "$PROBE_OUTPUT" | image_python -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -347,8 +345,8 @@ except:
     echo "--- ffprobe output ---"
     echo "$PROBE_OUTPUT"
     echo ""
-    echo "--- Client logs ---"
-    $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -50
+    echo "--- StreamDL logs ---"
+    $DC -f "$COMPOSE_FILE" logs streamdl 2>&1 | tail -50
     FAILED=1
   fi
 
@@ -399,8 +397,7 @@ else
   echo "--- Probing for a channel with VODs ---"
   for vod_candidate in "${CANDIDATE_VOD_CHANNELS[@]}"; do
     echo -n "  Trying $vod_candidate... "
-    RESULT=$($DC -f "$COMPOSE_FILE" exec -T server \
-      /app/.venv/bin/python -c "
+    RESULT=$(image_python -c "
 import socket
 socket.setdefaulttimeout(15)
 import yt_dlp
@@ -432,8 +429,6 @@ if [ -z "$VOD_CHANNEL" ]; then
   if [ "$ANY_PROBE_OK" = false ]; then
     echo ""
     echo "WARN: All VOD probes failed with errors. Skipping VOD phase."
-    echo "--- Server logs ---"
-    $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
   else
     echo ""
     echo "SKIP: No channels with VODs found among candidates."
@@ -449,8 +444,8 @@ else
     vod_limit: 1
 EOF
 
-  echo "--- Starting client for VOD download (channel: $VOD_CHANNEL) ---"
-  start_client
+  echo "--- Starting StreamDL for VOD download (channel: $VOD_CHANNEL) ---"
+  start_streamdl
 
   VOD_ELAPSED=0
   VOD_TIMEOUT="${VOD_TIMEOUT:-180}"
@@ -473,11 +468,8 @@ EOF
   if [ -z "$VOD_FILE" ] && [ -z "$VOD_PROGRESS" ]; then
     echo "WARN: No VOD download activity found after ${VOD_TIMEOUT}s"
     echo ""
-    echo "--- Client logs ---"
-    $DC -f "$COMPOSE_FILE" logs client 2>&1 | tail -30
-    echo ""
-    echo "--- Server logs ---"
-    $DC -f "$COMPOSE_FILE" logs server 2>&1 | tail -30
+    echo "--- StreamDL logs ---"
+    $DC -f "$COMPOSE_FILE" logs streamdl 2>&1 | tail -30
     FAILED=1
   else
     if [ -n "$VOD_FILE" ]; then
