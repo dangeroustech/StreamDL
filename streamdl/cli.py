@@ -35,6 +35,23 @@ def _go_bool(value: str) -> bool:
         raise argparse.ArgumentTypeError(f"invalid boolean value {value!r}") from None
 
 
+def _int_at_least(minimum: int, error: str) -> Callable[[str], int]:
+    """An int flag type that rejects values below minimum (v3 panicked on -time 0)."""
+
+    def parse(value: str) -> int:
+        try:
+            n = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(
+                f"invalid integer value {value!r}"
+            ) from None
+        if n < minimum:
+            raise argparse.ArgumentTypeError(error)
+        return n
+
+    return parse
+
+
 def build_parser(env: Mapping[str, str]) -> argparse.ArgumentParser:
     """Flags keep their v3 single-dash spellings; double dashes work too.
 
@@ -57,10 +74,15 @@ def build_parser(env: Mapping[str, str]) -> argparse.ArgumentParser:
     flag("config", default="config.yml", help="config file path")
     flag("out", default="", help="folder for in-progress recordings")
     flag("move", default="", help="folder that finished recordings are moved to")
-    flag("time", type=int, default=60, help="seconds between checks")
+    flag(
+        "time",
+        type=_int_at_least(1, "must be greater than 0"),
+        default=60,
+        help="seconds between checks",
+    )
     flag(
         "batch",
-        type=int,
+        type=_int_at_least(0, "must not be negative"),
         default=5,
         help="seconds between URL checks; raise if rate limited",
     )
@@ -143,7 +165,7 @@ async def run(settings: Settings, config: ConfigLoader) -> int:
     web = WebServer(create_app())
     stop = asyncio.Event()
     _install_signal_handlers(stop)
-    web_task = asyncio.create_task(web.serve(), name="web")
+    web_task = asyncio.create_task(_serve_web(web, stop), name="web")
     try:
         # Returns once stop is set and Scheduler.shutdown() has stopped recordings,
         # waited for post-scripts and closed the resolver and VOD database.
@@ -152,7 +174,25 @@ async def run(settings: Settings, config: ConfigLoader) -> int:
         web.should_exit = True
         await asyncio.gather(web_task, return_exceptions=True)
     log.info("StreamDL stopped")
-    return 0
+    return 0 if web_task.result() else 1
+
+
+async def _serve_web(web: WebServer, stop: asyncio.Event) -> bool:
+    """Serve until should_exit; on failure stop StreamDL and return False.
+
+    uvicorn logs why (e.g. the port is in use) and calls sys.exit(3); like v3's
+    log.Fatal, StreamDL then stops and exits 1.
+    """
+    try:
+        await web.serve()
+    except SystemExit:
+        pass
+    except Exception:
+        log.exception("Web server failed")
+    else:
+        return True
+    stop.set()
+    return False
 
 
 def _signal_handler(

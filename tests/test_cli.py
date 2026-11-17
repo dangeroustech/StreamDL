@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import re
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -108,7 +110,7 @@ def test_blank_logging_env_means_the_default():
     assert (args.log_level, args.log_dest) == ("info", "file")
 
 
-def test_missing_config_exits_1(tmp_path):
+def test_missing_config_exits_1(tmp_path, caplog):
     argv = [
         "-config",
         str(tmp_path / "nope.yml"),
@@ -118,6 +120,7 @@ def test_missing_config_exits_1(tmp_path):
         str(tmp_path),
     ]
     assert main(argv, env={}) == 1
+    assert "Config Error: cannot read" in caplog.text
 
 
 def test_bad_log_dest_exits_1(capsys):
@@ -125,7 +128,10 @@ def test_bad_log_dest_exits_1(capsys):
     assert "Logging setup failed" in capsys.readouterr().err
 
 
-def test_grpc_env_logs_an_upgrade_hint(tmp_path, caplog):
+@pytest.mark.parametrize(
+    "env", [{"STREAMDL_GRPC_ADDR": "server"}, {"STREAMDL_GRPC_PORT": "50051"}]
+)
+def test_grpc_env_logs_an_upgrade_hint(env, tmp_path, caplog):
     caplog.set_level(logging.INFO, logger="streamdl")
     argv = [
         "-config",
@@ -135,8 +141,11 @@ def test_grpc_env_logs_an_upgrade_hint(tmp_path, caplog):
         "-data",
         str(tmp_path),
     ]
-    main(argv, env={"STREAMDL_GRPC_ADDR": "server"})
-    assert "no longer used" in caplog.text
+    main(argv, env=env)
+    assert any(
+        r.levelno == logging.INFO and "no longer used" in r.getMessage()
+        for r in caplog.records
+    )
 
 
 def _get(url, timeout):
@@ -189,3 +198,51 @@ def test_second_signal_exits_immediately():
     assert stop.is_set() and exits == []
     handle(signal.SIGINT)
     assert exits == [1]
+
+
+@pytest.mark.parametrize(
+    "argv,error",
+    [
+        (["-time", "0"], "argument -time/--time: must be greater than 0"),
+        (["-time=-5"], "argument -time/--time: must be greater than 0"),
+        (["-batch", "-1"], "argument -batch/--batch: must not be negative"),
+        (["-time", "x"], "argument -time/--time: invalid integer value 'x'"),
+    ],
+)
+def test_bad_intervals_are_usage_errors(argv, error, capsys):
+    with pytest.raises(SystemExit) as exc:
+        build_parser({}).parse_args(argv)
+    assert exc.value.code == 2
+    assert error in capsys.readouterr().err
+
+
+def test_batch_zero_is_allowed():
+    assert build_parser({}).parse_args(["-batch", "0"]).batch == 0
+
+
+def test_web_server_startup_failure_exits_1(tmp_path):
+    config = tmp_path / "config.yml"
+    config.write_text("[]\n")
+    with socket.socket() as blocker:
+        blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        blocker.bind(("0.0.0.0", 8080))
+        blocker.listen()
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "streamdl",
+                "-config",
+                str(config),
+                "-log-dest",
+                "stdout",
+                "-data",
+                str(tmp_path),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=30,
+        )
+    assert result.returncode == 1, result.stdout
+    assert re.search(r"\] ERROR .*address already in use", result.stdout)
