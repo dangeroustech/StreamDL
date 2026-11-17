@@ -18,7 +18,8 @@ DEFAULT_PORT = 8080
 def create_app() -> FastAPI:
     app = FastAPI(title="StreamDL", docs_url=None, redoc_url=None, openapi_url=None)
 
-    @app.get("/health", response_class=PlainTextResponse)
+    # v3's Go handler answered any method; GET and HEAD cover health checkers.
+    @app.api_route("/health", methods=["GET", "HEAD"], response_class=PlainTextResponse)
     async def health() -> str:
         return "OK"
 

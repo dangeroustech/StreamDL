@@ -52,3 +52,9 @@ async def test_server_serves_and_stops_without_touching_signals():
 
     server.should_exit = True
     await asyncio.wait_for(task, 5)
+
+
+def test_health_answers_head():
+    response = TestClient(create_app()).head("/health")
+    assert response.status_code == 200
+    assert response.content == b""
