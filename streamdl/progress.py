@@ -8,6 +8,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import math
 import re
 import time
 from collections.abc import Callable
@@ -15,6 +16,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from . import log_setup
+from .settings import atoi
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +66,10 @@ def progress_key_vod(channel: str, vod_id: str) -> str:
 
 
 class ProgressStore:
-    """Registry of active downloads, keyed by progress_key_live/progress_key_vod."""
+    """Registry of active downloads, keyed by progress_key_live/progress_key_vod.
+
+    Not thread-safe: use it from the event loop only.
+    """
 
     def __init__(self) -> None:
         self._items: dict[str, DownloadProgress] = {}
@@ -118,11 +123,15 @@ class ProgressStore:
         return sorted(items, key=lambda p: (p.channel, p.kind, p.vod_id))
 
 
-def derive_percent_eta(elapsed: float, total: float, speed: float) -> tuple[float | None, float | None]:
+def derive_percent_eta(
+    elapsed: float, total: float, speed: float
+) -> tuple[float | None, float | None]:
     if total <= 0 or elapsed <= 0:
         return None, None
     percent = min(max(elapsed / total * 100, 0.0), 100.0)
-    eta = (total - elapsed) / speed if speed > 0 and elapsed < total else None
+    eta = None
+    if speed > 0 and elapsed < total:
+        eta = _finite((total - elapsed) / speed)  # a tiny speed can overflow to inf
     return percent, eta
 
 
@@ -143,17 +152,22 @@ _SIZE_UNITS = {
 
 
 def _to_int(value: str) -> int | None:
-    try:
-        return int(value.strip())
-    except ValueError:
-        return None
+    return atoi(value.strip())
 
 
 def _to_float(value: str) -> float | None:
-    try:
-        return float(value)
-    except ValueError:
+    """Parse a finite float; None for junk, '_' separators, non-ASCII or inf/nan."""
+    if not value.isascii() or "_" in value:
         return None
+    try:
+        f = float(value)
+    except ValueError, OverflowError:
+        return None
+    return f if math.isfinite(f) else None
+
+
+def _finite(value: float) -> float | None:
+    return value if math.isfinite(value) else None
 
 
 def parse_ffmpeg_clock(value: str) -> float | None:
@@ -162,9 +176,12 @@ def parse_ffmpeg_clock(value: str) -> float | None:
     parts = value.split(":")
     if len(parts) != 3:
         return None
+    hours, minutes, secs = atoi(parts[0]), atoi(parts[1]), _to_float(parts[2])
+    if hours is None or minutes is None or secs is None:
+        return None
     try:
-        return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
-    except ValueError:
+        return _finite(hours * 3600 + minutes * 60 + secs)
+    except OverflowError:
         return None
 
 
@@ -173,7 +190,8 @@ def parse_ffmpeg_size(value: str, unit: str) -> int | None:
     mult = _SIZE_UNITS.get(unit.lower())
     if n is None or mult is None:
         return None
-    return int(n * mult)
+    size = n * mult
+    return int(size) if math.isfinite(size) else None
 
 
 def parse_ffmpeg_progress_line(line: str) -> ProgressSample:
@@ -258,6 +276,8 @@ class FfmpegLogWriter:
         if len(self._buf) > self.MAX_BYTES:
             del self._buf[: len(self._buf) - self.MAX_BYTES]
         *lines, self._partial = re.split(rb"[\r\n]", self._partial + data)
+        if len(self._partial) > self.MAX_BYTES:  # output with no CR/LF at all
+            self._partial = self._partial[-self.MAX_BYTES :]
         for raw in lines:
             if raw:
                 self._handle_line(raw.decode("utf-8", "replace"))
@@ -270,8 +290,13 @@ class FfmpegLogWriter:
         if not sample.valid:
             return
         self._store.update(self._key, sample)
+        if not log.isEnabledFor(logging.DEBUG):
+            return
         now = self._clock()
-        if self._last_debug is not None and now - self._last_debug < self._debug_interval:
+        if (
+            self._last_debug is not None
+            and now - self._last_debug < self._debug_interval
+        ):
             return
         self._last_debug = now
         if p := self._store.get(self._key):
@@ -290,6 +315,8 @@ def format_bytes(n: int) -> str:
 
 
 def format_duration_short(seconds: float) -> str:
+    if not math.isfinite(seconds):
+        seconds = 0.0
     total = int(max(seconds, 0.0) + 0.5)  # round half up, like Go's Duration.Round
     hours, rem = divmod(total, 3600)
     minutes, secs = divmod(rem, 60)

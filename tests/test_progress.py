@@ -52,11 +52,15 @@ def test_na_values_ignored():
 
 
 def test_non_progress_line():
-    assert not parse_ffmpeg_progress_line("Input #0, hls, from 'https://example.com/index.m3u8':").valid
+    assert not parse_ffmpeg_progress_line(
+        "Input #0, hls, from 'https://example.com/index.m3u8':"
+    ).valid
 
 
 def test_lsize_is_not_size():
-    assert not parse_ffmpeg_progress_line("[out#0/mp4] video:1kB Lsize=     2048kB").valid
+    assert not parse_ffmpeg_progress_line(
+        "[out#0/mp4] video:1kB Lsize=     2048kB"
+    ).valid
 
 
 @pytest.mark.parametrize(
@@ -84,8 +88,17 @@ def test_progress_marker_is_not_a_sample():
 def test_store_percent_and_eta():
     store = ProgressStore()
     key = progress_key_vod("alice", "v123")
-    store.start(key, channel="alice", kind=DownloadKind.VOD, vod_id="v123", title="Cool Stream", total_duration=100)
-    store.update(key, ProgressSample(size_bytes=10 * MIB, duration=40, speed=2.0, valid=True))
+    store.start(
+        key,
+        channel="alice",
+        kind=DownloadKind.VOD,
+        vod_id="v123",
+        title="Cool Stream",
+        total_duration=100,
+    )
+    store.update(
+        key, ProgressSample(size_bytes=10 * MIB, duration=40, speed=2.0, valid=True)
+    )
     p = store.get(key)
     assert p.percent == pytest.approx(40)
     assert p.eta == pytest.approx(30)
@@ -116,7 +129,12 @@ def test_snapshot_sorted():
     store = ProgressStore()
     store.start(progress_key_live("zack"), channel="zack", kind=DownloadKind.LIVE)
     store.start(progress_key_live("alice"), channel="alice", kind=DownloadKind.LIVE)
-    store.start(progress_key_vod("alice", "9"), channel="alice", kind=DownloadKind.VOD, vod_id="9")
+    store.start(
+        progress_key_vod("alice", "9"),
+        channel="alice",
+        kind=DownloadKind.VOD,
+        vod_id="9",
+    )
     snap = store.snapshot()
     assert [(p.channel, p.kind) for p in snap] == [
         ("alice", DownloadKind.LIVE),
@@ -176,11 +194,19 @@ def test_format_download_progress_vod():
             eta=24 * 60,
         )
     )
-    assert s == '[bob] vod "Highlights" 45.0% size=800.0MiB time=20m00s speed=0.95x eta=24m00s'
+    assert (
+        s
+        == '[bob] vod "Highlights" 45.0% size=800.0MiB time=20m00s speed=0.95x eta=24m00s'
+    )
 
 
 def test_format_download_progress_live_minimal():
-    assert format_download_progress(DownloadProgress(key="live:a", channel="a", kind=DownloadKind.LIVE)) == "[a] live"
+    assert (
+        format_download_progress(
+            DownloadProgress(key="live:a", channel="a", kind=DownloadKind.LIVE)
+        )
+        == "[a] live"
+    )
 
 
 @pytest.mark.parametrize(
@@ -216,3 +242,81 @@ def test_console_summary_when_idle():
     log_setup.console_summary = console
     log_active_download_summary(ProgressStore())
     assert console.getvalue() == "Active Downloads:\n  (none)\n"
+
+
+def test_go_style_ints_only():
+    assert not parse_ffmpeg_progress_line("total_size=1_000").valid
+    assert not parse_ffmpeg_progress_line("total_size=١٢").valid
+    assert not parse_ffmpeg_progress_line("speed=1_0x").valid
+    assert parse_ffmpeg_progress_line("total_size=+12").size_bytes == 12
+
+
+_HUGE = "9" * 400
+
+
+@pytest.mark.parametrize(
+    "chunks",
+    [
+        [f"frame= 1 size={_HUGE}kB time=00:00:01.00 speed=1x\n"],
+        [f"frame= 1 size={'9' * 307}GB time=00:00:01.00\n"],
+        [f"out_time_ms={_HUGE}\n"],
+        [f"total_size={'9' * 5000}\n"],
+        ["out_time=00:00:inf\n", "out_time=00:00:nan\n"],
+        [f"out_time={_HUGE}:00:00\n"],
+        ["out_time=00:00:01\n", "speed=1e-320x\n"],
+        ["speed=1e400x\n", "bitrate=infkbits/s\n"],
+    ],
+)
+def test_hostile_ffmpeg_output_never_raises(chunks, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    store = ProgressStore()
+    key = progress_key_vod("bob", "v1")
+    store.start(
+        key, channel="bob", kind=DownloadKind.VOD, vod_id="v1", total_duration=100
+    )
+    writer = FfmpegLogWriter(key, store, debug_interval=0)
+    for chunk in chunks:
+        writer.write(chunk.encode())
+    line = format_download_progress(store.get(key))
+    assert "inf" not in line and "nan" not in line
+    console = io.StringIO()
+    log_setup.console_summary = console
+    log_active_download_summary(store)
+    assert "[bob] vod" in console.getvalue()
+
+
+def test_writer_debug_line_is_throttled(caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    store, key = _live_store()
+    now = [0.0]
+    writer = FfmpegLogWriter(key, store, debug_interval=10, clock=lambda: now[0])
+    for t in (0.0, 5.0, 9.9, 10.0, 15.0, 20.5):
+        now[0] = t
+        writer.write(b"frame= 1 size=  128kB time=00:00:01.00 speed=1x\n")
+    debug = [
+        r for r in caplog.records if r.getMessage().startswith("download progress")
+    ]
+    assert len(debug) == 3  # at t=0, t=10 and t=20.5
+
+
+def test_writer_skips_debug_formatting_when_debug_is_off(caplog, monkeypatch):
+    def fail(_p):
+        raise AssertionError("formatted a debug line with DEBUG off")
+
+    monkeypatch.setattr("streamdl.progress.format_download_progress", fail)
+    caplog.set_level(logging.INFO, logger="streamdl")
+    store, key = _live_store()
+    writer = FfmpegLogWriter(key, store, debug_interval=0)
+    writer.write(b"frame= 1 size=  128kB time=00:00:01.00 speed=1x\n")
+    assert store.get(key).size_bytes == 128 * KIB
+    assert not caplog.records
+
+
+def test_writer_caps_an_unterminated_line():
+    store, key = _live_store()
+    writer = FfmpegLogWriter(key, store)
+    for _ in range(5):
+        writer.write(b"x" * 50000)
+    assert len(writer._partial) <= FfmpegLogWriter.MAX_BYTES
+    writer.write(b"\nframe= 1 size=  128kB time=00:00:01.00 speed=1x\n")
+    assert store.get(key).size_bytes == 128 * KIB

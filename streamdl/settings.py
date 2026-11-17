@@ -4,11 +4,30 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+_RE_ATOI = re.compile(r"[+-]?[0-9]+")
+_INT64_MIN, _INT64_MAX = -(2**63), 2**63 - 1
+
+
+def atoi(value: str) -> int | None:
+    """Parse a base-10 int64 like Go's strconv.Atoi; None if it isn't one.
+
+    Unlike int(), this rejects surrounding whitespace, '_' separators and
+    non-ASCII digits.
+    """
+    if not _RE_ATOI.fullmatch(value):
+        return None
+    try:
+        n = int(value)
+    except ValueError:  # more digits than int() will parse
+        return None
+    return n if _INT64_MIN <= n <= _INT64_MAX else None
 
 
 def env_int(env: Mapping[str, str], name: str, default: int) -> int:
@@ -16,11 +35,11 @@ def env_int(env: Mapping[str, str], name: str, default: int) -> int:
     value = env.get(name, "").strip()
     if not value:
         return default
-    try:
-        return int(value)
-    except ValueError:
+    n = atoi(value)
+    if n is None:
         log.warning("Invalid %s value %r, using default %d", name, value, default)
         return default
+    return n
 
 
 def split_args(s: str) -> list[str]:
@@ -72,9 +91,14 @@ class FfmpegOptions:
             user_agent=env.get("FFMPEG_USER_AGENT", ""),
             reconnect=env.get("FFMPEG_RECONNECT", "").lower() not in ("0", "false"),
             reconnect_delay_max=env.get("FFMPEG_RECONNECT_DELAY_MAX") or "15",
-            stream_copy=env.get("FFMPEG_STREAM_COPY", "").strip().lower() in ("1", "true"),
-            extra_input=tuple(split_args(env.get("FFMPEG_EXTRA_INPUT_OPTS", "").strip())),
-            extra_output=tuple(split_args(env.get("FFMPEG_EXTRA_OUTPUT_OPTS", "").strip())),
+            stream_copy=env.get("FFMPEG_STREAM_COPY", "").strip().lower()
+            in ("1", "true"),
+            extra_input=tuple(
+                split_args(env.get("FFMPEG_EXTRA_INPUT_OPTS", "").strip())
+            ),
+            extra_output=tuple(
+                split_args(env.get("FFMPEG_EXTRA_OUTPUT_OPTS", "").strip())
+            ),
             max_retries=env_int(env, "FFMPEG_MAX_RETRIES", 3),
             retry_base_delay=float(env_int(env, "FFMPEG_RETRY_BASE_DELAY_SECONDS", 2)),
         )

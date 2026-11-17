@@ -11,12 +11,23 @@ def test_env_int():
     assert env_int({}, "X", 3) == 3
     assert env_int({"X": ""}, "X", 3) == 3
     assert env_int({"X": " 7 "}, "X", 3) == 7
+    assert env_int({"X": "+7"}, "X", 3) == 7
+    assert env_int({"X": "-7"}, "X", 3) == -7
 
 
 def test_env_int_invalid_warns(caplog):
     caplog.set_level(logging.WARNING, logger="streamdl")
     assert env_int({"X": "abc"}, "X", 3) == 3
     assert "Invalid X value 'abc'" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "value", ["1_000", "١٢", "1.5", "9223372036854775808", "9" * 5000]
+)
+def test_env_int_rejects_what_go_atoi_rejects(value, caplog):
+    caplog.set_level(logging.WARNING, logger="streamdl")
+    assert env_int({"X": value}, "X", 3) == 3
+    assert "Invalid X value" in caplog.text
 
 
 @pytest.mark.parametrize(
