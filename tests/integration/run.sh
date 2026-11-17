@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Integration test: finds a live Twitch stream, downloads ~10 seconds, validates the output.
+# Integration test: finds a live Twitch stream, downloads ~15 seconds, validates the output.
 #
 # Usage: ./tests/integration/run.sh
 #
@@ -12,6 +12,7 @@ set -euo pipefail
 #                              (default: build once, then recreate only)
 #   LIVE_CHANNEL=<name>        Probe this Twitch channel first (falls back to the list below)
 #   VOD_CHANNEL=<name>         Use this channel for the VOD phase instead of probing
+#   NOTICE_TIMEOUT=<seconds>   How long each notice test waits for its notice (default 120)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.integration.yml"
@@ -19,7 +20,13 @@ IMAGE="streamdl-integration:local"
 CONFIG_DIR="$SCRIPT_DIR/config"
 OUTPUT_DIR="$SCRIPT_DIR/output"
 TIMEOUT_SECONDS=120
+NOTICE_TIMEOUT="${NOTICE_TIMEOUT:-120}"
 FAILED=0
+
+# The container runs as the host user, so the host can delete what it writes
+PUID="$(id -u)"
+PGID="$(id -g)"
+export PUID PGID
 
 # Detect docker compose command — plugin, standalone, or direct path
 if docker compose version &>/dev/null; then
@@ -61,15 +68,38 @@ CANDIDATE_CHANNELS=(
 )
 
 HOOKS_DIR="$SCRIPT_DIR/hooks"
+DATA_DIR="$SCRIPT_DIR/data"
+
+# Channel names go into YAML and URLs, so accept Twitch logins only
+for var in LIVE_CHANNEL VOD_CHANNEL; do
+  value="${!var:-}"
+  if [ -n "$value" ] && ! [[ "$value" =~ ^[A-Za-z0-9_]{1,25}$ ]]; then
+    echo "ERROR: $var must be a Twitch login (letters, digits and _, at most 25), got '$value'"
+    exit 1
+  fi
+done
+
 if [ -n "${LIVE_CHANNEL:-}" ]; then
   CANDIDATE_CHANNELS=("$LIVE_CHANNEL" "${CANDIDATE_CHANNELS[@]}")
 fi
 LIVE_CHANNEL=""
 
+# Delete paths under $SCRIPT_DIR. If the host user can't (files left by another
+# UID), delete them as root from a throwaway container. Never fails.
+remove_paths() {
+  rm -rf "$@" 2>/dev/null && return 0
+  local rel=() path
+  for path in "$@"; do
+    rel+=("/w/${path#"$SCRIPT_DIR"/}")
+  done
+  docker run --rm -v "$SCRIPT_DIR:/w" --entrypoint rm "$IMAGE" -rf "${rel[@]}" \
+    >/dev/null 2>&1 || true
+}
+
 cleanup() {
   echo "--- Tearing down ---"
   $DC -f "$COMPOSE_FILE" down --volumes --remove-orphans 2>/dev/null || true
-  rm -rf "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR"
+  remove_paths "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR" "$DATA_DIR"
 }
 trap cleanup EXIT
 
@@ -87,30 +117,30 @@ start_streamdl() {
 assert_notice_after_wait() {
   local logs="$1"
   local channel="$2"
-  printf '%s' "$logs" | image_python -c "
+  printf '%s' "$logs" | image_python -c '
 import sys
+channel = sys.argv[1]
 logs = sys.stdin.read()
-notice = '[${channel}]'
-notice_idx = logs.find(notice)
+notice_idx = logs.find(f"[{channel}]")
 if notice_idx == -1:
-    print('notice not found for ${channel}', file=sys.stderr)
+    print(f"notice not found for {channel}", file=sys.stderr)
     raise SystemExit(1)
-wait_idx = logs.rfind('Waiting', 0, notice_idx)
+wait_idx = logs.rfind("Waiting", 0, notice_idx)
 if wait_idx == -1:
-    print('notice appears before any wait line', file=sys.stderr)
+    print("notice appears before any wait line", file=sys.stderr)
     raise SystemExit(1)
-if logs.find('--- notices ---', wait_idx, notice_idx) == -1:
-    print('notice not in the notices block after the wait line', file=sys.stderr)
+if logs.find("--- notices ---", wait_idx, notice_idx) == -1:
+    print("notice not in the notices block after the wait line", file=sys.stderr)
     raise SystemExit(1)
-"
+' "$channel"
 }
 
 # Poll the logs until the notice shows up: a fresh container needs a few seconds to
-# start, look the channel up and sleep -batch before its first wait line.
-# Leaves the last logs read in NOTICE_LOGS.
+# start, look the channel up and sleep -batch before its first wait line (longer
+# when rate limited). Leaves the last logs read in NOTICE_LOGS.
 wait_for_notice() {
   local channel="$1"
-  local deadline=$((SECONDS + 45))
+  local deadline=$((SECONDS + NOTICE_TIMEOUT))
   while :; do
     NOTICE_LOGS=$($DC -f "$COMPOSE_FILE" logs streamdl 2>&1)
     if assert_notice_after_wait "$NOTICE_LOGS" "$channel" 2>/dev/null; then
@@ -176,8 +206,8 @@ echo "=== StreamDL Integration Test ==="
 echo ""
 
 # Clean slate
-rm -rf "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR"
-mkdir -p "$OUTPUT_DIR/incomplete" "$OUTPUT_DIR/complete" "$OUTPUT_DIR/hook-markers" "$CONFIG_DIR" "$HOOKS_DIR"
+remove_paths "$OUTPUT_DIR" "$CONFIG_DIR" "$HOOKS_DIR" "$DATA_DIR"
+mkdir -p "$OUTPUT_DIR/incomplete" "$OUTPUT_DIR/complete" "$OUTPUT_DIR/hook-markers" "$CONFIG_DIR" "$HOOKS_DIR" "$DATA_DIR"
 
 # Create post-download hook script that writes a marker file with context
 cat > "$HOOKS_DIR/post_hook.sh" <<'HOOKEOF'
@@ -197,20 +227,20 @@ for channel in "${CANDIDATE_CHANNELS[@]}"; do
   echo -n "  Trying $channel... "
 
   # Use the image's Python + Streamlink to check if the channel is live.
-  RESULT=$(image_python -c "
-import socket
+  RESULT=$(image_python -c '
+import socket, sys
 socket.setdefaulttimeout(15)
 from streamlink import Streamlink
 session = Streamlink()
 try:
-    streams = session.streams('https://twitch.tv/$channel')
+    streams = session.streams("https://twitch.tv/" + sys.argv[1])
     if streams:
-        print('LIVE')
+        print("LIVE")
     else:
-        print('OFFLINE')
+        print("OFFLINE")
 except Exception as e:
-    print(f'ERROR:{e}')
-" 2>/dev/null) || RESULT="ERROR"
+    print(f"ERROR:{e}")
+' "$channel" 2>/dev/null) || RESULT="ERROR"
 
   if [ "$RESULT" = "LIVE" ]; then
     echo "LIVE!"
@@ -245,7 +275,7 @@ cat > "$CONFIG_DIR/config.yml" <<EOF
     quality: worst
 EOF
 
-echo "--- Starting StreamDL (will download ~10 seconds) ---"
+echo "--- Starting StreamDL (will download ~15 seconds) ---"
 start_streamdl
 
 # --- Phase 3: Wait for a completed mp4 file ---
@@ -323,10 +353,10 @@ except:
     PASS=false
   fi
 
-  # Duration should be roughly 5-15 seconds (we asked for 10, allow some variance)
+  # Duration should be about 15 seconds (-t 15); only reject clearly broken files
   DURATION_INT=$(printf "%.0f" "$DURATION" 2>/dev/null || echo "0")
   if [ "$DURATION_INT" -lt 3 ]; then
-    echo "  FAIL: Duration too short (${DURATION}s, expected ~10s)"
+    echo "  FAIL: Duration too short (${DURATION}s, expected ~15s)"
     PASS=false
   fi
 
@@ -373,9 +403,8 @@ echo ""
 echo "=== VOD Download Test ==="
 
 # Clean output and DB state for VOD test
-rm -rf "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/*
-rm -rf "$SCRIPT_DIR/data"
-mkdir -p "$SCRIPT_DIR/data"
+remove_paths "$OUTPUT_DIR/incomplete"/* "$OUTPUT_DIR/complete"/* "$DATA_DIR"
+mkdir -p "$DATA_DIR"
 
 # Channels known to have VODs, in priority order.
 # Override with VOD_CHANNEL env var to skip probing.
@@ -397,20 +426,20 @@ else
   echo "--- Probing for a channel with VODs ---"
   for vod_candidate in "${CANDIDATE_VOD_CHANNELS[@]}"; do
     echo -n "  Trying $vod_candidate... "
-    RESULT=$(image_python -c "
-import socket
+    RESULT=$(image_python -c '
+import socket, sys
 socket.setdefaulttimeout(15)
 import yt_dlp
 try:
-    with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'extract_flat': 'in_playlist', 'playlistend': 1}) as ydl:
-        info = ydl.extract_info('https://twitch.tv/$vod_candidate/videos', download=False)
-        if info and 'entries' in info and list(info['entries']):
-            print('HAS_VODS')
+    with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "extract_flat": "in_playlist", "playlistend": 1}) as ydl:
+        info = ydl.extract_info("https://twitch.tv/" + sys.argv[1] + "/videos", download=False)
+        if info and "entries" in info and list(info["entries"]):
+            print("HAS_VODS")
         else:
-            print('NO_VODS')
+            print("NO_VODS")
 except Exception as e:
-    print(f'ERROR:{e}')
-" 2>/dev/null) || RESULT="ERROR"
+    print(f"ERROR:{e}")
+' "$vod_candidate" 2>/dev/null) || RESULT="ERROR"
 
     if [ "$RESULT" = "HAS_VODS" ]; then
       echo "has VODs!"

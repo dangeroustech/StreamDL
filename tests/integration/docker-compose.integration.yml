@@ -9,8 +9,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       # run.sh asserts on `docker logs`, so keep app logs on stdout (default is file)
       - LOG_DEST=both
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
       - FFMPEG_EXTRA_OUTPUT_OPTS=-t 15
     volumes:
       - ./output/incomplete:/app/dl
