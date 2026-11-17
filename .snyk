@@ -3,6 +3,3 @@ ignore:
   'snyk:lic:*':
     - '*':
         reason: 'License scanning not required'
-exclude:
-  global:
-    - Dockerfile.*

@@ -6,8 +6,11 @@ services:
     env_file:
       - .env
     restart: always
-    ports:
-      - "8080:8080" # health check today; the web UI and API will live here
+    # The healthcheck runs inside the container, so no port needs publishing.
+    # Uncomment to reach /health (and the future web UI) from the host; change the
+    # left-hand port if 8080 is in use.
+    # ports:
+    #   - "8080:8080"
     volumes:
       - ./downloads/incomplete:/app/dl # in-progress downloads location
       - ./downloads/complete:/app/out # completed downloads location
