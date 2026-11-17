@@ -138,3 +138,38 @@ def test_sanitize_filename(raw, expected):
 def test_sanitize_filename_truncates_to_100_bytes():
     assert sanitize_filename("x" * 150) == "x" * 100
     assert sanitize_filename("é" * 60) == "é" * 50
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("a\ud800b", "a_b"),
+        ("a\x00b", "a_b"),
+        ("a\x1fb\tc", "a_b_c"),
+        ("\x00\ud800", ""),
+    ],
+)
+def test_sanitize_filename_is_total(raw, expected):
+    assert sanitize_filename(raw) == expected
+
+
+def test_move_cross_device_cleanup_error_does_not_mask_failure(tmp_path, monkeypatch):
+    src, dst = tmp_path / "src4.txt", tmp_path / "dst4.txt"
+    temp = str(tmp_path / ".tmp.dst4.txt")
+    src.write_bytes(b"x")
+    real_remove = os.remove
+
+    def rename(old, new):
+        if (old, new) == (str(src), str(dst)):
+            raise OSError(errno.EXDEV, "Invalid cross-device link")
+        raise OSError("rename failed")
+
+    def remove(path):
+        if path == temp:
+            raise PermissionError(errno.EACCES, "denied")
+        real_remove(path)
+
+    monkeypatch.setattr(os, "remove", remove)
+    with pytest.raises(OSError, match="rename failed"):
+        move_file(str(src), str(dst), rename=rename)
+    assert src.exists()

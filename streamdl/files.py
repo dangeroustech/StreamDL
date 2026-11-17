@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import logging
 import os
@@ -13,7 +14,8 @@ from collections.abc import Callable, Mapping
 log = logging.getLogger(__name__)
 
 DEFAULT_UMASK = 0o022
-_UNSAFE = str.maketrans({c: "_" for c in '/\\:*?"<>|\n\r'})
+# Path separators, characters Windows/SMB reject, and every C0 control char (incl. NUL).
+_UNSAFE = str.maketrans({c: "_" for c in '/\\:*?"<>|' + "".join(map(chr, range(0x20)))})
 _RE_OCTAL = re.compile(r"[+-]?[0-7]+")
 _INT32_MIN, _INT32_MAX = -(2**31), 2**31 - 1
 
@@ -98,17 +100,27 @@ def move_file(
                 os.fsync(dst.fileno())
         rename(temp_path, new_path)
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(temp_path)
-        except FileNotFoundError:
-            pass
+    _fsync_dir(target_dir)
     os.remove(old_path)
     log.info("Moved file from %s to %s (cross-device)", old_path, new_path)
 
 
+def _fsync_dir(path: str) -> None:
+    """Best effort: persist the rename by syncing the directory entry."""
+    with contextlib.suppress(OSError):
+        fd = os.open(path or ".", os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
 def sanitize_filename(name: str) -> str:
     """Make a VOD title safe for a filename (same rules as v3, max 100 bytes)."""
-    s = name.translate(_UNSAFE)
+    # Lone surrogates (possible in untrusted titles) become "?" and then "_".
+    s = name.encode("utf-8", "replace").decode("utf-8").translate(_UNSAFE)
     while "__" in s:
         s = s.replace("__", "_")
     encoded = s.encode("utf-8")
