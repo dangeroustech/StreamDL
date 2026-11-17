@@ -87,3 +87,11 @@ def test_sanitize_log_redacts_every_occurrence_per_line():
         "retrying https://x/c.m3u8?lsig=<redacted>&signature=<redacted> now\n"
         "next line & stays"
     )
+
+
+def test_sanitize_log_ignores_case():
+    line = "GET https://x/a?X-Amz-Signature=s1&Token=t1&SIG=s2&LSig=l1&p=1"
+    assert sanitize_log(line) == (
+        "GET https://x/a?X-Amz-Signature=<redacted>&Token=<redacted>"
+        "&SIG=<redacted>&LSig=<redacted>&p=1"
+    )

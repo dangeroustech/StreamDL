@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from .settings import FfmpegOptions
 
 COPY_ARGS = ["-c:v", "copy", "-c:a", "copy", "-movflags", "+faststart"]
-_RE_SECRET = re.compile(r"((?:token|sig|signature|lsig)=)[^&\s'\"]*")
+_RE_SECRET = re.compile(r"((?:token|sig|signature|lsig)=)[^&\s'\"]*", re.IGNORECASE)
 
 
 def network_args(opts: FfmpegOptions) -> list[str]:
