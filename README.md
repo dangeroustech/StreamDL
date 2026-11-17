@@ -47,7 +47,7 @@ Copy `docker-compose.yml.example` to `docker-compose.yml`, adjust the volumes an
 
 ### Upgrading from v3
 
-v4 replaces the separate `server` and `client` containers with one container. Your config, environment variables, folders and VOD database carry over unchanged.
+v4 replaces the separate `server` and `client` containers with one container. Your config, environment variables, folders and VOD database carry over (the two gRPC variables become unused).
 
 1. Pull the new image: `docker compose pull`.
 2. Delete the `server` service, and the client's `depends_on: server`, from your `docker-compose.yml`.
@@ -55,6 +55,8 @@ v4 replaces the separate `server` and `client` containers with one container. Yo
 4. Run `docker compose up -d --remove-orphans`.
 
 If you skip step 2, the old server container keeps running, but nothing talks to it.
+
+On TrueNAS, Portainer or another UI that manages the compose file for you, edit the app's YAML instead: delete the `server` service (and the `depends_on`), then redeploy with the image re-pulled.
 
 Some behaviour changed on purpose in v4:
 
