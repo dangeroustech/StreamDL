@@ -53,10 +53,6 @@ jobs:
     name: Docker
     runs-on: ubuntu-latest
     needs: Changelog_Release
-    strategy:
-      fail-fast: true
-      matrix:
-        component: [client, server]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -81,18 +77,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # v4 is one image; it keeps the client_* tags so existing compose files keep
+      # working. server_* tags stay frozen at v3.9.x.
       - name: Dockerhub Push Stable
         id: dockerhub_stable_push
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.component }}
+          file: Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            dangeroustech/streamdl:${{ matrix.component }}_latest
-            dangeroustech/streamdl:${{ matrix.component }}_stable
-            dangeroustech/streamdl:${{ matrix.component }}_${{ steps.tag.outputs.tag }}
+            dangeroustech/streamdl:client_latest
+            dangeroustech/streamdl:client_stable
+            dangeroustech/streamdl:client_${{ steps.tag.outputs.tag }}
 
       - name: Snyk Scan
         id: snyk_scan
@@ -101,7 +99,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: dangeroustech/streamdl:${{ matrix.component }}_stable
+          image: dangeroustech/streamdl:client_stable
           args: >-
             --severity-threshold=critical
             --exclude-base-image-vulns
@@ -114,4 +112,4 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
-          category: ${{ matrix.component }}-master
+          category: client-master

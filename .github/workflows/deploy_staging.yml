@@ -12,10 +12,6 @@ jobs:
   docker:
     name: Docker
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        component: [client, server]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -37,10 +33,10 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.component }}
+          file: Dockerfile
           platforms: linux/amd64
           load: true
-          tags: streamdl:${{ matrix.component }}_local
+          tags: streamdl:client_local
 
       - name: Snyk Scan
         id: snyk_scan
@@ -49,7 +45,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: streamdl:${{ matrix.component }}_local
+          image: streamdl:client_local
           args: >-
             --severity-threshold=high
             --exclude-base-image-vulns
@@ -63,15 +59,15 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
-          category: ${{ matrix.component }}-staging-${{ github.event_name }}
+          category: client-staging-${{ github.event_name }}
 
       - name: Dockerhub Push Staging
         id: dockerhub_staging_push
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.component }}
+          file: Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
-            dangeroustech/streamdl:${{ matrix.component }}_staging
+            dangeroustech/streamdl:client_staging

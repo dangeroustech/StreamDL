@@ -1,18 +1,13 @@
 # This is an example of the necessary docker-compose config
 
 services:
-
-  server:
-    image: dangeroustech/streamdl:server_stable
-    env_file:
-      - .env
-    restart: always
-
-  client:
+  streamdl:
     image: dangeroustech/streamdl:client_stable
     env_file:
       - .env
     restart: always
+    ports:
+      - "8080:8080" # health check today; the web UI and API will live here
     volumes:
       - ./downloads/incomplete:/app/dl # in-progress downloads location
       - ./downloads/complete:/app/out # completed downloads location
@@ -21,12 +16,10 @@ services:
     # Optional: Intel Quick Sync / VAAPI device passthrough (see README).
     # Uncomment only on hosts with /dev/dri. GIDs are host-specific — run
     # `stat -c '%g' /dev/dri/renderD128` and `getent group video render`.
-    # NOTE: The default client image ships static FFmpeg without QSV/VAAPI.
+    # NOTE: The image ships static FFmpeg without QSV/VAAPI.
     # Device access alone is not enough until a QSV-capable image is available (#611).
     # devices:
     #   - /dev/dri:/dev/dri
     # group_add:
     #   - "44"    # video  — replace with your host video GID
     #   - "992"   # render — replace with your host render GID
-    depends_on:
-      - server

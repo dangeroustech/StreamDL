@@ -14,13 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Go: setup-go's aliases track the two supported releases automatically.
-        # Python: the two releases still getting bugfixes; bump each October.
-        include:
-          - python-version: "3.14" # matches Dockerfile.server
-            go-version: oldstable
-          - python-version: "3.15"
-            go-version: stable
+        # The two Python releases still getting bugfixes; bump each October.
+        python-version: ["3.14", "3.15"] # 3.14 matches the Dockerfile
     env:
       # Make uv sync/run use the matrix Python rather than whatever it finds first
       UV_PYTHON: ${{ matrix.python-version }}
@@ -30,37 +25,21 @@ jobs:
         uses: astral-sh/setup-uv@v7
       - name: Set Up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
-      - uses: actions/setup-go@v7
-        with:
-          go-version: ${{ matrix.go-version }}
       - name: Install Deps
+        run: uv sync --all-extras --dev
+      - name: Run Tests
         run: |
-          uv sync --all-extras --dev
-      - name: Run Python Tests
-        run: |
-          uv run bandit -ll -c .bandit.yml streamdl_proto_srv.py
-          uv run pytest tests/ -v
-      - name: Run Go Tests
-        env:
-          STREAMDL_GRPC_PORT: "50051"
-          STREAMDL_GRPC_ADDR: localhost
-        run: |
-          uv run python streamdl_proto_srv.py &
-          go test -v -count=1 ./...
+          uv run bandit -ll -c .bandit.yml -r streamdl
+          uv run pytest -q
   Docker_Tests:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        component: [client, server]
     steps:
       - uses: actions/checkout@v7
       - name: Docker Build Test
-        id: docker_build_test
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.${{ matrix.component }}
+          file: Dockerfile
           platforms: linux/amd64
           push: false
