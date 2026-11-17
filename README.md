@@ -25,8 +25,8 @@ Flags accept one or two leading dashes (`-config` or `--config`).
 | -------------- | ------------------------------------------------------------ | ----------------- |
 | `-h`, `--help` | Show this help message and exit                              | -                 |
 | `-config`      | Location of config file (full path inc filename)             | `config.yml`      |
-| `-out`         | Location of output file (folder only)                        | Current directory |
-| `-move`        | Location to move completed downloads to                      | -                 |
+| `-out`         | Folder for in-progress recordings; must be set to a usable folder | none (the image uses `/app/dl`) |
+| `-move`        | Folder finished recordings are moved to; must be set to a usable folder | none (the image uses `/app/out`) |
 | `-time`        | Time interval to check for streams (in seconds)              | `60`              |
 | `-batch`       | Time between URL checks (seconds): increase for rate limiting | `5`               |
 | `-subfolder`   | Add streams to a subfolder with the channel name             | `false`           |
@@ -82,7 +82,7 @@ When using Docker, be aware of the following:
 - All directories mounted in Docker will have their permissions updated to match the container's user (PUID/PGID)
   - Provided the user has write permissions to the directory
 - If you don't want your existing directory permissions changed, mount a subdirectory instead
-- The container will write files with permissions based on the UMASK, PUID, and PGID settings
+- Files and folders the container writes are owned by PUID/PGID; see [Understanding UMASK](#understanding-umask) for their permissions
 
 Example directory setup before launching:
 
@@ -270,7 +270,7 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 | `LOG_LEVEL`          | Logging verbosity level (DEBUG, INFO, WARN, ERROR)                                                                | `INFO`   |
 | `LOG_DEST`           | Primary log destination: `file`, `stdout`, or `both`                                                              | `file`   |
 | `LOG_FILE`           | Log file path when `LOG_DEST` is `file` or `both`                                                                 | `/app/data/streamdl.log` |
-| `UMASK`              | File permission mask in octal format (e.g. "022"). Controls default permissions for created files and directories | `022`    |
+| `UMASK`              | File permission mask in octal format (e.g. "022"). Applied to folders StreamDL creates and to files it copies across filesystems (see below) | `022`    |
 | `PUID`               | User ID that will own the files/directories created by the container (Docker only)                                | `1000`   |
 | `PGID`               | Group ID that will own the files/directories created by the container (Docker only)                               | `1000`   |
 | `STREAMDL_POST_SCRIPT_TIMEOUT` | Maximum seconds a post-download hook may run before being killed                          | `1800`   |
@@ -318,19 +318,24 @@ Retries fetch a fresh stream URL each time, so a recording survives expired stre
 
 ### Understanding UMASK
 
-UMASK (User Mask) is a system setting that controls the default permissions for newly created files and directories.
-It works by masking out (removing) permissions you don't want to grant by default.
+A umask lists the permissions to remove from new files and folders, in octal (e.g. "022").
+StreamDL's `UMASK` setting does not change the process umask, so it only applies in two places:
 
-- The UMASK value is specified in octal format (e.g. "022")
-- For directories, the base permission is 0777 (rwxrwxrwx)
-- For files, the base permission typically starts at 0666 (rw-rw-rw-)
-- The UMASK is subtracted from these base permissions
+- **Folders StreamDL creates** (the output and move folders, and per-channel subfolders) get 0777 minus `UMASK`,
+  e.g. 755 (rwxr-xr-x) with `022`. Folders that already exist are left alone; in the container the entrypoint creates
+  `/app/dl`, `/app/out` and `/app/data` itself, so there it is the per-channel subfolders that get `UMASK`.
+- **Recordings moved across filesystems** (e.g. from a local `/app/dl` to a NAS-backed `/app/out`) are copied, and the
+  copy keeps the original file's permissions with `UMASK` also removed.
 
-Common UMASK values:
+The recordings themselves are created by FFmpeg with the process umask (the container default, normally 022, which gives
+644), and a move within one filesystem keeps those permissions. So `UMASK` can make recordings more restrictive after a
+cross-filesystem move, but it can't make them more permissive than that.
 
-- `022`: Files: 644 (rw-r--r--), Directories: 755 (rwxr-xr-x)
-- `027`: Files: 640 (rw-r-----), Directories: 750 (rwxr-x---)
-- `077`: Files: 600 (rw-------), Directories: 700 (rwx------)
+Common UMASK values for folders:
+
+- `022`: 755 (rwxr-xr-x)
+- `027`: 750 (rwxr-x---)
+- `077`: 700 (rwx------)
 
 ## Env File
 
