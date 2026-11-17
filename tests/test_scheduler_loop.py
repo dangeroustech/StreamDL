@@ -42,6 +42,29 @@ async def test_stops_a_round_in_progress(make_runtime):
     await asyncio.wait_for(task, 1)
 
 
+async def test_cancelling_run_cancels_the_round_in_progress(make_runtime):
+    started, cancelled = asyncio.Event(), asyncio.Event()
+
+    class Hanging(FakeResolver):
+        async def stream(self, site, user, quality):
+            started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+
+    rt = make_runtime()
+    rt.resolver = Hanging()
+    task = asyncio.create_task(scheduler(rt, LIVE_CONFIG).run(asyncio.Event()))
+    await asyncio.wait_for(started.wait(), 1)
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
+
+    assert cancelled.is_set()
+    assert task.cancelled()
+
+
 async def test_shutdown_sends_sigint_to_recordings(make_runtime, monkeypatch, tmp_path):
     monkeypatch.setenv("FAKE_FFMPEG_BLOCK", "1")
     rt = make_runtime(tick_seconds=3600)

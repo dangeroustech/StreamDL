@@ -63,14 +63,17 @@ class Scheduler:
         """Run one round; return False if stop was set before it finished."""
         round_task = asyncio.create_task(self.run_round())
         stop_task = asyncio.create_task(stop.wait())
-        done, _ = await asyncio.wait(
-            {round_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
-        )
-        if round_task not in done:
+        try:
+            await asyncio.wait(
+                {round_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+        finally:
+            # Also reached if run() itself is cancelled: never leave either running.
             round_task.cancel()
-            await asyncio.gather(round_task, return_exceptions=True)
+            stop_task.cancel()
+            await asyncio.gather(round_task, stop_task, return_exceptions=True)
+        if round_task.cancelled():
             return False
-        stop_task.cancel()
         if (exc := round_task.exception()) is not None:
             log.error("Round failed: %s", exc, exc_info=exc)
         return True
