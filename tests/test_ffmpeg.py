@@ -72,3 +72,18 @@ def test_tail_lines():
     assert tail_lines("a\nb", 5) == "a\nb"
     assert tail_lines("", 3) == ""
     assert tail_lines("a", 0) == ""
+
+
+def test_sanitize_log_redacts_every_occurrence_per_line():
+    tail = (
+        "Opening 'https://x/a.m3u8?sig=s1&token=t1&p=1' for reading\n"
+        "GET https://x/b.m3u8?token=t2\n"
+        "retrying https://x/c.m3u8?lsig=l3&signature=s4 now\n"
+        "next line & stays"
+    )
+    assert sanitize_log(tail) == (
+        "Opening 'https://x/a.m3u8?sig=<redacted>&token=<redacted>&p=1' for reading\n"
+        "GET https://x/b.m3u8?token=<redacted>\n"
+        "retrying https://x/c.m3u8?lsig=<redacted>&signature=<redacted> now\n"
+        "next line & stays"
+    )

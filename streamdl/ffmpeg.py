@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from .settings import FfmpegOptions
 
 COPY_ARGS = ["-c:v", "copy", "-c:a", "copy", "-movflags", "+faststart"]
+_RE_SECRET = re.compile(r"((?:token|sig|signature|lsig)=)[^&\s'\"]*")
 
 
 def network_args(opts: FfmpegOptions) -> list[str]:
@@ -101,15 +103,8 @@ def tail_lines(s: str, n: int) -> str:
 
 
 def sanitize_log(s: str) -> str:
-    """Redact the first token= and sig= values in an FFmpeg log tail."""
-    return _redact_between(_redact_between(s, "token=", "&"), "sig=", "&")
+    """Redact every token=, sig=, signature= and lsig= value in an FFmpeg log tail.
 
-
-def _redact_between(s: str, start: str, end: str) -> str:
-    index = s.find(start)
-    if index == -1:
-        return s
-    stop = s.find(end, index)
-    if stop == -1:
-        return s[: index + len(start)] + "<redacted>"
-    return s[: index + len(start)] + "<redacted>" + s[stop:]
+    A value ends at "&", whitespace or a quote, so redaction never crosses lines.
+    """
+    return _RE_SECRET.sub(r"\1<redacted>", s)
