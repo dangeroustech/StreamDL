@@ -39,6 +39,64 @@ class Scheduler:
     def recordings(self) -> set[asyncio.Task[None]]:
         return set(self._recordings)
 
+    async def run(self, stop: asyncio.Event) -> None:
+        """Run rounds until stop is set, then shut recordings down cleanly.
+
+        This is a plain loop (never recursion), so it can run indefinitely. Each round
+        starts one tick after the previous one started, or at once if it overran.
+        """
+        loop = asyncio.get_running_loop()
+        try:
+            while not stop.is_set():
+                started = loop.time()
+                if not await self._run_round_until(stop):
+                    break
+                delay = max(0.0, started + self.rt.settings.tick_seconds - loop.time())
+                try:
+                    await asyncio.wait_for(stop.wait(), delay)
+                except TimeoutError:
+                    pass
+        finally:
+            await self.shutdown()
+
+    async def _run_round_until(self, stop: asyncio.Event) -> bool:
+        """Run one round; return False if stop was set before it finished."""
+        round_task = asyncio.create_task(self.run_round())
+        stop_task = asyncio.create_task(stop.wait())
+        done, _ = await asyncio.wait(
+            {round_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if round_task not in done:
+            round_task.cancel()
+            await asyncio.gather(round_task, return_exceptions=True)
+            return False
+        stop_task.cancel()
+        if (exc := round_task.exception()) is not None:
+            log.error("Round failed: %s", exc, exc_info=exc)
+        return True
+
+    async def shutdown(self) -> None:
+        """Stop recordings (FFmpeg gets SIGINT), wait for post-scripts, then close
+        the resolver and the VOD database."""
+        recordings = list(self._recordings)
+        if recordings:
+            log.info("Stopping %d active recording(s)...", len(recordings))
+        for task in recordings:
+            task.cancel()
+        try:
+            await asyncio.gather(*recordings, return_exceptions=True)
+            if pending := self.rt.running_post_scripts:
+                # docker stop's default 10s grace period may cut this short.
+                log.info("Waiting for %d post-script(s) to finish...", pending)
+            await self.rt.wait_for_post_scripts()
+        finally:
+            close = getattr(self.rt.resolver, "close", None)
+            if callable(close):
+                close()
+            if self._vod_db is not None:
+                self._vod_db.close()
+                self._vod_db = None
+
     async def run_round(self) -> None:
         """Check every channel once, then log live users, progress and notices."""
         rt = self.rt

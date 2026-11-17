@@ -56,6 +56,10 @@ class Runtime:
         self._post_scripts.add(task)
         task.add_done_callback(self._post_scripts.discard)
 
+    @property
+    def running_post_scripts(self) -> int:
+        return len(self._post_scripts)
+
     async def wait_for_post_scripts(self) -> None:
         """Wait for every running hook, including any spawned while waiting."""
         while self._post_scripts:
