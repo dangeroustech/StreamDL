@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Stand-in for ffmpeg in tests.
+
+Each run appends its argv (JSON, without argv[0]) to $FAKE_FFMPEG_LOG, prints a
+couple of status lines to stderr and writes the output file (the last argument).
+The exit code comes from $FAKE_FFMPEG_EXITS, a comma-separated list consumed one
+entry per run (the last entry repeats). With FAKE_FFMPEG_BLOCK=1 it writes
+"<output>.ready", runs until SIGINT, then writes "<output>.finalized" and exits
+255 like ffmpeg does.
+"""
+
+import json
+import os
+import signal
+import sys
+import time
+
+args = sys.argv[1:]
+with open(os.environ["FAKE_FFMPEG_LOG"], "a+", encoding="utf-8") as log:
+    log.seek(0)
+    run = sum(1 for _ in log)
+    log.write(json.dumps(args) + "\n")
+
+out = args[-1]
+sys.stderr.write("Input #0, hls, from 'fake':\n")
+sys.stderr.write(
+    "frame=   10 fps=30 q=-1.0 size=     128kB time=00:00:01.00 bitrate=1048.6kbits/s speed=1.00x\r"
+)
+sys.stderr.write(
+    "frame=   20 fps=30 q=-1.0 size=     256kB time=00:00:02.00 bitrate=1048.6kbits/s speed=1.00x\r"
+)
+sys.stderr.flush()
+with open(out, "wb") as f:
+    f.write(b"fake mp4")
+
+if os.environ.get("FAKE_FFMPEG_BLOCK") == "1":
+    interrupted = False
+
+    def on_sigint(signum, frame):
+        global interrupted
+        interrupted = True
+
+    signal.signal(signal.SIGINT, on_sigint)
+    with open(out + ".ready", "w") as f:
+        f.write("ready")
+    while not interrupted:
+        time.sleep(0.02)
+    with open(out + ".finalized", "w") as f:
+        f.write("ok")
+    sys.exit(255)
+
+exits = [int(x) for x in os.environ.get("FAKE_FFMPEG_EXITS", "0").split(",")]
+sys.exit(exits[min(run, len(exits) - 1)])
