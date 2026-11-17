@@ -1,0 +1,109 @@
+"""Directory creation, cross-filesystem moves and filename cleanup."""
+
+from __future__ import annotations
+
+import errno
+import logging
+import os
+import shutil
+import stat
+from collections.abc import Callable, Mapping
+
+log = logging.getLogger(__name__)
+
+DEFAULT_UMASK = 0o022
+_UNSAFE = str.maketrans({c: "_" for c in '/\\:*?"<>|\n\r'})
+
+
+def get_umask(env: Mapping[str, str] | None = None) -> int:
+    """UMASK env var as octal; invalid values warn and fall back to 022."""
+    value = (os.environ if env is None else env).get("UMASK", "") or "022"
+    try:
+        return int(value, 8)
+    except ValueError:
+        log.warning("Invalid UMASK value %s, using default 022", value)
+        return DEFAULT_UMASK
+
+
+def create_dir_with_umask(path: str) -> None:
+    """Create path and any missing parents with mode 0777 minus UMASK.
+
+    Existing directories are left alone. Modes are set with chmod rather than by
+    changing the process umask, so this is safe to call from worker threads.
+    """
+    if os.path.isdir(path):
+        return
+    if os.path.exists(path):
+        raise FileExistsError(errno.EEXIST, "exists and is not a directory", path)
+    perms = 0o777 & ~get_umask()
+    missing = []
+    current = os.path.abspath(path)
+    while not os.path.exists(current):
+        missing.append(current)
+        current = os.path.dirname(current)
+    for directory in reversed(missing):
+        try:
+            os.mkdir(directory)
+        except FileExistsError:
+            pass
+        os.chmod(directory, perms)
+
+
+def is_cross_device(err: OSError) -> bool:
+    if err.errno == errno.EXDEV:
+        return True
+    text = str(err).lower()
+    return "cross-device" in text or "exdev" in text
+
+
+def move_file(
+    old_path: str,
+    new_path: str,
+    *,
+    rename: Callable[[str, str], None] = os.rename,
+) -> None:
+    """Move a file, falling back to copy + fsync + rename across filesystems.
+
+    The source is deleted only after the copy has been renamed into place.
+    """
+    log.info("Moving file from %s to %s", old_path, new_path)
+    target_dir = os.path.dirname(new_path)
+    create_dir_with_umask(target_dir)
+
+    try:
+        rename(old_path, new_path)
+        log.info("Atomically renamed %s to %s", old_path, new_path)
+        return
+    except OSError as e:
+        if not is_cross_device(e):
+            log.debug("rename failed with a non-cross-device error: %s", e)
+            raise
+
+    temp_path = os.path.join(target_dir, ".tmp." + os.path.basename(new_path))
+    try:
+        with open(old_path, "rb") as src:
+            perms = stat.S_IMODE(os.fstat(src.fileno()).st_mode) & ~get_umask()
+            fd = os.open(temp_path, os.O_RDWR | os.O_CREAT | os.O_TRUNC, perms)
+            with os.fdopen(fd, "wb") as dst:
+                shutil.copyfileobj(src, dst, 1024 * 1024)
+                dst.flush()
+                os.fsync(dst.fileno())
+        rename(temp_path, new_path)
+    finally:
+        try:
+            os.remove(temp_path)
+        except FileNotFoundError:
+            pass
+    os.remove(old_path)
+    log.info("Moved file from %s to %s (cross-device)", old_path, new_path)
+
+
+def sanitize_filename(name: str) -> str:
+    """Make a VOD title safe for a filename (same rules as v3, max 100 bytes)."""
+    s = name.translate(_UNSAFE)
+    while "__" in s:
+        s = s.replace("__", "_")
+    encoded = s.encode("utf-8")
+    if len(encoded) > 100:
+        s = encoded[:100].decode("utf-8", "ignore")
+    return s.strip("_. ")
