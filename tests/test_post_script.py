@@ -82,6 +82,26 @@ async def test_timeout_kills_the_whole_process_group(tmp_path):
     )
     started = time.monotonic()
     with pytest.raises(PostScriptError, match="timed out"):
-        await run_post_script(script, "/f.mp4", "u", "twitch.tv", "live", timeout=0.5)
-    assert time.monotonic() - started < 5
+        await run_post_script(script, "/f.mp4", "u", "twitch.tv", "live", timeout=2)
+    assert time.monotonic() - started < 6
     assert await _gone(int(pidfile.read_text()))
+
+
+async def test_cancel_kills_the_whole_process_group(tmp_path):
+    pidfile = tmp_path / "pids"
+    script = write_script(
+        tmp_path / "slow.sh",
+        f'sleep 30 &\necho "$$ $!" > {pidfile}.tmp\nmv {pidfile}.tmp {pidfile}\nwait\n',
+    )
+    task = asyncio.create_task(
+        run_post_script(script, "/f.mp4", "u", "twitch.tv", "live", timeout=60)
+    )
+    deadline = time.monotonic() + 5
+    while not pidfile.exists() and time.monotonic() < deadline:
+        await asyncio.sleep(0.05)
+    leader, child = map(int, pidfile.read_text().split())
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert await _gone(child)
+    assert await _gone(leader)

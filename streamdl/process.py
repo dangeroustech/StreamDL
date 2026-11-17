@@ -17,6 +17,10 @@ def describe_exit(returncode: int) -> str:
 
 
 def kill_process_group(pid: int) -> None:
+    """SIGKILL the process group led by pid.
+
+    Expects pid == pgid, i.e. the child was started with process_group=0.
+    """
     try:
         os.killpg(pid, signal.SIGKILL)
     except ProcessLookupError:

@@ -49,20 +49,36 @@ async def run_post_script(
     }
     try:
         proc = await asyncio.create_subprocess_exec(
-            script_path, file_path, env=env, process_group=0
+            script_path,
+            file_path,
+            stdin=asyncio.subprocess.DEVNULL,
+            env=env,
+            process_group=0,
         )
     except OSError as e:
         raise PostScriptError(f"post_script {script_path} failed: {e}") from e
     try:
         returncode = await asyncio.wait_for(proc.wait(), timeout)
     except TimeoutError:
-        kill_process_group(proc.pid)
-        await proc.wait()
+        await _kill(proc)
         raise PostScriptError(
             f"post_script {script_path} failed: timed out after {timeout:g}s"
         ) from None
+    except BaseException:
+        await _kill(proc)  # e.g. cancelled: don't leave the hook running
+        raise
     if returncode != 0:
         raise PostScriptError(
             f"post_script {script_path} failed: {describe_exit(returncode)}"
         )
     log.info("post_script %s completed for %s", script_path, user)
+
+
+async def _kill(proc: asyncio.subprocess.Process) -> None:
+    """Kill a still-running hook's process group and reap the leader.
+
+    The wait is shielded so a cancelled caller still reaps the leader.
+    """
+    if proc.returncode is None:
+        kill_process_group(proc.pid)
+    await asyncio.shield(proc.wait())
