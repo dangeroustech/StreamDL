@@ -1,10 +1,17 @@
+import logging
+import threading
 import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 import urllib3.util.url
 from streamlink.exceptions import NoPluginError, PluginError
-from yt_dlp.utils import DownloadError, GeoRestrictedError, UnavailableVideoError
+from yt_dlp.utils import (
+    DownloadError,
+    ExtractorError,
+    GeoRestrictedError,
+    UnavailableVideoError,
+)
 
 from streamdl import resolver
 from streamdl.resolver import (
@@ -229,6 +236,42 @@ def test_streamlink_gets_an_http_timeout():
     cls.assert_called_once_with(options={"http-timeout": resolver.HTTP_TIMEOUT})
 
 
+def test_streamlink_plugin_error_redacts_secrets(session, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    session.streams.side_effect = PluginError(
+        "Unable to open URL: https://usher.ttvnw.net/a.m3u8?sig=x&token=y (404)"
+    )
+    with pytest.raises(ResolverError) as err:
+        get_stream("twitch.tv", "alice", "best")
+    for text in (str(err.value), caplog.text):
+        assert "sig=<redacted>&token=<redacted>" in text
+        assert "sig=x" not in text and "token=y" not in text
+
+
+@pytest.mark.parametrize(
+    "outcome",
+    [
+        {"return_value": {"best": MagicMock(url="u")}},
+        {"return_value": None},
+        {"side_effect": PluginError("boom")},
+    ],
+)
+def test_streamlink_session_is_closed(session, outcome):
+    session.streams.configure_mock(**outcome)
+    try:
+        get_stream("twitch.tv", "alice", "best")
+    except ResolverError:
+        pass
+    session.http.close.assert_called_once_with()
+
+
+def test_streamlink_session_is_closed_before_ytdlp_fallback(ydl, session):
+    ydl.extract_info.side_effect = lambda *a, **k: (
+        session.http.close.assert_called_once_with() or {"url": "v"}
+    )
+    assert get_stream("kick.com", "u", "best") == StreamURLs("v")
+
+
 # --- get_stream via yt-dlp ------------------------------------------------------
 
 
@@ -442,6 +485,74 @@ async def test_library_resolver_wraps_unexpected_errors(monkeypatch):
     monkeypatch.setattr(resolver, "get_stream", broken)
     with pytest.raises(ResolverError, match="Unexpected error: 'DASHStream'"):
         await LibraryResolver().stream("s", "u", "q")
+
+
+async def test_library_resolver_logs_unexpected_errors_with_context(
+    monkeypatch, caplog
+):
+    caplog.set_level(logging.ERROR, logger="streamdl")
+
+    def get_stream(*args):
+        raise RuntimeError("bad https://x/?token=secret")
+
+    monkeypatch.setattr(resolver, "get_stream", get_stream)
+    with pytest.raises(ResolverError) as err:
+        await LibraryResolver().stream("twitch.tv", "alice", "best")
+    assert "token=<redacted>" in str(err.value)
+    assert "in get_stream site=twitch.tv user=alice" in caplog.text
+    assert "secret" not in caplog.text
+
+
+async def test_library_resolver_uses_its_own_pool(monkeypatch):
+    monkeypatch.setattr(
+        resolver, "get_stream", lambda *args: threading.current_thread().name
+    )
+    lookup = LibraryResolver()
+    try:
+        assert (await lookup.stream("s", "u", "q")).startswith("resolver")
+    finally:
+        lookup.close()
+
+
+async def test_library_resolver_close_rejects_new_lookups(monkeypatch):
+    monkeypatch.setattr(resolver, "get_stream", lambda *args: StreamURLs("v"))
+    lookup = LibraryResolver()
+    lookup.close()
+    with pytest.raises(ResolverError):
+        await lookup.stream("s", "u", "q")
+
+
+# --- library patches ------------------------------------------------------------
+
+
+def test_resolver_error_messages_are_redacted():
+    assert str(ResolverError("a?sig=x&token=y")) == "a?sig=<redacted>&token=<redacted>"
+    assert str(Offline("b?token=z")) == "b?token=<redacted>"
+
+
+def test_ytdlp_errors_have_no_bug_report_suffix():
+    assert str(ExtractorError("boom")) == "boom"
+
+
+def test_ytdlp_output_goes_to_the_debug_log(caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    resolver._YTDLP_PARAMS["logger"].error("ERROR: failed https://x/?sig=abc")
+    record = caplog.records[-1]
+    assert record.name == "streamdl.resolver"
+    assert record.levelno == logging.DEBUG
+    assert "yt-dlp: ERROR: failed https://x/?sig=<redacted>" in record.getMessage()
+
+
+def test_third_party_loggers_are_silenced_once():
+    resolver._silence_third_party_loggers()
+    resolver._silence_third_party_loggers()
+    for name in resolver._SILENCED_LOGGERS:
+        logger = logging.getLogger(name)
+        assert logger.level == logging.CRITICAL
+        assert logger.propagate is False
+        nulls = [h for h in logger.handlers if type(h) is logging.NullHandler]
+        assert len(nulls) == 1
+    assert not logging.getLogger("streamdl").disabled
 
 
 # --- urllib3 compatibility shim -------------------------------------------------
