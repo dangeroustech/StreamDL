@@ -19,6 +19,8 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 
 ## Usage
 
+Flags accept one or two leading dashes (`-config` or `--config`).
+
 | Flag           | Description                                                  | Default           |
 | -------------- | ------------------------------------------------------------ | ----------------- |
 | `-h`, `--help` | Show this help message and exit                              | -                 |
@@ -39,14 +41,28 @@ Why not get some use out of it? Archivists everywhere, rejoice!
 
 ### Docker
 
-- Built on Docker 19.03.4
-- Built on Docker-Compose 1.24.1
+StreamDL runs as a single container, `dangeroustech/streamdl:client_stable`.
 
-If you'd like to tweak individual parameters, the Dockerfile provided can be used.
+Copy `docker-compose.yml.example` to `docker-compose.yml`, adjust the volumes and `.env`, and run `docker compose up -d`. The container answers health checks on port 8080 (`/health`).
 
-Edit the Environment variables in `docker-compose.yml.example` to modify script functionality.
+### Upgrading from v3
 
-Otherwise, just rename it to `docker-compose.yml` and run `docker compose up -d`.
+v4 replaces the separate `server` and `client` containers with one container. Your config, environment variables, folders and VOD database carry over unchanged.
+
+1. Pull the new image: `docker compose pull`.
+2. Delete the `server` service, and the client's `depends_on: server`, from your `docker-compose.yml`.
+3. Remove `STREAMDL_GRPC_ADDR` and `STREAMDL_GRPC_PORT` from `.env`. They're ignored now.
+4. Run `docker compose up -d --remove-orphans`.
+
+If you skip step 2, the old server container keeps running, but nothing talks to it.
+
+Some behaviour changed on purpose in v4:
+
+- Notices from yt-dlp no longer end with its "please report this issue" suffix.
+- A post-download script still running when StreamDL stops is killed, along with any processes it started. See [Post-Download Script Hook](#post-download-script-hook) for giving long scripts time to finish.
+- A long VOD download is no longer started a second time while the first is still running.
+- Stream tokens and signatures are redacted from the logs.
+- `-time` (and `TICK_TIME`) must be greater than 0.
 
 #### Security Best Practices
 
@@ -54,7 +70,7 @@ StreamDL containers drop privileges at runtime by switching to a non-root user:
 
 - **Default Runtime User**: Entrypoints create/use a `streamdl` user with UID 1000 and GID 1000 unless `PUID`/`PGID` override them
 - **Runtime User Switching**: Supports dynamic UID/GID switching via `PUID`/`PGID` environment variables
-- **User Tools**: Uses `su-exec` (client) and `gosu` (server) for secure user switching
+- **User Tools**: Uses `gosu` to switch to the runtime user and `tini` as PID 1
 - **Directory Permissions**: Entrypoints create the directories they manage at startup
 
 ##### Directory Permissions
@@ -79,9 +95,9 @@ StreamDL can optionally receive the host Intel graphics device so hardware encod
 
 **Important limitations today**
 
-- The default client image uses `mwader/static-ffmpeg`, which does **not** include Quick Sync (QSV) or VAAPI. Passing `/dev/dri` into that image alone will not accelerate encodes.
+- The StreamDL image uses a static FFmpeg build (`mwader/static-ffmpeg`), which does **not** include Quick Sync (QSV) or VAAPI. Passing `/dev/dri` into that image alone will not accelerate encodes.
 - Most StreamDL downloads remux with stream copy (`-c copy` for VODs; optional via `FFMPEG_STREAM_COPY` for live). Remuxing does not use the GPU. Quick Sync only helps when something **re-encodes** (in-process via `FFMPEG_EXTRA_*`, or a `post_script` transcoder).
-- A QSV/VAAPI-capable client image is tracked in #611; first-class hwaccel presets in #612.
+- A QSV/VAAPI-capable image is tracked in #611; first-class hwaccel presets in #612.
 
 **Enable device access (opt-in)**
 
@@ -91,7 +107,7 @@ StreamDL can optionally receive the host Intel graphics device so hardware encod
    getent group video render
    stat -c '%g' /dev/dri/renderD128
    ```
-3. In `docker-compose.yml`, uncomment the client `devices:` / `group_add:` block from `docker-compose.yml.example` and replace the example GIDs with yours.
+3. In `docker-compose.yml`, uncomment the `devices:` / `group_add:` block from `docker-compose.yml.example` and replace the example GIDs with yours.
 4. Keep `PUID`/`PGID` as usual for download file ownership; `group_add` is separate and only grants DRM device access.
 
 Example (GIDs illustrative only):
@@ -122,9 +138,10 @@ Override the file path with `LOG_FILE` / `-log-file` when using `file` or `both`
 
 Requirements:
 
-- Python 3.10 or newer
+- Python 3.14 or newer
 - ffmpeg
 - uv (`pip install uv` or `pip3 install uv` depending on your system)
+- deno (optional; yt-dlp uses it for YouTube)
 
 #### Example Run
 
@@ -132,14 +149,11 @@ Requirements:
 # Clone the repository
 git clone https://github.com/dangeroustech/streamdl && cd streamdl
 
-# Create virtual environment
-uv venv
-
-# Install dependencies
-uv pip install .
+# Install dependencies into .venv
+uv sync --no-dev
 
 # Run StreamDL
-uv run python streamdl.py -config ./config/config.yml -time 300
+uv run streamdl -config ./config/config.yml -out ./downloads/incomplete -move ./downloads/complete -time 300
 ```
 
 ## Config File
@@ -216,6 +230,14 @@ The script must exist and be executable (`chmod +x /scripts/transcode.sh`). It r
 
 The script runs asynchronously and will not block other downloads. If the script fails or exceeds the timeout, an error is logged but StreamDL continues operating normally. Use `STREAMDL_POST_SCRIPT_TIMEOUT` (seconds, default `1800`) to cap how long a hook may run.
 
+When StreamDL stops, it waits for running hooks to finish. Docker only waits 10 seconds before killing the container, and any unfinished hook dies with it. If your hooks run longer (a transcode, say), raise the grace period in `docker-compose.yml`:
+
+```yaml
+services:
+  streamdl:
+    stop_grace_period: 30m
+```
+
 **Docker:** Mount your script directory into the container and point `post_script` at the in-container path:
 
 ```yaml
@@ -243,8 +265,6 @@ Some of these are also available as flags to the `streamdl` command, this is a #
 
 | Variable             | Description                                                                                                       | Default  |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
-| `STREAMDL_GRPC_ADDR` | The address for the gRPC server to bind to                                                                        | `server` |
-| `STREAMDL_GRPC_PORT` | The port number for the gRPC server                                                                               | `50051`  |
 | `TICK_TIME`          | Time interval (in seconds) between stream checks                                                                  | `60`     |
 | `LOG_LEVEL`          | Logging verbosity level (DEBUG, INFO, WARN, ERROR)                                                                | `INFO`   |
 | `LOG_DEST`           | Primary log destination: `file`, `stdout`, or `both`                                                              | `file`   |
@@ -276,22 +296,24 @@ id -u  # Shows your user ID
 id -g  # Shows your group ID
 ```
 
-### FFmpeg Resilience Settings
+### FFmpeg Settings
 
-The following environment variables control FFmpeg's reconnection behavior for more resilient stream downloading:
+These apply to live recordings. VODs are always stream-copied and ignore them.
 
 | Variable | Description | Default |
-| ------------------------------------ | -------------------------------------------------------------------------- | ------------ |
-| `FFMPEG_MAX_RETRIES` | Maximum number of FFmpeg retry attempts for transient failures | `3` |
-| `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Base delay in seconds between FFmpeg retry attempts | `2` |
-| `FFMPEG_RECONNECT_DELAY_MAX` | Maximum delay in seconds for FFmpeg to wait before reconnecting | `30` |
-| `FFMPEG_RW_TIMEOUT_US` | FFmpeg read/write timeout in microseconds (30,000,000 = 30 seconds) | `30000000` |
-| `FFMPEG_RECONNECT_ON_NETWORK_ERROR` | Enable FFmpeg reconnection on network errors (1=enabled, 0=disabled) | `1` |
-| `FFMPEG_RECONNECT_ON_HTTP_ERROR` | Enable FFmpeg reconnection on HTTP errors (1=enabled, 0=disabled) | `1` |
-| `FFMPEG_HTTP_SEEKABLE` | Enable HTTP seeking for better resilience (1=enabled, 0=disabled) | `1` |
-| `FFMPEG_HTTP_PERSISTENT` | Keep HTTP connections alive (1=enabled, 0=disabled) | `1` |
+| --- | --- | --- |
+| `FFMPEG_MAX_RETRIES` | Retries after FFmpeg exits with an error | `3` |
+| `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Delay before the first retry; doubles on each retry | `2` |
+| `FFMPEG_RW_TIMEOUT_US` | Network read/write timeout in microseconds | `15000000` (15s) |
+| `FFMPEG_RECONNECT` | Reconnect dropped single-input streams (`0` or `false` turns it off) | on |
+| `FFMPEG_RECONNECT_DELAY_MAX` | Longest wait between reconnect attempts, in seconds | `15` |
+| `FFMPEG_PROTOCOL_WHITELIST` | Value for FFmpeg's `-protocol_whitelist` | unset |
+| `FFMPEG_USER_AGENT` | User agent FFmpeg sends | FFmpeg's default |
+| `FFMPEG_STREAM_COPY` | `1` or `true` copies live streams instead of re-encoding them | off |
+| `FFMPEG_EXTRA_INPUT_OPTS` | Extra FFmpeg options placed before the input | unset |
+| `FFMPEG_EXTRA_OUTPUT_OPTS` | Extra FFmpeg options placed before the output file | unset |
 
-These settings help prevent creating multiple small files when streams have temporary interruptions.
+Retries fetch a fresh stream URL each time, so a recording survives expired stream tokens.
 
 ### Understanding UMASK
 
@@ -315,6 +337,6 @@ To use the `.env` file:
 
 1. Locate the `.env.example` file.
 2. Rename it to `.env` and confirm that the variables are to your liking.
-   For instance, `STREAMDL_GRPC_PORT=50051` sets the gRPC port for the StreamDL service.
+   For instance, `TICK_TIME=60` checks your channels every 60 seconds.
 3. To modify any variable, open the `.env` file, change the value, and save the file.
-   For example, to change the gRPC port, you might modify the line to `STREAMDL_GRPC_PORT=50052`.
+   For example, to check every five minutes, change the line to `TICK_TIME=300`.
