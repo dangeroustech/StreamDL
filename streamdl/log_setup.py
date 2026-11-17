@@ -5,6 +5,10 @@ Destinations (LOG_DEST / -log-dest):
          block each round (the v3 default)
   stdout full logs to stdout
   both   full logs to the file and stdout
+
+The handlers sit on the root logger: StreamDL's own loggers log at the chosen
+level, and other libraries' warnings and errors (uvicorn, asyncio, ...) reach the
+same destinations in the same format instead of Python's bare stderr fallback.
 """
 
 from __future__ import annotations
@@ -89,10 +93,12 @@ class LoggingConfig:
 
     def close(self) -> None:
         global console_summary, _summary_owner
-        logger = logging.getLogger(LOGGER_NAME)
+        root = logging.getLogger()
         for handler in self.handlers:
-            logger.removeHandler(handler)
+            root.removeHandler(handler)
             handler.close()
+            if handler in _installed:
+                _installed.remove(handler)
         self.handlers.clear()
         if _summary_owner is self:
             console_summary = None
@@ -102,13 +108,19 @@ class LoggingConfig:
 # The LoggingConfig that set console_summary; only it may clear it on close().
 _summary_owner: LoggingConfig | None = None
 
+# Root-logger handlers added by the latest setup_logging(); other root handlers
+# (pytest's, for one) are left alone.
+_installed: list[logging.Handler] = []
+
 
 def setup_logging(
     level: str, dest: str, file_path: str, data_dir: str
 ) -> LoggingConfig:
-    """Configure the 'streamdl' logger; raises ValueError or OSError on bad input.
+    """Configure logging; raises ValueError or OSError on bad input.
 
-    On error the previous logging setup is left in place.
+    'streamdl' loggers log at `level`; other loggers keep the root logger's level
+    (WARNING unless something changed it). On error the previous logging setup is
+    left in place.
     """
     global console_summary, _summary_owner
     log_dest = parse_log_dest(dest)
@@ -126,14 +138,15 @@ def setup_logging(
             handlers.append(logging.StreamHandler(sys.stdout))
 
     formatter = _Formatter(_FORMAT, _DATEFMT)
-    logger = logging.getLogger(LOGGER_NAME)
-    for handler in list(logger.handlers):
-        logger.removeHandler(handler)
+    root = logging.getLogger()
+    for handler in _installed:
+        root.removeHandler(handler)
         handler.close()
+    _installed[:] = handlers
     for handler in handlers:
         handler.setFormatter(formatter)
-        logger.addHandler(handler)
-    logger.setLevel(parse_level(level))
+        root.addHandler(handler)
+    logging.getLogger(LOGGER_NAME).setLevel(parse_level(level))
 
     cfg = LoggingConfig(log_dest, file_path, handlers)
     if log_dest is LogDest.FILE:

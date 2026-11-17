@@ -12,8 +12,13 @@ from streamdl.settings import Settings
 
 @pytest.fixture(autouse=True)
 def _reset_streamdl_logging():
-    """Undo logging changes so every test starts with a clean 'streamdl' logger."""
+    """Undo logging changes so every test starts with clean logging."""
     yield
+    root = logging.getLogger()
+    for handler in log_setup._installed:
+        root.removeHandler(handler)
+        handler.close()
+    log_setup._installed.clear()
     logger = logging.getLogger(log_setup.LOGGER_NAME)
     for handler in list(logger.handlers):
         logger.removeHandler(handler)

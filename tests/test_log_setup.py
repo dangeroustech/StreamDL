@@ -78,6 +78,20 @@ def test_child_loggers_use_the_same_handlers(tmp_path):
     assert "from-a-module" in (tmp_path / "streamdl.log").read_text()
 
 
+def test_other_libraries_log_warnings_through_the_same_handlers(tmp_path):
+    cfg = setup_logging("debug", "file", "", str(tmp_path))
+    logging.getLogger("uvicorn.error").warning("third-party-warning")
+    logging.getLogger("some.library").info("third-party-info")
+    lines = (tmp_path / "streamdl.log").read_text().splitlines()
+    assert lines[-1].endswith("] WARNING third-party-warning")
+    assert not any("third-party-info" in line for line in lines)
+    handlers = list(cfg.handlers)
+    cfg.close()
+    assert not set(handlers) & set(logging.getLogger().handlers)
+    logging.getLogger("uvicorn.error").warning("after-close")
+    assert "after-close" not in (tmp_path / "streamdl.log").read_text()
+
+
 def test_line_format(tmp_path):
     setup_logging("info", "file", "", str(tmp_path))
     logging.getLogger("streamdl").info("hello")
@@ -99,6 +113,13 @@ def test_setup_closes_replaced_handlers(tmp_path):
     old = first.handlers[0]
     setup_logging("info", "stdout", "", str(tmp_path))
     assert old.stream is None
+
+
+def test_setup_leaves_other_root_handlers_alone(tmp_path, caplog):
+    setup_logging("info", "file", str(tmp_path / "a.log"), str(tmp_path))
+    setup_logging("info", "file", str(tmp_path / "b.log"), str(tmp_path))
+    logging.getLogger("streamdl").warning("still-captured")
+    assert "still-captured" in caplog.text
 
 
 def test_failed_setup_keeps_console_summary(tmp_path):
