@@ -88,27 +88,35 @@ class LoggingConfig:
     handlers: list[logging.Handler] = field(default_factory=list)
 
     def close(self) -> None:
-        global console_summary
+        global console_summary, _summary_owner
         logger = logging.getLogger(LOGGER_NAME)
         for handler in self.handlers:
             logger.removeHandler(handler)
             handler.close()
         self.handlers.clear()
-        console_summary = None
+        if _summary_owner is self:
+            console_summary = None
+            _summary_owner = None
+
+
+# The LoggingConfig that set console_summary; only it may clear it on close().
+_summary_owner: LoggingConfig | None = None
 
 
 def setup_logging(
     level: str, dest: str, file_path: str, data_dir: str
 ) -> LoggingConfig:
-    """Configure the 'streamdl' logger; raises ValueError or OSError on bad input."""
-    global console_summary
+    """Configure the 'streamdl' logger; raises ValueError or OSError on bad input.
+
+    On error the previous logging setup is left in place.
+    """
+    global console_summary, _summary_owner
     log_dest = parse_log_dest(dest)
     file_path = file_path.strip()
     if log_dest is not LogDest.STDOUT and not file_path:
         file_path = os.path.join(data_dir.strip() or "/app/data", "streamdl.log")
 
     handlers: list[logging.Handler] = []
-    console_summary = None
     if log_dest is LogDest.STDOUT:
         handlers.append(logging.StreamHandler(sys.stdout))
     else:
@@ -116,22 +124,30 @@ def setup_logging(
         handlers.append(logging.FileHandler(file_path, encoding="utf-8"))
         if log_dest is LogDest.BOTH:
             handlers.append(logging.StreamHandler(sys.stdout))
-        else:
-            console_summary = sys.stdout
 
     formatter = _Formatter(_FORMAT, _DATEFMT)
     logger = logging.getLogger(LOGGER_NAME)
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
+        handler.close()
     for handler in handlers:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     logger.setLevel(parse_level(level))
-    return LoggingConfig(log_dest, file_path, handlers)
+
+    cfg = LoggingConfig(log_dest, file_path, handlers)
+    if log_dest is LogDest.FILE:
+        console_summary, _summary_owner = sys.stdout, cfg
+    else:
+        console_summary, _summary_owner = None, None
+    return cfg
 
 
 def write_console(text: str) -> None:
-    """Write text to the console summary sink, if one is active."""
+    """Write text to the console summary sink, if one is active.
+
+    Not thread-safe; call from the event loop only.
+    """
     if console_summary is None:
         return
     console_summary.write(text)

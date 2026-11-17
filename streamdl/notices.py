@@ -24,6 +24,8 @@ class NoticeBuffer:
 
     A notice is shown once, then suppressed until clear_channel() is called for its
     channel (when a live recording ends).
+
+    Not thread-safe; call from the event loop only.
     """
 
     def __init__(self) -> None:

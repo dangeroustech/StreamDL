@@ -94,6 +94,34 @@ def test_level_names_stay_upper_case_after_importing_streamlink(tmp_path):
     assert line.endswith("] WARNING hello")
 
 
+def test_setup_closes_replaced_handlers(tmp_path):
+    first = setup_logging("info", "file", str(tmp_path / "a.log"), str(tmp_path))
+    old = first.handlers[0]
+    setup_logging("info", "stdout", "", str(tmp_path))
+    assert old.stream is None
+
+
+def test_failed_setup_keeps_console_summary(tmp_path):
+    setup_logging("info", "file", "", str(tmp_path))
+    sink = log_setup.console_summary
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("")
+    with pytest.raises(OSError):
+        setup_logging("info", "both", str(blocker / "x.log"), str(tmp_path))
+    with pytest.raises(ValueError):
+        setup_logging("info", "nope", "", str(tmp_path))
+    assert log_setup.console_summary is sink is not None
+
+
+def test_closing_a_replaced_config_keeps_the_new_summary(tmp_path):
+    first = setup_logging("info", "file", str(tmp_path / "a.log"), str(tmp_path))
+    second = setup_logging("info", "file", str(tmp_path / "b.log"), str(tmp_path))
+    first.close()
+    assert log_setup.console_summary is not None
+    second.close()
+    assert log_setup.console_summary is None
+
+
 def test_write_console():
     buf = io.StringIO()
     log_setup.console_summary = buf
