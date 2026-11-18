@@ -3,7 +3,7 @@
 import logging
 
 import pytest
-from helpers import FAKE_FFMPEG, FakeResolver, FakeSleep
+from helpers import FAKE_FFMPEG, FAKE_STREAMLINK, FakeResolver, FakeSleep
 
 from streamdl import log_setup
 from streamdl.runtime import Runtime
@@ -33,8 +33,15 @@ def ffmpeg_log(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def make_runtime(tmp_path, ffmpeg_log):
-    """Build a Runtime wired to the fake ffmpeg, a FakeResolver and a FakeSleep."""
+def streamlink_log(tmp_path, monkeypatch):
+    path = tmp_path / "streamlink-runs.jsonl"
+    monkeypatch.setenv("FAKE_STREAMLINK_LOG", str(path))
+    return path
+
+
+@pytest.fixture
+def make_runtime(tmp_path, ffmpeg_log, streamlink_log):
+    """Build a Runtime wired to the fake ffmpeg and streamlink, a FakeResolver and a FakeSleep."""
 
     def make(**overrides):
         values = dict(
@@ -47,6 +54,7 @@ def make_runtime(tmp_path, ffmpeg_log):
             ffmpeg_path=FAKE_FFMPEG,
             # Recorder tests take the direct FFmpeg path unless they opt in.
             twitch=TwitchOptions(adfree=False),
+            streamlink_cmd=(FAKE_STREAMLINK,),
         )
         values.update(overrides)
         return Runtime(

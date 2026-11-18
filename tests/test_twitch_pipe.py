@@ -1,17 +1,26 @@
+import asyncio
 import logging
+import signal
 import stat
 from pathlib import Path
 
 import pytest
+from helpers import FAKE_FFMPEG, FAKE_STREAMLINK, streamlink_runs, wait_for_glob
 from streamlink_cli.argparser import build_parser
 
+from streamdl import twitch_pipe
+from streamdl.ffmpeg import build_pipe_args
 from streamdl.notices import NoticeBuffer
+from streamdl.progress import FfmpegLogWriter, ProgressStore
+from streamdl.settings import FfmpegOptions
 from streamdl.twitch_pipe import (
     MAX_LINE_CHARS,
     TAIL_LINES,
+    PipeResult,
     StreamlinkLog,
     ad_notice,
     build_streamlink_args,
+    run_pipe,
     streamlink_config,
 )
 
@@ -208,3 +217,148 @@ def test_streamlink_log_logs_each_line_at_debug(notices, caplog):
     assert record.getMessage() == (
         "streamlink [alice]: [cli][info] Opening stream: best (hls)"
     )
+
+
+# --- run_pipe -------------------------------------------------------------------
+
+
+@pytest.fixture
+def spawned(monkeypatch):
+    """Every process run_pipe starts, so tests can check none is left running."""
+    procs = []
+    spawn = asyncio.create_subprocess_exec
+
+    async def recording_spawn(*args, **kwargs):
+        proc = await spawn(*args, **kwargs)
+        procs.append(proc)
+        return proc
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", recording_spawn)
+    return procs
+
+
+@pytest.fixture
+def pipe(tmp_path, ffmpeg_log, streamlink_log, notices):
+    """run_pipe's arguments for the fakes, recording to tmp_path/rec.mp4."""
+    return [
+        build_streamlink_args("alice", "best", None, cmd=(FAKE_STREAMLINK,)),
+        build_pipe_args(str(tmp_path / "rec.mp4"), FfmpegOptions(), ffmpeg=FAKE_FFMPEG),
+        FfmpegLogWriter("live:alice", ProgressStore()),
+        StreamlinkLog("alice", notices),
+    ]
+
+
+@pytest.fixture
+def blocking_streamlink(tmp_path, monkeypatch):
+    ready = tmp_path / "sl.ready"
+    monkeypatch.setenv("FAKE_STREAMLINK_BLOCK", "1")
+    monkeypatch.setenv("FAKE_STREAMLINK_READY", str(ready))
+    return ready
+
+
+async def test_streamlink_output_reaches_ffmpeg(pipe, spawned, tmp_path):
+    result = await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert result == PipeResult(ffmpeg_rc=0, streamlink_rc=0, streamlink_tail="")
+    assert (tmp_path / "rec.mp4.stdin").read_bytes() == b"fake ts data"
+    assert (tmp_path / "rec.mp4").read_bytes() == b"fake mp4"
+    assert len(spawned) == 2
+    assert all(p.returncode is not None for p in spawned)
+
+
+async def test_streamlink_failure_is_reported_with_its_tail(pipe, monkeypatch):
+    monkeypatch.setenv("FAKE_STREAMLINK_EXITS", "1")
+    monkeypatch.setenv("FAKE_STREAMLINK_STDERR", "[cli][error] Stream ended badly")
+
+    result = await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert result == PipeResult(0, 1, "[cli][error] Stream ended badly")
+
+
+async def test_streamlink_is_stopped_when_ffmpeg_exits_first(
+    pipe, spawned, blocking_streamlink, monkeypatch
+):
+    monkeypatch.setenv("FAKE_FFMPEG_SKIP_STDIN", "1")
+    monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1")
+
+    result = await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert result.ffmpeg_rc == 1
+    # SIGTERM, or a broken pipe if FFmpeg was already gone when it wrote.
+    assert result.streamlink_rc not in (0, -signal.SIGKILL)
+    assert all(p.returncode is not None for p in spawned)
+
+
+async def test_cancel_stops_streamlink_and_lets_ffmpeg_finish(
+    pipe, spawned, blocking_streamlink, tmp_path
+):
+    task = asyncio.create_task(run_pipe(*pipe))
+    await wait_for_glob(tmp_path, blocking_streamlink.name)
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 10)
+
+    ffmpeg, streamlink = spawned
+    assert streamlink.returncode == -signal.SIGTERM
+    assert ffmpeg.returncode == 0
+    assert (tmp_path / "rec.mp4.stdin").read_bytes() == b"fake ts data"
+
+
+async def test_streamlink_ignoring_sigterm_is_killed(
+    pipe, spawned, blocking_streamlink, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(twitch_pipe, "STREAMLINK_TERM_GRACE", 0.2)
+    monkeypatch.setenv("FAKE_STREAMLINK_IGNORE_TERM", "1")
+    task = asyncio.create_task(run_pipe(*pipe))
+    await wait_for_glob(tmp_path, blocking_streamlink.name)
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 10)
+
+    ffmpeg, streamlink = spawned
+    assert streamlink.returncode == -signal.SIGKILL
+    assert ffmpeg.returncode == 0
+
+
+async def test_missing_streamlink_raises_and_reaps_ffmpeg(pipe, spawned, tmp_path):
+    pipe[0] = build_streamlink_args(
+        "alice", "best", None, cmd=(str(tmp_path / "missing"),)
+    )
+
+    with pytest.raises(OSError):
+        await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    [ffmpeg] = spawned
+    assert ffmpeg.returncode is not None
+
+
+async def test_missing_ffmpeg_raises_before_streamlink_starts(
+    pipe, spawned, streamlink_log, tmp_path
+):
+    pipe[1] = build_pipe_args(
+        str(tmp_path / "rec.mp4"), FfmpegOptions(), ffmpeg=str(tmp_path / "missing")
+    )
+
+    with pytest.raises(OSError):
+        await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert spawned == []
+    assert streamlink_runs(streamlink_log) == []
+
+
+async def test_reader_error_propagates_and_nothing_is_left_running(
+    pipe, spawned, blocking_streamlink
+):
+    class BrokenWriter:
+        def write(self, data):
+            raise RuntimeError("writer bug")
+
+    pipe[2] = BrokenWriter()
+
+    with pytest.raises(RuntimeError, match="writer bug"):
+        await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert len(spawned) == 2
+    assert all(p.returncode is not None for p in spawned)

@@ -6,6 +6,7 @@ import threading
 from pathlib import Path
 
 FAKE_FFMPEG = str(Path(__file__).parent / "fakes" / "ffmpeg")
+FAKE_STREAMLINK = str(Path(__file__).parent / "fakes" / "streamlink")
 
 
 class FakeResolver:
@@ -66,6 +67,12 @@ class BlockingMove:
 
 
 def ffmpeg_runs(log_path):
+    if not log_path.exists():
+        return []
+    return [json.loads(line) for line in log_path.read_text().splitlines()]
+
+
+def streamlink_runs(log_path):
     if not log_path.exists():
         return []
     return [json.loads(line) for line in log_path.read_text().splitlines()]

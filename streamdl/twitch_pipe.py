@@ -7,14 +7,17 @@ avoids the ads, and the gaps, altogether.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
 import shutil
+import signal
 import tempfile
 from collections import deque
-from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager, suppress
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from .ffmpeg import sanitize_log
@@ -22,6 +25,7 @@ from .resolver import HTTP_TIMEOUT, TOKEN_REJECTED
 
 if TYPE_CHECKING:
     from .notices import NoticeBuffer
+    from .progress import FfmpegLogWriter
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +36,7 @@ _RE_AD_BREAK = re.compile(
     r"detected advertisement break of (\d+) seconds?", re.IGNORECASE
 )
 _PRE_ROLL = "waiting for pre-roll ads"
+STREAMLINK_TERM_GRACE = 3.0  # seconds streamlink gets to exit after SIGTERM
 # Twitch's API error for a bad token; a segment's "401 ... Unauthorized for url"
 # has no colon right after the word and doesn't match.
 _RE_UNAUTHORIZED = re.compile(r"unauthorized: .*", re.IGNORECASE)
@@ -141,3 +146,136 @@ class StreamlinkLog:
     def _redact(self, line: str) -> str:
         line = sanitize_log(line)
         return line.replace(self._token, "<redacted>") if self._token else line
+
+
+@dataclass(frozen=True)
+class PipeResult:
+    ffmpeg_rc: int
+    streamlink_rc: int
+    streamlink_tail: str  # already redacted
+
+
+async def run_pipe(
+    streamlink_args: Sequence[str],
+    ffmpeg_args: Sequence[str],
+    writer: FfmpegLogWriter,
+    streamlink_log: StreamlinkLog,
+) -> PipeResult:
+    """Run streamlink piped into FFmpeg until both have exited.
+
+    The stream goes through an OS pipe, never through Python. Whichever exits
+    first, the other follows: FFmpeg finishes the file when its input ends, and
+    streamlink is stopped (SIGTERM, then SIGKILL after STREAMLINK_TERM_GRACE) once
+    FFmpeg is gone.
+
+    If the task is cancelled (shutdown), streamlink is stopped the same way, so
+    FFmpeg sees the end of its input and finalises the MP4; we wait for FFmpeg,
+    then re-raise. On any other error, or if that wait is cancelled again, both
+    are killed. Neither process outlives this call. Raises OSError if either
+    can't be started.
+    """
+    ffmpeg, streamlink = await _spawn(streamlink_args, ffmpeg_args)
+    ff_drain = asyncio.ensure_future(_drain(ffmpeg, writer.write))
+    sl_drain = asyncio.ensure_future(_drain(streamlink, streamlink_log.write))
+    drains = (ff_drain, sl_drain)
+    try:
+        try:
+            await asyncio.wait(drains, return_when=asyncio.FIRST_COMPLETED)
+            if ff_drain.done():
+                await _terminate(streamlink, sl_drain)
+            await _wait_all(drains)
+        except asyncio.CancelledError:
+            await _terminate(streamlink, sl_drain)
+            await _wait_all(drains)
+            raise
+    finally:
+        await _reap((("FFmpeg", ffmpeg), ("streamlink", streamlink)), drains)
+        streamlink_log.close()
+    return PipeResult(ff_drain.result(), sl_drain.result(), streamlink_log.tail())
+
+
+async def _spawn(
+    streamlink_args: Sequence[str], ffmpeg_args: Sequence[str]
+) -> tuple[asyncio.subprocess.Process, asyncio.subprocess.Process]:
+    """Start FFmpeg reading a new pipe, then streamlink writing to it.
+
+    FFmpeg starts first so streamlink always has a reader. Our copies of both
+    pipe ends are closed once the children have theirs, so each child sees EOF or
+    a broken pipe as soon as the other exits.
+    """
+    read_fd, write_fd = os.pipe()
+    ffmpeg = None
+    try:
+        ffmpeg = await asyncio.create_subprocess_exec(
+            *ffmpeg_args,
+            stdin=read_fd,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        streamlink = await asyncio.create_subprocess_exec(
+            *streamlink_args,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=write_fd,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except BaseException:
+        if ffmpeg is not None:
+            await _reap((("FFmpeg", ffmpeg),), ())
+        raise
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+    return ffmpeg, streamlink
+
+
+async def _drain(
+    proc: asyncio.subprocess.Process, sink: Callable[[bytes], None]
+) -> int:
+    if proc.stderr is not None:
+        while chunk := await proc.stderr.read(4096):
+            sink(chunk)
+    return await proc.wait()
+
+
+async def _terminate(
+    streamlink: asyncio.subprocess.Process, drain: asyncio.Future[int]
+) -> None:
+    """SIGTERM streamlink; SIGKILL it if it hasn't exited after the grace period."""
+    if streamlink.returncode is None:
+        log.debug("Stopping streamlink (pid %d)", streamlink.pid)
+        with suppress(ProcessLookupError):
+            streamlink.send_signal(signal.SIGTERM)
+    _, pending = await asyncio.wait({drain}, timeout=STREAMLINK_TERM_GRACE)
+    if pending:
+        log.debug("Killing streamlink (pid %d)", streamlink.pid)
+        with suppress(ProcessLookupError):
+            streamlink.kill()
+
+
+async def _wait_all(drains: Sequence[asyncio.Future[int]]) -> None:
+    """Wait for every drain; raise the first error as soon as one fails."""
+    done, _ = await asyncio.wait(drains, return_when=asyncio.FIRST_EXCEPTION)
+    for task in done:
+        if not task.cancelled() and (error := task.exception()) is not None:
+            raise error
+
+
+async def _reap(
+    procs: Sequence[tuple[str, asyncio.subprocess.Process]],
+    drains: Sequence[asyncio.Future[int]],
+) -> None:
+    """Kill whatever is still running and wait for it to exit.
+
+    The kills are sent before the first await, so a further cancellation can't
+    leave a process running.
+    """
+    for name, proc in procs:
+        if proc.returncode is None:
+            log.debug("Killing %s (pid %d)", name, proc.pid)
+            with suppress(ProcessLookupError):
+                proc.kill()
+    await asyncio.shield(
+        asyncio.gather(
+            *(proc.wait() for _, proc in procs), *drains, return_exceptions=True
+        )
+    )

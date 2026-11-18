@@ -7,6 +7,9 @@ The exit code comes from $FAKE_FFMPEG_EXITS, a comma-separated list consumed one
 entry per run (the last entry repeats). With FAKE_FFMPEG_BLOCK=1 it writes
 "<output>.ready", runs until SIGINT, then writes "<output>.finalized" and exits
 255 like ffmpeg does.
+
+When the input is pipe:0 it then reads stdin to EOF and saves what it read to
+"<output>.stdin" (FAKE_FFMPEG_SKIP_STDIN=1 skips the read).
 """
 
 import json
@@ -32,6 +35,11 @@ sys.stderr.write(
 sys.stderr.flush()
 with open(out, "wb") as f:
     f.write(b"fake mp4")
+
+if "pipe:0" in args and os.environ.get("FAKE_FFMPEG_SKIP_STDIN") != "1":
+    data = sys.stdin.buffer.read()
+    with open(out + ".stdin", "wb") as f:
+        f.write(data)
 
 if os.environ.get("FAKE_FFMPEG_BLOCK") == "1":
     interrupted = False
