@@ -115,13 +115,22 @@ class TwitchOptions:
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> TwitchOptions:
         token = env.get("TWITCH_OAUTH_TOKEN", "").strip()
+        # Compose's list form (- TWITCH_OAUTH_TOKEN="abc") keeps the quotes.
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
+            token = token[1:-1]
         if token[:6].lower() == "oauth ":
             token = token[6:].lstrip()
-        if any(ch.isspace() or not ch.isprintable() for ch in token):
+        if not (
+            token.isascii()
+            and token.isprintable()
+            and not any(ch.isspace() for ch in token)
+        ):
             # It goes into a streamlink config file, where a line break would
-            # start a new option.
+            # start a new option, and into an HTTP header, which http.client
+            # encodes as latin-1.
             log.warning(
-                "Ignoring TWITCH_OAUTH_TOKEN: it contains spaces or control characters"
+                "Ignoring TWITCH_OAUTH_TOKEN: it contains spaces, control or"
+                " non-ASCII characters"
             )
             token = ""
         return cls(

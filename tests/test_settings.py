@@ -168,6 +168,8 @@ def test_twitch_adfree(value, expected):
         ("OAuth abc123", "abc123"),
         ("oauth  abc123", "abc123"),
         ("  abc123  ", "abc123"),
+        ('"abc123"', "abc123"),
+        ("'abc123'", "abc123"),
         ("", ""),
     ],
 )
@@ -175,8 +177,19 @@ def test_twitch_token(value, expected):
     assert TwitchOptions.from_env({"TWITCH_OAUTH_TOKEN": value}).oauth_token == expected
 
 
-@pytest.mark.parametrize("value", ["sek rit", "sek\nrit", "sek\trit"])
-def test_twitch_token_with_whitespace_is_ignored(value, caplog):
+@pytest.mark.parametrize(
+    "value",
+    [
+        "sek rit",
+        "sek\nrit",
+        "sek\trit",
+        "sek\x00rit",
+        "sek\x1brit",
+        "sek”rit",
+        "sekérit",
+    ],
+)
+def test_twitch_token_with_bad_characters_is_ignored(value, caplog):
     caplog.set_level(logging.WARNING, logger="streamdl")
     assert TwitchOptions.from_env({"TWITCH_OAUTH_TOKEN": value}).oauth_token == ""
     assert "Ignoring TWITCH_OAUTH_TOKEN" in caplog.text
