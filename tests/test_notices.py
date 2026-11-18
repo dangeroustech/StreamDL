@@ -84,3 +84,13 @@ def test_pending_lists_unflushed_notices():
     assert nb.pending() == [Notice(logging.WARNING, "a", "b")]
     nb.flush(1)
     assert nb.pending() == []
+
+
+def test_info_level(records):
+    nb = NoticeBuffer()
+    nb.info("alice", "Skipping pre-roll ads")
+    nb.flush(5)
+    notice = [
+        r for r in records.records if r.getMessage() == "[alice] Skipping pre-roll ads"
+    ]
+    assert notice[0].levelno == logging.INFO

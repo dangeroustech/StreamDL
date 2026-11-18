@@ -7,7 +7,7 @@ from helpers import FAKE_FFMPEG, FakeResolver, FakeSleep
 
 from streamdl import log_setup
 from streamdl.runtime import Runtime
-from streamdl.settings import Settings
+from streamdl.settings import Settings, TwitchOptions
 
 
 @pytest.fixture(autouse=True)
@@ -45,6 +45,8 @@ def make_runtime(tmp_path, ffmpeg_log):
             vod_move_dir=str(tmp_path / "out"),
             data_dir=str(tmp_path / "data"),
             ffmpeg_path=FAKE_FFMPEG,
+            # Recorder tests take the direct FFmpeg path unless they opt in.
+            twitch=TwitchOptions(adfree=False),
         )
         values.update(overrides)
         return Runtime(

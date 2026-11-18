@@ -38,6 +38,9 @@ class NoticeBuffer:
     def error(self, channel: str, message: str) -> None:
         self._add(logging.ERROR, channel, message)
 
+    def info(self, channel: str, message: str) -> None:
+        self._add(logging.INFO, channel, message)
+
     def pending(self) -> list[Notice]:
         return list(self._pending)
 
@@ -53,8 +56,7 @@ class NoticeBuffer:
             return
         log.info("--- notices ---")
         for notice in pending:
-            level = logging.ERROR if notice.level >= logging.ERROR else logging.WARNING
-            log.log(level, "[%s] %s", notice.channel, notice.message)
+            log.log(notice.level, "[%s] %s", notice.channel, notice.message)
             self._surfaced.add(_key(notice.channel, notice.message))
 
     def _add(self, level: int, channel: str, message: str) -> None:

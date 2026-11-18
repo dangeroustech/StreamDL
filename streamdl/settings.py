@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import re
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -105,6 +106,31 @@ class FfmpegOptions:
 
 
 @dataclass(frozen=True)
+class TwitchOptions:
+    """TWITCH_* environment settings."""
+
+    adfree: bool = True
+    oauth_token: str = field(default="", repr=False)
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> TwitchOptions:
+        token = env.get("TWITCH_OAUTH_TOKEN", "").strip()
+        if token[:6].lower() == "oauth ":
+            token = token[6:].lstrip()
+        if any(ch.isspace() or not ch.isprintable() for ch in token):
+            # It goes into a streamlink config file, where a line break would
+            # start a new option.
+            log.warning(
+                "Ignoring TWITCH_OAUTH_TOKEN: it contains spaces or control characters"
+            )
+            token = ""
+        return cls(
+            adfree=env.get("TWITCH_ADFREE", "").strip().lower() not in ("0", "false"),
+            oauth_token=token,
+        )
+
+
+@dataclass(frozen=True)
 class Settings:
     config_path: Path = Path("config.yml")
     out_dir: str = ""
@@ -118,6 +144,9 @@ class Settings:
     post_script_timeout: float = 1800
     ffmpeg: FfmpegOptions = field(default_factory=FfmpegOptions)
     ffmpeg_path: str = "ffmpeg"
+    twitch: TwitchOptions = field(default_factory=TwitchOptions)
+    # How to run streamlink; the default is the copy installed alongside StreamDL.
+    streamlink_cmd: tuple[str, ...] = (sys.executable, "-m", "streamlink")
 
     @classmethod
     def from_args(cls, args: argparse.Namespace, env: Mapping[str, str]) -> Settings:
@@ -133,4 +162,5 @@ class Settings:
             subfolder=args.subfolder,
             post_script_timeout=env_int(env, "STREAMDL_POST_SCRIPT_TIMEOUT", 1800),
             ffmpeg=FfmpegOptions.from_env(env),
+            twitch=TwitchOptions.from_env(env),
         )
