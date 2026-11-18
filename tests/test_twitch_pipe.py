@@ -30,7 +30,8 @@ def test_streamlink_args_without_a_token():
     # fmt: off
     assert build_streamlink_args("alice", "720p", None, cmd=CMD) == [
         "python", "-m", "streamlink", "--stdout", "--loglevel", "info",
-        "--http-timeout", "20", "--no-config", "twitch.tv/alice", "720p",
+        "--no-plugin-sideloading", "--http-timeout", "20", "--no-config",
+        "twitch.tv/alice", "720p",
     ]
     # fmt: on
 
@@ -126,6 +127,15 @@ def test_streamlink_log_tail_is_bounded(notices):
     assert lines[-1] == "x" * MAX_LINE_CHARS
 
 
+def test_streamlink_log_redacts_an_overlong_partial_line_whole(notices):
+    sl = StreamlinkLog("alice", notices)
+    sl.write(b"token=" + b"a" * 70000)
+    sl.write(b"short line\n")
+    lines = sl.tail().split("\n")
+    assert lines[0].startswith("token=<redacted>")
+    assert "a" * 100 not in sl.tail()
+
+
 def test_streamlink_log_joins_lines_split_across_chunks(notices):
     sl = StreamlinkLog("alice", notices)
     sl.write(b"[plugins.twitch][info] Detected advertise")
@@ -169,9 +179,18 @@ def test_streamlink_log_reports_a_rejected_token_once(notices):
         (
             logging.ERROR,
             "Twitch rejected TWITCH_OAUTH_TOKEN: "
-            'error: Unauthorized: The "Authorization" token is invalid.',
+            'Unauthorized: The "Authorization" token is invalid.',
         )
     ]
+
+
+def test_streamlink_log_does_not_blame_the_token_for_a_401_segment(notices):
+    sl = StreamlinkLog("alice", notices, token="sekrit")
+    sl.write(
+        b"[stream.hls][error] Failed to fetch segment 12: "
+        b"401 Client Error: Unauthorized for url: https://x/seg.ts\n"
+    )
+    assert notices.pending() == []
 
 
 def test_streamlink_log_ignores_unauthorized_without_a_token(notices):

@@ -32,6 +32,9 @@ _RE_AD_BREAK = re.compile(
     r"detected advertisement break of (\d+) seconds?", re.IGNORECASE
 )
 _PRE_ROLL = "waiting for pre-roll ads"
+# Twitch's API error for a bad token; a segment's "401 ... Unauthorized for url"
+# has no colon right after the word and doesn't match.
+_RE_UNAUTHORIZED = re.compile(r"unauthorized: .*", re.IGNORECASE)
 
 
 def build_streamlink_args(
@@ -40,8 +43,9 @@ def build_streamlink_args(
     """streamlink argv that writes the channel's stream to stdout.
 
     The token never goes in argv, where the process list would show it; streamlink
-    reads it from config_path. Without a token, --no-config keeps any streamlink
-    config on the host out of the picture.
+    reads it from config_path. With a token, --config replaces streamlink's default
+    config file, though a plugin-specific config.twitch would still load; without
+    one, --no-config skips both. Sideloaded plugins are never loaded.
     """
     config = ["--config", config_path] if config_path else ["--no-config"]
     # Never tie streamlink's log level to LOG_LEVEL: at debug it prints the
@@ -51,6 +55,7 @@ def build_streamlink_args(
         *cmd,
         "--stdout",
         "--loglevel", "info",
+        "--no-plugin-sideloading",
         "--http-timeout", f"{HTTP_TIMEOUT:g}",
         *config,
         f"twitch.tv/{user}",
@@ -108,7 +113,9 @@ class StreamlinkLog:
     def write(self, data: bytes) -> None:
         *lines, self._partial = re.split(rb"[\r\n]", self._partial + data)
         if len(self._partial) > _MAX_PARTIAL:  # output with no CR/LF at all
-            self._partial = self._partial[-_MAX_PARTIAL:]
+            # Handled whole, so a cut can never split a secret before redaction.
+            lines.append(self._partial)
+            self._partial = b""
         for raw in lines:
             self._handle(raw)
 
@@ -128,8 +135,8 @@ class StreamlinkLog:
         log.debug("streamlink [%s]: %s", self._user, line)
         if notice := ad_notice(line):
             self._notices.info(self._user, notice)
-        elif self._token and "unauthorized" in line.lower():
-            self._notices.error(self._user, f"{TOKEN_REJECTED}: {line}")
+        elif self._token and (match := _RE_UNAUTHORIZED.search(line)):
+            self._notices.error(self._user, f"{TOKEN_REJECTED}: {match[0]}")
 
     def _redact(self, line: str) -> str:
         line = sanitize_log(line)

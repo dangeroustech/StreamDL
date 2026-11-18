@@ -88,10 +88,11 @@ def build_pipe_args(
 
     Same layout as build_live_args, minus the input options that only make sense
     for a network input (timeouts, reconnects, user agent, protocol whitelist).
+    FFMPEG_EXTRA_INPUT_OPTS is left out too: it is meant for network inputs, and
+    options such as -reconnect make FFmpeg reject pipe:0.
     """
     args = [
         ffmpeg,
-        *opts.extra_input,
         "-i",
         "pipe:0",
         "-f",

@@ -122,7 +122,7 @@ def test_pipe_args_match_the_live_layout_without_network_options():
     )
     # fmt: off
     assert build_pipe_args("<OUT>", opts, ffmpeg="/x/ffmpeg") == [
-        "/x/ffmpeg", "-y", "-thread_queue_size", "512", "-i", "pipe:0",
+        "/x/ffmpeg", "-y", "-i", "pipe:0",
         "-f", "mp4", "-c:v", "copy", "-c:a", "copy", "-movflags", "+faststart",
         "-t", "15", "<OUT>",
     ]
