@@ -60,6 +60,7 @@ On TrueNAS, Portainer or another UI that manages the compose file for you, edit 
 
 Some behaviour changed on purpose in v4:
 
+- Twitch live recordings skip Twitch's ads (see [Twitch Ad-Free Recording](#twitch-ad-free-recording)). Set `TWITCH_ADFREE=false` to record them with the ads, as v3 did.
 - Notices from yt-dlp no longer end with its "please report this issue" suffix.
 - A long VOD download is no longer started a second time while the first is still running.
 - Stream tokens and signatures are more thoroughly redacted from the logs.
@@ -299,7 +300,7 @@ id -g  # Shows your group ID
 
 ### FFmpeg Settings
 
-These apply to live recordings. VODs are always stream-copied and ignore them.
+These apply to live recordings (see [Twitch Ad-Free Recording](#twitch-ad-free-recording) for the ones that don't apply there). VODs are always stream-copied and ignore them.
 
 | Variable | Description | Default |
 | --- | --- | --- |
@@ -315,6 +316,21 @@ These apply to live recordings. VODs are always stream-copied and ignore them.
 | `FFMPEG_EXTRA_OUTPUT_OPTS` | Extra FFmpeg options placed before the output file | unset |
 
 Retries fetch a fresh stream URL each time, so a recording survives expired stream tokens.
+
+### Twitch Ad-Free Recording
+
+Live Twitch recordings go through streamlink, which drops Twitch's ad segments before FFmpeg sees them. Where an ad ran, the recording skips ahead, so expect a short jump instead of an ad. Ad breaks appear as notices, such as `[alice] Skipping a 30s ad break`; a repeat of the same length is shown once per recording. VODs and other sites record as before.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `TWITCH_ADFREE` | `0` or `false` records Twitch directly with FFmpeg, ads included, as v3 did; any other value leaves it on | on |
+| `TWITCH_OAUTH_TOKEN` | Your Twitch login token. With Twitch Turbo or a sub to the channel, Twitch sends no ads, so there are no jumps, and sub-only streams can be recorded | unset |
+
+To find your token, log in to twitch.tv in a browser, open the developer tools and copy the value of the `auth-token` cookie (Application → Cookies in Chrome, Storage → Cookies in Firefox). Paste the bare value: surrounding quotes are tolerated, but a token with spaces or non-ASCII characters is ignored with a warning. Treat it like a password: it gives access to your Twitch account. StreamDL never logs it and hands it to streamlink through a private temporary file. If Twitch rejects it, the channel gets a `Twitch rejected TWITCH_OAUTH_TOKEN` notice.
+
+FFmpeg reads from streamlink rather than the network here, so `FFMPEG_RW_TIMEOUT_US`, `FFMPEG_RECONNECT`, `FFMPEG_RECONNECT_DELAY_MAX`, `FFMPEG_USER_AGENT`, `FFMPEG_PROTOCOL_WHITELIST` and `FFMPEG_EXTRA_INPUT_OPTS` don't apply to ad-free Twitch recordings. The other FFmpeg settings do.
+
+If streamlink loses the stream mid-broadcast, FFmpeg finishes the current file and the next check starts a new one, so there can be a gap of up to one `TICK_TIME` interval. Recording directly with FFmpeg retries within seconds instead.
 
 ### Understanding UMASK
 
