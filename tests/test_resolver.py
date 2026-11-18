@@ -28,6 +28,7 @@ from streamdl.resolver import (
     extract_urls,
     get_stream,
     get_vods,
+    is_twitch,
     parse_vod_entries,
     ytdlp_format,
 )
@@ -272,6 +273,64 @@ def test_streamlink_session_is_closed_before_ytdlp_fallback(ydl, session):
     assert get_stream("kick.com", "u", "best") == StreamURLs("v")
 
 
+@pytest.mark.parametrize(
+    "site,expected",
+    [
+        ("twitch.tv", True),
+        ("www.twitch.tv", True),
+        ("Twitch.TV", True),
+        (" twitch.tv ", True),
+        ("kick.com", False),
+        ("nottwitch.tv", False),
+        ("twitch.tv.example", False),
+    ],
+)
+def test_is_twitch(site, expected):
+    assert is_twitch(site) is expected
+
+
+def _options(session):
+    return session.streams.call_args.kwargs["options"]
+
+
+def test_streamlink_options_are_empty_without_a_token(session):
+    session.streams.return_value = {"best": MagicMock(url="u")}
+    get_stream("twitch.tv", "alice", "best")
+    options = _options(session)
+    assert options.get("api-header") is None
+    assert options.get("twitch") is None  # v3's no-op "twitch-disable-reruns" is gone
+
+
+def test_streamlink_sends_the_token_to_twitch(session):
+    session.streams.return_value = {"best": MagicMock(url="u")}
+    get_stream("twitch.tv", "alice", "best", twitch_token="abc")
+    assert _options(session).get("api-header") == [("Authorization", "OAuth abc")]
+
+
+def test_streamlink_token_is_only_sent_to_twitch(session):
+    session.streams.return_value = {"best": MagicMock(url="u")}
+    get_stream("kick.com", "alice", "best", twitch_token="abc")
+    assert _options(session).get("api-header") is None
+
+
+def test_rejected_token_is_reported(session):
+    session.streams.side_effect = PluginError(
+        'Unauthorized: The "Authorization" token is invalid.'
+    )
+    with pytest.raises(ResolverError) as err:
+        get_stream("twitch.tv", "alice", "best", twitch_token="abc")
+    assert str(err.value) == (
+        "Twitch rejected TWITCH_OAUTH_TOKEN: "
+        'Unauthorized: The "Authorization" token is invalid.'
+    )
+
+
+def test_unauthorized_without_a_token_is_a_plugin_error(session):
+    session.streams.side_effect = PluginError("Unauthorized: nope")
+    with pytest.raises(ResolverError, match="^Plugin error: Unauthorized: nope$"):
+        get_stream("twitch.tv", "alice", "best")
+
+
 # --- get_stream via yt-dlp ------------------------------------------------------
 
 
@@ -449,7 +508,7 @@ async def test_library_resolver_stream(monkeypatch):
     monkeypatch.setattr(
         resolver,
         "get_stream",
-        lambda site, user, quality: StreamURLs(f"{site}/{user}/{quality}"),
+        lambda site, user, quality, **kwargs: StreamURLs(f"{site}/{user}/{quality}"),
     )
     assert await LibraryResolver().stream("twitch.tv", "alice", "best") == StreamURLs(
         "twitch.tv/alice/best"
@@ -464,13 +523,13 @@ async def test_library_resolver_vods(monkeypatch):
 
 
 async def test_library_resolver_times_out(monkeypatch):
-    monkeypatch.setattr(resolver, "get_stream", lambda *args: time.sleep(0.5))
+    monkeypatch.setattr(resolver, "get_stream", lambda *args, **kwargs: time.sleep(0.5))
     with pytest.raises(ResolverError, match="request timed out"):
         await LibraryResolver(timeout=0.05).stream("s", "u", "q")
 
 
 async def test_library_resolver_passes_errors_through(monkeypatch):
-    def offline(*args):
+    def offline(*args, **kwargs):
         raise Offline("Channel 'u' is offline")
 
     monkeypatch.setattr(resolver, "get_stream", offline)
@@ -479,7 +538,7 @@ async def test_library_resolver_passes_errors_through(monkeypatch):
 
 
 async def test_library_resolver_wraps_unexpected_errors(monkeypatch):
-    def broken(*args):
+    def broken(*args, **kwargs):
         raise AttributeError("'DASHStream' object has no attribute 'url'")
 
     monkeypatch.setattr(resolver, "get_stream", broken)
@@ -492,7 +551,7 @@ async def test_library_resolver_logs_unexpected_errors_with_context(
 ):
     caplog.set_level(logging.ERROR, logger="streamdl")
 
-    def get_stream(*args):
+    def get_stream(*args, **kwargs):
         raise RuntimeError("bad https://x/?token=secret")
 
     monkeypatch.setattr(resolver, "get_stream", get_stream)
@@ -505,7 +564,7 @@ async def test_library_resolver_logs_unexpected_errors_with_context(
 
 async def test_library_resolver_uses_its_own_pool(monkeypatch):
     monkeypatch.setattr(
-        resolver, "get_stream", lambda *args: threading.current_thread().name
+        resolver, "get_stream", lambda *args, **kwargs: threading.current_thread().name
     )
     lookup = LibraryResolver()
     try:
@@ -515,11 +574,27 @@ async def test_library_resolver_uses_its_own_pool(monkeypatch):
 
 
 async def test_library_resolver_close_rejects_new_lookups(monkeypatch):
-    monkeypatch.setattr(resolver, "get_stream", lambda *args: StreamURLs("v"))
+    monkeypatch.setattr(resolver, "get_stream", lambda *args, **kwargs: StreamURLs("v"))
     lookup = LibraryResolver()
     lookup.close()
     with pytest.raises(ResolverError):
         await lookup.stream("s", "u", "q")
+
+
+async def test_library_resolver_passes_the_token(monkeypatch):
+    seen = {}
+
+    def fake(site, user, quality, **kwargs):
+        seen.update(kwargs)
+        return StreamURLs("v")
+
+    monkeypatch.setattr(resolver, "get_stream", fake)
+    lookup = LibraryResolver(twitch_token="abc")
+    try:
+        await lookup.stream("twitch.tv", "alice", "best")
+    finally:
+        lookup.close()
+    assert seen == {"twitch_token": "abc"}
 
 
 # --- library patches ------------------------------------------------------------

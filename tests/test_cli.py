@@ -282,7 +282,7 @@ _HUNG_LOOKUP = """
 import pathlib, sys, threading
 import streamdl.resolver
 
-def hung(*args):
+def hung(*args, **kwargs):
     pathlib.Path(sys.argv[1]).touch()
     threading.Event().wait()
 

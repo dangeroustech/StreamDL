@@ -73,6 +73,13 @@ _YTDLP_PARAMS: dict[str, Any] = {
     "socket_timeout": HTTP_TIMEOUT,
 }
 _NOT_FOUND_VODS = "user not found or no VODs available"
+TOKEN_REJECTED = "Twitch rejected TWITCH_OAUTH_TOKEN"
+_TWITCH_HOSTS = frozenset({"twitch.tv", "www.twitch.tv"})
+
+
+def is_twitch(site: str) -> bool:
+    return site.strip().lower() in _TWITCH_HOSTS
+
 
 # Process-global: every yt-dlp request in this process sends this User-Agent.
 yt_dlp.utils.networking.std_headers["User-Agent"] = "streamdl"
@@ -236,8 +243,13 @@ def get_vods(site: str, user: str, limit: int = 10) -> list[VodInfo]:
     return vods
 
 
-def get_stream(site: str, user: str, quality: str) -> StreamURLs:
-    """Resolve a live stream (or `videos/<id>` VOD) URL, falling back to yt-dlp."""
+def get_stream(
+    site: str, user: str, quality: str, *, twitch_token: str = ""
+) -> StreamURLs:
+    """Resolve a live stream (or `videos/<id>` VOD) URL, falling back to yt-dlp.
+
+    twitch_token, when set, is sent to Twitch as the viewer's login.
+    """
     log.debug(
         "Resolving stream via Streamlink site=%s user=%s quality=%s",
         site,
@@ -246,7 +258,7 @@ def get_stream(site: str, user: str, quality: str) -> StreamURLs:
     )
     session = Streamlink(options={"http-timeout": HTTP_TIMEOUT})
     try:
-        return _get_stream_streamlink(session, site, user, quality)
+        return _get_stream_streamlink(session, site, user, quality, twitch_token)
     except NoPluginError:
         log.debug("Streamlink has no plugin for %s; falling back to yt-dlp", site)
     finally:
@@ -255,10 +267,12 @@ def get_stream(site: str, user: str, quality: str) -> StreamURLs:
 
 
 def _get_stream_streamlink(
-    session: Streamlink, site: str, user: str, quality: str
+    session: Streamlink, site: str, user: str, quality: str, twitch_token: str
 ) -> StreamURLs:
     options = Options()
-    options.set("twitch", "twitch-disable-reruns")  # carried over from v3 unchanged
+    send_token = bool(twitch_token) and is_twitch(site)
+    if send_token:
+        options.set("api-header", [("Authorization", f"OAuth {twitch_token}")])
     resolve_url = f"{site}/{user}"
     try:
         streams = session.streams(url=resolve_url, options=options)
@@ -266,6 +280,8 @@ def _get_stream_streamlink(
         raise
     except PluginError as e:
         log.error("Plugin error: %s", _text(e))
+        if send_token and "unauthorized" in str(e).lower():
+            raise ResolverError(f"{TOKEN_REJECTED}: {e}") from e
         raise ResolverError(f"Plugin error: {e}") from e
 
     if not streams:
@@ -370,12 +386,17 @@ class LibraryResolver:
     the abandoned one, as v3 did after a gRPC deadline.
     """
 
-    def __init__(self, timeout: float = RESOLVE_TIMEOUT) -> None:
+    def __init__(
+        self, timeout: float = RESOLVE_TIMEOUT, *, twitch_token: str = ""
+    ) -> None:
         self.timeout = timeout
+        self._twitch_token = twitch_token
         self._pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="resolver")
 
     async def stream(self, site: str, user: str, quality: str) -> StreamURLs:
-        return await self._call(get_stream, site, user, quality)
+        return await self._call(
+            get_stream, site, user, quality, twitch_token=self._twitch_token
+        )
 
     async def vods(self, site: str, user: str, limit: int) -> list[VodInfo]:
         return await self._call(get_vods, site, user, limit)
@@ -384,9 +405,11 @@ class LibraryResolver:
         """Stop accepting lookups and drop queued ones; running ones finish alone."""
         self._pool.shutdown(wait=False, cancel_futures=True)
 
-    async def _call(self, fn: Callable[..., T], site: str, user: str, *args: Any) -> T:
+    async def _call(
+        self, fn: Callable[..., T], site: str, user: str, *args: Any, **kwargs: Any
+    ) -> T:
         loop = asyncio.get_running_loop()
-        call = functools.partial(fn, site, user, *args)
+        call = functools.partial(fn, site, user, *args, **kwargs)
         try:
             return await asyncio.wait_for(
                 loop.run_in_executor(self._pool, call), self.timeout

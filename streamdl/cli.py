@@ -184,7 +184,10 @@ def _exit_if_lookups_running(rc: int) -> None:
 
 
 async def run(settings: Settings, config: ConfigLoader) -> int:
-    rt = Runtime(settings=settings, resolver=LibraryResolver())
+    rt = Runtime(
+        settings=settings,
+        resolver=LibraryResolver(twitch_token=settings.twitch.oauth_token),
+    )
     scheduler = Scheduler(rt, config)
     web = WebServer(create_app())
     stop = asyncio.Event()
