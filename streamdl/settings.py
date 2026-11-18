@@ -132,7 +132,7 @@ class TwitchOptions:
                 "Ignoring TWITCH_OAUTH_TOKEN: it contains spaces, control or"
                 " non-ASCII characters"
             )
-            token = ""
+            token = ""  # nosec B105 - clearing a rejected token
         return cls(
             adfree=env.get("TWITCH_ADFREE", "").strip().lower() not in ("0", "false"),
             oauth_token=token,

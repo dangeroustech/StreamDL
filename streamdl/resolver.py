@@ -73,7 +73,7 @@ _YTDLP_PARAMS: dict[str, Any] = {
     "socket_timeout": HTTP_TIMEOUT,
 }
 _NOT_FOUND_VODS = "user not found or no VODs available"
-TOKEN_REJECTED = "Twitch rejected TWITCH_OAUTH_TOKEN"
+TOKEN_REJECTED = "Twitch rejected TWITCH_OAUTH_TOKEN"  # nosec B105 - a message
 _TWITCH_HOSTS = frozenset({"twitch.tv", "www.twitch.tv"})
 
 
