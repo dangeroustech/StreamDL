@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from .ffmpeg import (
     build_live_args,
+    build_pipe_args,
     build_vod_args,
     sanitize_args,
     sanitize_log,
@@ -22,7 +23,13 @@ from .ffmpeg import (
 from .files import create_dir_with_umask, move_file, sanitize_filename
 from .process import describe_exit
 from .progress import DownloadKind, FfmpegLogWriter, progress_key_live, progress_key_vod
-from .resolver import RateLimited, ResolverError, StreamURLs, VodInfo
+from .resolver import RateLimited, ResolverError, StreamURLs, VodInfo, is_twitch
+from .twitch_pipe import (
+    StreamlinkLog,
+    build_streamlink_args,
+    run_pipe,
+    streamlink_config,
+)
 
 if TYPE_CHECKING:
     from .runtime import Runtime
@@ -189,18 +196,20 @@ async def _record_live(
     attempt = 0
     while True:
         if attempt > 0:
+            # On the ad-free path the fresh URL itself goes unused: the lookup
+            # checks the channel is still live (backing off if rate limited)
+            # before streamlink resolves the stream again.
             fresh = await _resolve_retry_url(rt, site, user, quality)
             if fresh is None:
                 return
             urls = fresh
-        args = build_live_args(
-            urls.video, urls.audio, out_path, s.ffmpeg, ffmpeg=s.ffmpeg_path
-        )
-        log.debug("FFmpeg args (sanitized): %s", sanitize_args(args))
         try:
-            returncode = await run_ffmpeg(args, writer)
+            returncode, streamlink_tail = await _record_attempt(
+                rt, user, site, quality, urls, out_path, writer
+            )
         except OSError as e:
-            log.error("Failed to start FFmpeg for %s: %s", user, e)
+            what = "streamlink or FFmpeg" if _ad_free(rt, site) else "FFmpeg"
+            log.error("Failed to start %s for %s: %s", what, user, e)
             return
         if returncode == 0:
             break
@@ -209,6 +218,8 @@ async def _record_live(
         log.warning("FFmpeg failed for %s: %s", user, reason)
         if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
             log.warning("FFmpeg log tail for %s:\n%s", user, sanitize_log(tail))
+        if streamlink_tail:
+            log.warning("streamlink log tail for %s:\n%s", user, streamlink_tail)
         if attempt >= s.ffmpeg.max_retries:
             log.error(
                 "FFmpeg failed for %s after %d attempts: %s", user, attempt, reason
@@ -232,6 +243,58 @@ async def _record_live(
     await _run_to_completion(
         _finish_live(rt, user, site, post_script, out_path, new_path)
     )
+
+
+def _ad_free(rt: Runtime, site: str) -> bool:
+    return rt.settings.twitch.adfree and is_twitch(site)
+
+
+async def _record_attempt(
+    rt: Runtime,
+    user: str,
+    site: str,
+    quality: str,
+    urls: StreamURLs,
+    out_path: str,
+    writer: FfmpegLogWriter,
+) -> tuple[int, str]:
+    """Run one recording attempt; return FFmpeg's exit code and streamlink's log tail.
+
+    Twitch, when ad-free recording is on, goes through streamlink, which drops ad
+    segments. FFmpeg's exit code alone decides the outcome: if FFmpeg finished the
+    file, it's kept even when streamlink failed.
+    """
+    s = rt.settings
+    if not _ad_free(rt, site):
+        args = build_live_args(
+            urls.video, urls.audio, out_path, s.ffmpeg, ffmpeg=s.ffmpeg_path
+        )
+        log.debug("FFmpeg args (sanitized): %s", sanitize_args(args))
+        return await run_ffmpeg(args, writer), ""
+
+    token = s.twitch.oauth_token
+    with streamlink_config(token) as config:
+        streamlink_args = build_streamlink_args(
+            user, quality, config, cmd=s.streamlink_cmd
+        )
+        ffmpeg_args = build_pipe_args(out_path, s.ffmpeg, ffmpeg=s.ffmpeg_path)
+        log.debug("streamlink args: %s", " ".join(streamlink_args))
+        log.debug("FFmpeg args (sanitized): %s", sanitize_args(ffmpeg_args))
+        result = await run_pipe(
+            streamlink_args,
+            ffmpeg_args,
+            writer,
+            StreamlinkLog(user, rt.notices, token=token),
+        )
+    if result.ffmpeg_rc == 0 and result.streamlink_rc != 0:
+        log.warning(
+            "streamlink failed for %s (%s); keeping what was recorded",
+            user,
+            describe_exit(result.streamlink_rc),
+        )
+        if result.streamlink_tail:
+            log.warning("streamlink log tail for %s:\n%s", user, result.streamlink_tail)
+    return result.ffmpeg_rc, result.streamlink_tail
 
 
 async def _finish_live(
