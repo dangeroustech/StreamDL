@@ -5,6 +5,7 @@ import pytest
 
 from streamdl.ffmpeg import (
     build_live_args,
+    build_pipe_args,
     build_vod_args,
     sanitize_args,
     sanitize_log,
@@ -95,3 +96,39 @@ def test_sanitize_log_ignores_case():
         "GET https://x/a?X-Amz-Signature=<redacted>&Token=<redacted>"
         "&SIG=<redacted>&LSig=<redacted>&p=1"
     )
+
+
+def test_pipe_args_default():
+    assert build_pipe_args("<OUT>", FfmpegOptions()) == [
+        "ffmpeg",
+        "-y",
+        "-i",
+        "pipe:0",
+        "-f",
+        "mp4",
+        "<OUT>",
+    ]
+
+
+def test_pipe_args_match_the_live_layout_without_network_options():
+    opts = FfmpegOptions.from_env(
+        {
+            "FFMPEG_STREAM_COPY": "1",
+            "FFMPEG_EXTRA_INPUT_OPTS": "-thread_queue_size 512",
+            "FFMPEG_EXTRA_OUTPUT_OPTS": "-t 15",
+            "FFMPEG_USER_AGENT": "UA",
+            "FFMPEG_PROTOCOL_WHITELIST": "file,https",
+        }
+    )
+    # fmt: off
+    assert build_pipe_args("<OUT>", opts, ffmpeg="/x/ffmpeg") == [
+        "/x/ffmpeg", "-y", "-thread_queue_size", "512", "-i", "pipe:0",
+        "-f", "mp4", "-c:v", "copy", "-c:a", "copy", "-movflags", "+faststart",
+        "-t", "15", "<OUT>",
+    ]
+    # fmt: on
+
+
+def test_pipe_args_keep_a_user_supplied_y():
+    opts = FfmpegOptions.from_env({"FFMPEG_EXTRA_OUTPUT_OPTS": "-y"})
+    assert build_pipe_args("<OUT>", opts).count("-y") == 1

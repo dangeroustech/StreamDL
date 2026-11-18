@@ -81,6 +81,30 @@ def build_live_args(
     return args
 
 
+def build_pipe_args(
+    out_path: str, opts: FfmpegOptions, *, ffmpeg: str = "ffmpeg"
+) -> list[str]:
+    """FFmpeg argv for a live recording read from stdin (streamlink's output).
+
+    Same layout as build_live_args, minus the input options that only make sense
+    for a network input (timeouts, reconnects, user agent, protocol whitelist).
+    """
+    args = [
+        ffmpeg,
+        *opts.extra_input,
+        "-i",
+        "pipe:0",
+        "-f",
+        "mp4",
+        *(COPY_ARGS if opts.stream_copy else []),
+        *opts.extra_output,
+        out_path,
+    ]
+    if "-y" not in args:
+        args.insert(1, "-y")
+    return args
+
+
 def build_vod_args(url: str, out_path: str, *, ffmpeg: str = "ffmpeg") -> list[str]:
     """Full FFmpeg argv for a VOD download (always stream copy; no FFMPEG_* options)."""
     return [ffmpeg, "-y", "-i", url, "-f", "mp4", *COPY_ARGS, out_path]
