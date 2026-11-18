@@ -15,7 +15,7 @@ import shutil
 import signal
 import tempfile
 from collections import deque
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -168,11 +168,11 @@ async def run_pipe(
     streamlink is stopped (SIGTERM, then SIGKILL after STREAMLINK_TERM_GRACE) once
     FFmpeg is gone.
 
-    If the task is cancelled (shutdown), streamlink is stopped the same way, so
-    FFmpeg sees the end of its input and finalises the MP4; we wait for FFmpeg,
-    then re-raise. On any other error, or if that wait is cancelled again, both
-    are killed. Neither process outlives this call. Raises OSError if either
-    can't be started.
+    If the task is cancelled (shutdown) while FFmpeg is running, streamlink is
+    stopped the same way, so FFmpeg sees the end of its input and finalises the
+    MP4; we wait for FFmpeg, then re-raise. On any other error (a stderr reader
+    failing included), or if that wait is cancelled again, both are killed.
+    Neither process outlives this call. Raises OSError if either can't be started.
     """
     ffmpeg, streamlink = await _spawn(streamlink_args, ffmpeg_args)
     ff_drain = asyncio.ensure_future(_drain(ffmpeg, writer.write))
@@ -180,13 +180,17 @@ async def run_pipe(
     drains = (ff_drain, sl_drain)
     try:
         try:
-            await asyncio.wait(drains, return_when=asyncio.FIRST_COMPLETED)
+            done, _ = await asyncio.wait(drains, return_when=asyncio.FIRST_COMPLETED)
+            _raise_first_error(done)
             if ff_drain.done():
                 await _terminate(streamlink, sl_drain)
             await _wait_all(drains)
         except asyncio.CancelledError:
-            await _terminate(streamlink, sl_drain)
-            await _wait_all(drains)
+            # Stopping streamlink gently only protects a file FFmpeg is still
+            # writing; once FFmpeg has exited, _reap just kills streamlink.
+            if not ff_drain.done():
+                await _terminate(streamlink, sl_drain)
+                await _wait_all(drains)
             raise
     finally:
         await _reap((("FFmpeg", ffmpeg), ("streamlink", streamlink)), drains)
@@ -255,6 +259,11 @@ async def _terminate(
 async def _wait_all(drains: Sequence[asyncio.Future[int]]) -> None:
     """Wait for every drain; raise the first error as soon as one fails."""
     done, _ = await asyncio.wait(drains, return_when=asyncio.FIRST_EXCEPTION)
+    _raise_first_error(done)
+
+
+def _raise_first_error(done: Iterable[asyncio.Future[int]]) -> None:
+    """Raise the error of the first finished drain that failed, if any."""
     for task in done:
         if not task.cancelled() and (error := task.exception()) is not None:
             raise error

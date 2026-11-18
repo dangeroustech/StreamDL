@@ -348,17 +348,103 @@ async def test_missing_ffmpeg_raises_before_streamlink_starts(
     assert streamlink_runs(streamlink_log) == []
 
 
+async def _wait_exited(proc, timeout=5.0):
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while proc.returncode is None:
+        assert loop.time() < deadline, f"pid {proc.pid} never exited"
+        await asyncio.sleep(0.02)
+
+
 async def test_reader_error_propagates_and_nothing_is_left_running(
-    pipe, spawned, blocking_streamlink
+    pipe, spawned, blocking_streamlink, monkeypatch
 ):
+    # Ignoring SIGTERM, streamlink would hold run_pipe for the whole grace period
+    # if the error were handled like an FFmpeg exit.
+    monkeypatch.setenv("FAKE_STREAMLINK_IGNORE_TERM", "1")
+
     class BrokenWriter:
         def write(self, data):
             raise RuntimeError("writer bug")
 
     pipe[2] = BrokenWriter()
+    loop = asyncio.get_running_loop()
+    start = loop.time()
 
     with pytest.raises(RuntimeError, match="writer bug"):
         await asyncio.wait_for(run_pipe(*pipe), 10)
 
+    assert loop.time() - start < 1
     assert len(spawned) == 2
     assert all(p.returncode is not None for p in spawned)
+
+
+async def test_streamlink_reader_error_kills_both(
+    pipe, spawned, blocking_streamlink, monkeypatch, notices
+):
+    monkeypatch.setenv("FAKE_STREAMLINK_IGNORE_TERM", "1")
+    monkeypatch.setenv("FAKE_STREAMLINK_STDERR", "[cli][info] Opening stream")
+
+    class BrokenLog(StreamlinkLog):
+        def write(self, data):
+            raise RuntimeError("log bug")
+
+    pipe[3] = BrokenLog("alice", notices)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+
+    with pytest.raises(RuntimeError, match="log bug"):
+        await asyncio.wait_for(run_pipe(*pipe), 10)
+
+    assert loop.time() - start < 1
+    ffmpeg, streamlink = spawned
+    assert ffmpeg.returncode == -signal.SIGKILL
+    assert streamlink.returncode == -signal.SIGKILL
+
+
+async def test_second_cancel_kills_both(
+    pipe, spawned, blocking_streamlink, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFMPEG_LINGER", "1")
+    task = asyncio.create_task(run_pipe(*pipe))
+    await wait_for_glob(tmp_path, blocking_streamlink.name)
+
+    task.cancel()  # streamlink stops; FFmpeg read its input but never exits
+    ffmpeg, streamlink = spawned
+    await _wait_exited(streamlink)
+    assert not task.done()
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 10)
+
+    assert loop.time() - start < 1
+    assert streamlink.returncode == -signal.SIGTERM
+    assert ffmpeg.returncode == -signal.SIGKILL
+    assert (tmp_path / "rec.mp4.stdin").read_bytes() == b"fake ts data"
+
+
+async def test_cancel_after_ffmpeg_exited_does_not_wait_out_the_grace(
+    pipe, spawned, blocking_streamlink, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(twitch_pipe, "STREAMLINK_TERM_GRACE", 5)
+    monkeypatch.setenv("FAKE_STREAMLINK_IGNORE_TERM", "1")
+    monkeypatch.setenv("FAKE_FFMPEG_SKIP_STDIN", "1")
+    monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1")
+    # Exiting before streamlink is ready would SIGTERM it before it ignores SIGTERM.
+    monkeypatch.setenv("FAKE_FFMPEG_WAIT_FOR", str(blocking_streamlink))
+    task = asyncio.create_task(run_pipe(*pipe))
+    await wait_for_glob(tmp_path, blocking_streamlink.name)
+    ffmpeg, streamlink = spawned
+    await _wait_exited(ffmpeg)
+
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, 10)
+
+    assert loop.time() - start < 1
+    assert ffmpeg.returncode == 1
+    assert streamlink.returncode == -signal.SIGKILL

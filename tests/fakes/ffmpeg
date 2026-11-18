@@ -9,7 +9,9 @@ entry per run (the last entry repeats). With FAKE_FFMPEG_BLOCK=1 it writes
 255 like ffmpeg does.
 
 When the input is pipe:0 it then reads stdin to EOF and saves what it read to
-"<output>.stdin" (FAKE_FFMPEG_SKIP_STDIN=1 skips the read).
+"<output>.stdin" (FAKE_FFMPEG_SKIP_STDIN=1 skips the read). FAKE_FFMPEG_LINGER=1
+makes it run, after that, until it is killed. With FAKE_FFMPEG_WAIT_FOR=<path>
+it then waits for <path> to exist before going on.
 """
 
 import json
@@ -40,6 +42,14 @@ if "pipe:0" in args and os.environ.get("FAKE_FFMPEG_SKIP_STDIN") != "1":
     data = sys.stdin.buffer.read()
     with open(out + ".stdin", "wb") as f:
         f.write(data)
+
+if os.environ.get("FAKE_FFMPEG_LINGER") == "1":
+    while True:
+        time.sleep(0.02)
+
+if wait_for := os.environ.get("FAKE_FFMPEG_WAIT_FOR"):
+    while not os.path.exists(wait_for):
+        time.sleep(0.02)
 
 if os.environ.get("FAKE_FFMPEG_BLOCK") == "1":
     interrupted = False
