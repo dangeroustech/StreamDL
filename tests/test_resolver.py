@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import urllib3.util.url
 from streamlink.exceptions import NoPluginError, PluginError
+from streamlink.options import Options
+from streamlink.session import Streamlink
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
@@ -329,6 +331,22 @@ def test_unauthorized_without_a_token_is_a_plugin_error(session):
     session.streams.side_effect = PluginError("Unauthorized: nope")
     with pytest.raises(ResolverError, match="^Plugin error: Unauthorized: nope$"):
         get_stream("twitch.tv", "alice", "best")
+
+
+def test_twitch_plugin_sends_the_api_header():
+    # The tests above mock session.streams; this pins the real plugin's contract.
+    # Building the plugin makes no network requests.
+    session = Streamlink(options={"no-plugin-cache": True})
+    try:
+        _, pluginclass, resolved = session.resolve_url("twitch.tv/alice")
+        options = Options()
+        options.set("api-header", [("Authorization", "OAuth abc")])
+        plugin = pluginclass(session, resolved, options)
+        assert plugin.api.headers["Authorization"] == "OAuth abc"
+        plain = pluginclass(session, resolved, Options())
+        assert "Authorization" not in plain.api.headers
+    finally:
+        session.http.close()
 
 
 # --- get_stream via yt-dlp ------------------------------------------------------
