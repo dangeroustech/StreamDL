@@ -153,6 +153,8 @@ class PipeResult:
     ffmpeg_rc: int
     streamlink_rc: int
     streamlink_tail: str  # already redacted
+    # streamlink was still running when FFmpeg exited, so we stopped it.
+    streamlink_stopped: bool = False
 
 
 async def run_pipe(
@@ -178,11 +180,14 @@ async def run_pipe(
     ff_drain = asyncio.ensure_future(_drain(ffmpeg, writer.write))
     sl_drain = asyncio.ensure_future(_drain(streamlink, streamlink_log.write))
     drains = (ff_drain, sl_drain)
+    stopped = False
     try:
         try:
             done, _ = await asyncio.wait(drains, return_when=asyncio.FIRST_COMPLETED)
             _raise_first_error(done)
             if ff_drain.done():
+                # If streamlink had already exited too, its exit code is its own.
+                stopped = not sl_drain.done()
                 await _terminate(streamlink, sl_drain)
             await _wait_all(drains)
         except asyncio.CancelledError:
@@ -195,7 +200,9 @@ async def run_pipe(
     finally:
         await _reap((("FFmpeg", ffmpeg), ("streamlink", streamlink)), drains)
         streamlink_log.close()
-    return PipeResult(ff_drain.result(), sl_drain.result(), streamlink_log.tail())
+    return PipeResult(
+        ff_drain.result(), sl_drain.result(), streamlink_log.tail(), stopped
+    )
 
 
 async def _spawn(

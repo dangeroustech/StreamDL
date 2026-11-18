@@ -15,6 +15,7 @@ from helpers import (
 
 from streamdl import recorder
 from streamdl.ffmpeg import build_live_args, build_pipe_args
+from streamdl.notices import Notice
 from streamdl.recorder import record_live, run_ffmpeg
 from streamdl.resolver import Offline, RateLimited, StreamURLs
 from streamdl.settings import FfmpegOptions, TwitchOptions
@@ -288,9 +289,12 @@ async def test_twitch_records_directly_when_ad_free_is_off(
 
 
 async def test_token_reaches_streamlink_only_through_a_private_file(
-    make_runtime, ffmpeg_log, streamlink_log, caplog
+    make_runtime, ffmpeg_log, streamlink_log, monkeypatch, caplog
 ):
     caplog.set_level(logging.DEBUG, logger="streamdl")
+    monkeypatch.setenv(
+        "FAKE_STREAMLINK_STDERR", "[cli][debug] Authorization: OAuth sekrit"
+    )
     rt = make_runtime(twitch=TwitchOptions(adfree=True, oauth_token="sekrit"))
 
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
@@ -302,7 +306,83 @@ async def test_token_reaches_streamlink_only_through_a_private_file(
     assert not os.path.exists(os.path.dirname(config))
     assert not any("sekrit" in a for a in sl["args"])
     assert not any("sekrit" in a for a in ffmpeg_runs(ffmpeg_log)[0])
+    assert "Authorization: OAuth <redacted>" in caplog.text
     assert "sekrit" not in caplog.text
+
+
+async def test_cancel_removes_the_token_config(
+    make_runtime, streamlink_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_STREAMLINK_BLOCK", "1")
+    monkeypatch.setenv("FAKE_STREAMLINK_READY", str(tmp_path / "sl.ready"))
+    rt = make_runtime(twitch=TwitchOptions(adfree=True, oauth_token="sekrit"))
+    task = asyncio.create_task(record_live(rt, "alice", "twitch.tv", "best", URLS, ""))
+    await wait_for_glob(tmp_path, "sl.ready")
+    [sl] = streamlink_runs(streamlink_log)
+    config = sl["args"][sl["args"].index("--config") + 1]
+    assert os.path.exists(config)
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert not os.path.exists(os.path.dirname(config))
+
+
+async def test_ad_breaks_become_info_notices(make_runtime, monkeypatch):
+    monkeypatch.setenv(
+        "FAKE_STREAMLINK_STDERR",
+        "[plugins.twitch][info] Detected advertisement break of 30 seconds",
+    )
+    rt = make_runtime(twitch=AD_FREE)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert Notice(logging.INFO, "alice", "Skipping a 30s ad break") in (
+        rt.notices.pending()
+    )
+
+
+async def test_stopping_streamlink_after_ffmpeg_finishes_is_not_a_failure(
+    make_runtime, streamlink_log, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.WARNING, logger="streamdl")
+    ready = tmp_path / "sl.ready"
+    monkeypatch.setenv("FAKE_STREAMLINK_BLOCK", "1")
+    monkeypatch.setenv("FAKE_STREAMLINK_READY", str(ready))
+    monkeypatch.setenv("FAKE_STREAMLINK_STDERR", "[cli][info] Opening stream")
+    monkeypatch.setenv("FAKE_FFMPEG_SKIP_STDIN", "1")
+    monkeypatch.setenv("FAKE_FFMPEG_WAIT_FOR", str(ready))
+    rt = make_runtime(twitch=AD_FREE)
+
+    await asyncio.wait_for(record_live(rt, "alice", "twitch.tv", "best", URLS, ""), 10)
+
+    assert len(streamlink_runs(streamlink_log)) == 1
+    assert len(files(tmp_path / "out")) == 1
+    assert "streamlink failed" not in caplog.text
+    assert "streamlink log tail" not in caplog.text
+
+
+async def test_streamlink_read_timeout_is_logged_as_the_stream_ending(
+    make_runtime, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
+    monkeypatch.setenv("FAKE_STREAMLINK_EXITS", "1")
+    monkeypatch.setenv(
+        "FAKE_STREAMLINK_STDERR",
+        "[stream.hls][error] Error when reading from stream: Read timeout, exiting",
+    )
+    rt = make_runtime(twitch=AD_FREE)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(files(tmp_path / "out")) == 1
+    assert (
+        "streamlink stopped receiving data for alice (the stream has probably "
+        "ended); keeping what was recorded" in caplog.messages
+    )
+    assert "streamlink failed" not in caplog.text
+    assert "streamlink log tail" not in caplog.text
 
 
 async def test_ffmpeg_failure_retries_the_whole_pipe(

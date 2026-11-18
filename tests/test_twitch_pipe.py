@@ -259,7 +259,9 @@ def blocking_streamlink(tmp_path, monkeypatch):
 async def test_streamlink_output_reaches_ffmpeg(pipe, spawned, tmp_path):
     result = await asyncio.wait_for(run_pipe(*pipe), 10)
 
-    assert result == PipeResult(ffmpeg_rc=0, streamlink_rc=0, streamlink_tail="")
+    assert result == PipeResult(
+        ffmpeg_rc=0, streamlink_rc=0, streamlink_tail="", streamlink_stopped=False
+    )
     assert (tmp_path / "rec.mp4.stdin").read_bytes() == b"fake ts data"
     assert (tmp_path / "rec.mp4").read_bytes() == b"fake mp4"
     assert len(spawned) == 2
@@ -272,7 +274,7 @@ async def test_streamlink_failure_is_reported_with_its_tail(pipe, monkeypatch):
 
     result = await asyncio.wait_for(run_pipe(*pipe), 10)
 
-    assert result == PipeResult(0, 1, "[cli][error] Stream ended badly")
+    assert result == PipeResult(0, 1, "[cli][error] Stream ended badly", False)
 
 
 async def test_streamlink_is_stopped_when_ffmpeg_exits_first(
@@ -284,6 +286,7 @@ async def test_streamlink_is_stopped_when_ffmpeg_exits_first(
     result = await asyncio.wait_for(run_pipe(*pipe), 10)
 
     assert result.ffmpeg_rc == 1
+    assert result.streamlink_stopped is True
     # SIGTERM, or a broken pipe if FFmpeg was already gone when it wrote.
     assert result.streamlink_rc not in (0, -signal.SIGKILL)
     assert all(p.returncode is not None for p in spawned)

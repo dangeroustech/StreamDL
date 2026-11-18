@@ -25,6 +25,7 @@ from .process import describe_exit
 from .progress import DownloadKind, FfmpegLogWriter, progress_key_live, progress_key_vod
 from .resolver import RateLimited, ResolverError, StreamURLs, VodInfo, is_twitch
 from .twitch_pipe import (
+    PipeResult,
     StreamlinkLog,
     build_streamlink_args,
     run_pipe,
@@ -287,14 +288,31 @@ async def _record_attempt(
             StreamlinkLog(user, rt.notices, token=token),
         )
     if result.ffmpeg_rc == 0 and result.streamlink_rc != 0:
-        log.warning(
-            "streamlink failed for %s (%s); keeping what was recorded",
+        _log_streamlink_exit(user, result)
+    return result.ffmpeg_rc, result.streamlink_tail
+
+
+def _log_streamlink_exit(user: str, result: PipeResult) -> None:
+    """Log a streamlink failure after FFmpeg finished the file.
+
+    A stop we caused (FFmpeg exited first) and a read timeout (Twitch stopped
+    serving segments, which is how a broadcast usually ends) are expected.
+    """
+    reason = describe_exit(result.streamlink_rc)
+    if result.streamlink_stopped:
+        log.debug("Stopped streamlink for %s after FFmpeg finished (%s)", user, reason)
+    elif "read timeout" in result.streamlink_tail.lower():
+        log.info(
+            "streamlink stopped receiving data for %s (the stream has probably "
+            "ended); keeping what was recorded",
             user,
-            describe_exit(result.streamlink_rc),
+        )
+    else:
+        log.warning(
+            "streamlink failed for %s (%s); keeping what was recorded", user, reason
         )
         if result.streamlink_tail:
             log.warning("streamlink log tail for %s:\n%s", user, result.streamlink_tail)
-    return result.ffmpeg_rc, result.streamlink_tail
 
 
 async def _finish_live(
