@@ -180,6 +180,17 @@ def test_writer_keeps_only_the_last_64k():
     assert text.endswith("END\n")
 
 
+def test_writer_clear_forgets_the_log_and_an_unfinished_line():
+    store, key = _live_store()
+    writer = FfmpegLogWriter(key, store, debug_interval=3600)
+    writer.write(b"part 1 done\nframe= 1 size=  99")
+    writer.clear()
+    assert writer.text() == ""
+    writer.write(b"frame= 2 size=  128kB time=00:00:01.00 speed=1x\n")
+    assert store.get(key).size_bytes == 128 * KIB
+    assert writer.text() == "frame= 2 size=  128kB time=00:00:01.00 speed=1x\n"
+
+
 def test_format_download_progress_vod():
     s = format_download_progress(
         DownloadProgress(

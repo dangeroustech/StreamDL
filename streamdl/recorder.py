@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import re
@@ -21,9 +22,10 @@ from .ffmpeg import (
     tail_lines,
 )
 from .files import create_dir_with_umask, move_file, sanitize_filename
+from .join import join_parts
 from .process import describe_exit
 from .progress import DownloadKind, FfmpegLogWriter, progress_key_live, progress_key_vod
-from .resolver import RateLimited, ResolverError, StreamURLs, VodInfo, is_twitch
+from .resolver import ResolverError, StreamURLs, VodInfo, is_twitch
 from .twitch_pipe import (
     PipeResult,
     StreamlinkLog,
@@ -184,66 +186,132 @@ async def _record_live(
     writer: FfmpegLogWriter,
 ) -> None:
     s = rt.settings
-    filename = f"{user}_{datetime.now():%Y-%m-%d_%H-%M-%S}.mp4"
+    stem = f"{user}_{datetime.now():%Y-%m-%d_%H-%M-%S}"
     dirs = await _prepare_dirs(s.out_dir, s.move_dir, user, s.subfolder)
     if dirs is None:
         return
     out_dir, move_dir = dirs
-    out_path = os.path.join(out_dir, filename)
-    new_path = os.path.join(move_dir, filename)
     log.info("Starting Download for %s", user)
 
+    parts: list[str] = []
+    try:
+        await _record_parts(
+            rt, user, site, quality, initial, writer, out_dir, stem, parts
+        )
+        log.debug("Stream For %s Ended", user)
+        await _finish_session(
+            rt, user, site, post_script, parts, out_dir, move_dir, stem
+        )
+    except asyncio.CancelledError:
+        if left := [p for p in parts if os.path.exists(p)]:
+            log.info(
+                "Shutting down: left %d part(s) for %s in %s", len(left), user, out_dir
+            )
+        raise
+
+
+def _part_path(out_dir: str, stem: str, n: int) -> str:
+    """Part 1 has the recording's plain name; later parts get a _part<n> suffix."""
+    return os.path.join(out_dir, f"{stem}.mp4" if n == 1 else f"{stem}_part{n}.mp4")
+
+
+async def _record_parts(
+    rt: Runtime,
+    user: str,
+    site: str,
+    quality: str,
+    initial: StreamURLs,
+    writer: FfmpegLogWriter,
+    out_dir: str,
+    stem: str,
+    parts: list[str],
+) -> None:
+    """Record parts until the channel stays away, appending each part's path to parts.
+
+    A clean FFmpeg exit opens the reconnect window; a failure is retried after
+    the usual backoff. Every attempt writes a new part, so nothing recorded is
+    overwritten.
+    """
+    s = rt.settings
+    key = progress_key_live(user)
     urls = initial
-    attempt = 0
+    failures = 0
     while True:
-        if attempt > 0:
-            # On the ad-free path the fresh URL itself goes unused: the lookup
-            # checks the channel is still live (backing off if rate limited)
-            # before streamlink resolves the stream again.
-            fresh = await _resolve_retry_url(rt, site, user, quality)
-            if fresh is None:
-                return
-            urls = fresh
+        if parts:
+            rt.progress.next_part(key)
+        path = _part_path(out_dir, stem, len(parts) + 1)
+        parts.append(path)
+        writer.clear()  # so each part's log tail is its own
         try:
             returncode, streamlink_tail = await _record_attempt(
-                rt, user, site, quality, urls, out_path, writer
+                rt, user, site, quality, urls, path, writer
             )
         except OSError as e:
             what = "streamlink or FFmpeg" if _ad_free(rt, site) else "FFmpeg"
             log.error("Failed to start %s for %s: %s", what, user, e)
             return
+
         if returncode == 0:
-            break
-
-        reason = describe_exit(returncode)
-        log.warning("FFmpeg failed for %s: %s", user, reason)
-        if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
-            log.warning("FFmpeg log tail for %s:\n%s", user, sanitize_log(tail))
-        if streamlink_tail:
-            log.warning("streamlink log tail for %s:\n%s", user, streamlink_tail)
-        if attempt >= s.ffmpeg.max_retries:
-            log.error(
-                "FFmpeg failed for %s after %d attempts: %s", user, attempt, reason
+            failures = 0
+            _log_clean_exit(user, writer, streamlink_tail)
+            stopped_at = rt.clock()
+            fresh = await _wait_for_live(rt, site, user, quality)
+            if fresh is None:
+                return
+            gap = rt.clock() - stopped_at
+            rt.notices.info(
+                user,
+                f"Stream came back after {gap:.0f}s; recording part {len(parts) + 1}",
             )
-            rt.notices.error(
-                user, f"Recording failed after {attempt} attempts: {reason}"
+        else:
+            failures += 1
+            reason = describe_exit(returncode)
+            log.warning("FFmpeg failed for %s: %s", user, reason)
+            if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
+                log.warning("FFmpeg log tail for %s:\n%s", user, sanitize_log(tail))
+            if streamlink_tail:
+                log.warning("streamlink log tail for %s:\n%s", user, streamlink_tail)
+            if failures > s.ffmpeg.max_retries:
+                log.error(
+                    "FFmpeg failed for %s after %d attempts: %s",
+                    user,
+                    s.ffmpeg.max_retries,
+                    reason,
+                )
+                rt.notices.error(
+                    user,
+                    f"Recording failed after {s.ffmpeg.max_retries} attempts: {reason}",
+                )
+                return
+            delay = s.ffmpeg.retry_base_delay * 2 ** (failures - 1)
+            log.warning(
+                "FFmpeg exited with error for %s (attempt %d/%d). Retrying in %gs",
+                user,
+                failures,
+                s.ffmpeg.max_retries,
+                delay,
             )
-            return
-        attempt += 1
-        delay = s.ffmpeg.retry_base_delay * 2 ** (attempt - 1)
-        log.warning(
-            "FFmpeg exited with error for %s (attempt %d/%d). Retrying in %gs",
-            user,
-            attempt,
-            s.ffmpeg.max_retries,
-            delay,
-        )
-        await rt.sleep(delay)
+            await rt.sleep(delay)
+            # On the ad-free path the fresh URL itself goes unused: the lookup
+            # checks the channel is still live before streamlink resolves it again.
+            fresh = await _wait_for_live(rt, site, user, quality, at_least_once=True)
+            if fresh is None:
+                log.info(
+                    "%s is no longer live after FFmpeg failed; finishing the recording",
+                    user,
+                )
+                return
+        if fresh.warning:
+            rt.notices.warn(user, fresh.warning)
+        urls = fresh
 
-    log.debug("Stream For %s Ended", user)
-    await _run_to_completion(
-        _finish_live(rt, user, site, post_script, out_path, new_path)
-    )
+
+def _log_clean_exit(user: str, writer: FfmpegLogWriter, streamlink_tail: str) -> None:
+    """Log FFmpeg's last lines after it stopped on its own, to show why it stopped."""
+    if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
+        log.debug("FFmpeg log tail for %s:\n%s", user, sanitize_log(tail))
+    if streamlink_tail:
+        log.debug("streamlink log tail for %s:\n%s", user, streamlink_tail)
 
 
 def _ad_free(rt: Runtime, site: str) -> bool:
@@ -328,6 +396,99 @@ async def _finish_live(
     rt.spawn_post_script(post_script, new_path, user, site, "live")
 
 
+async def _finish_session(
+    rt: Runtime,
+    user: str,
+    site: str,
+    post_script: str,
+    parts: list[str],
+    out_dir: str,
+    move_dir: str,
+    stem: str,
+) -> None:
+    """Join the parts if there are several, then move the result and run the hook.
+
+    Missing and empty parts (an attempt that failed at start-up) are dropped. The
+    join can be stopped by shutdown, which leaves the parts in place; the moves
+    and hooks always finish, as before.
+    """
+    recorded = await asyncio.to_thread(_recorded_parts, parts)
+    if not recorded:
+        log.warning("Nothing was recorded for %s", user)
+        return
+    if len(recorded) > 1:
+        recorded = await _join_session(rt, user, recorded, out_dir, stem)
+    await _run_to_completion(
+        _finish_files(rt, user, site, post_script, recorded, move_dir)
+    )
+
+
+def _recorded_parts(parts: list[str]) -> list[str]:
+    return [p for p in parts if os.path.isfile(p) and os.path.getsize(p) > 0]
+
+
+async def _join_session(
+    rt: Runtime, user: str, parts: list[str], out_dir: str, stem: str
+) -> list[str]:
+    """Join parts into the recording's plain filename; return the files to move.
+
+    That is the joined file alone when the join worked. Otherwise the parts are
+    kept as they are, and a notice says why.
+    """
+    s = rt.settings
+    key = progress_key_live(user)
+    final = _part_path(out_dir, stem, 1)
+    joining = os.path.join(out_dir, f"{stem}.joining.mp4")
+    # Not a progress entry, so the join's own progress lines are ignored.
+    writer = FfmpegLogWriter(f"{key}:join", rt.progress)
+    rt.progress.set_status(key, "joining")
+    joined = False
+    try:
+        result = await join_parts(
+            parts, joining, writer, ffmpeg=s.ffmpeg_path, ffprobe=s.ffprobe_path
+        )
+        joined = result.ok
+    finally:
+        if not joined:
+            with contextlib.suppress(OSError):
+                os.remove(joining)
+    if not joined:
+        log.warning(
+            "Keeping %d separate parts for %s: %s", len(parts), user, result.reason
+        )
+        if result.log_tail:
+            log.warning("FFmpeg join log tail for %s:\n%s", user, result.log_tail)
+        rt.notices.warn(user, f"Kept {len(parts)} separate parts: {result.reason}")
+        return parts
+
+    # Replace part 1 (if it's there) with the joined file first, so the recording
+    # always exists under one name or another.
+    os.replace(joining, final)
+    for part in parts:
+        if part != final:
+            try:
+                os.remove(part)
+            except OSError as e:
+                log.warning("Couldn't delete joined part %s: %s", part, e)
+    log.info(
+        "Joined %d parts for %s into %s", len(parts), user, os.path.basename(final)
+    )
+    return [final]
+
+
+async def _finish_files(
+    rt: Runtime,
+    user: str,
+    site: str,
+    post_script: str,
+    paths: list[str],
+    move_dir: str,
+) -> None:
+    for path in paths:
+        new_path = os.path.join(move_dir, os.path.basename(path))
+        await _finish_live(rt, user, site, post_script, path, new_path)
+
+
 async def _wait_for_live(
     rt: Runtime, site: str, user: str, quality: str, *, at_least_once: bool = False
 ) -> StreamURLs | None:
@@ -362,31 +523,6 @@ async def _wait_for_live(
                 await rt.sleep(delay)
     finally:
         rt.progress.set_status(key, "")
-
-
-async def _resolve_retry_url(
-    rt: Runtime, site: str, user: str, quality: str
-) -> StreamURLs | None:
-    """Resolve a fresh URL for a retry. The site lock is held across rate-limit backoffs."""
-    async with rt.site_lock(site):
-        for attempt, backoff in enumerate(RATE_LIMIT_BACKOFFS):
-            if backoff:
-                log.warning(
-                    "Rate limited resolving URL for %s, sleeping %ds", user, backoff
-                )
-                await rt.sleep(backoff)
-            try:
-                return await rt.resolver.stream(site, user, quality)
-            except RateLimited:
-                if attempt == len(RATE_LIMIT_BACKOFFS) - 1:
-                    rt.notices.error(
-                        user,
-                        "Rate limited resolving stream URL after multiple attempts",
-                    )
-            except ResolverError as e:
-                rt.notices.warn(user, f"Failed to resolve stream URL: {e}")
-                return None
-    return None
 
 
 async def record_vod(

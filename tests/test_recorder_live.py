@@ -76,13 +76,15 @@ async def test_retries_with_fresh_urls_and_backoff(
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
 
     runs = ffmpeg_runs(ffmpeg_log)
-    assert len(runs) == 3
+    assert len(runs) == 4  # three attempts, then the join
     assert URLS.video in runs[0]
     assert FRESH.video in runs[1] and FRESH.video in runs[2]
+    assert "concat" in runs[3]
     assert rt.sleep.calls == [2.0, 4.0]
     assert rt.resolver.stream_calls == [("twitch.tv", "alice", "best")] * 2
     assert rt.notices.pending() == []
-    assert len(files(tmp_path / "out")) == 1
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4" * 3
 
 
 async def test_gives_up_after_max_retries(
@@ -95,38 +97,49 @@ async def test_gives_up_after_max_retries(
 
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
 
-    assert len(ffmpeg_runs(ffmpeg_log)) == 3
+    assert len(ffmpeg_runs(ffmpeg_log)) == 4  # three attempts, then the join
     assert [n.message for n in rt.notices.pending()] == [
         "Recording failed after 2 attempts: exit status 1"
     ]
-    assert files(tmp_path / "out") == []
+    assert len(files(tmp_path / "out")) == 1  # what was recorded is kept
     assert "alice" not in rt.active
 
 
-async def test_retry_rate_limited_three_times(make_runtime, monkeypatch):
+async def test_a_rate_limited_retry_lookup_finishes_the_recording(
+    make_runtime, monkeypatch, tmp_path
+):
     monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1")
     rt = make_runtime()
     rt.resolver.streams = [RateLimited()]
 
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
 
-    assert rt.sleep.calls == [2.0, 30, 60]
-    assert [n.message for n in rt.notices.pending()] == [
-        "Rate limited resolving stream URL after multiple attempts"
-    ]
+    assert rt.sleep.calls == [2.0]
+    assert len(rt.resolver.stream_calls) == 1
+    assert rt.notices.pending() == []
+    assert len(files(tmp_path / "out")) == 1
 
 
-async def test_retry_resolve_failure_stops(make_runtime, ffmpeg_log, monkeypatch):
+async def test_a_failure_then_offline_still_moves_the_recording(
+    make_runtime, ffmpeg_log, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
     monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1")
     rt = make_runtime()
     rt.resolver.streams = [Offline("Channel 'alice' is offline")]
+    hook, marker = make_hook(tmp_path)
 
-    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
 
     assert len(ffmpeg_runs(ffmpeg_log)) == 1
-    assert [n.message for n in rt.notices.pending()] == [
-        "Failed to resolve stream URL: Channel 'alice' is offline"
-    ]
+    assert rt.notices.pending() == []
+    [moved] = files(tmp_path / "out")
+    assert hook_calls(marker) == [str(moved)]
+    assert (
+        "alice is no longer live after FFmpeg failed; finishing the recording"
+        in caplog.messages
+    )
 
 
 async def test_cancel_sends_sigint_and_waits_for_ffmpeg(
@@ -398,7 +411,7 @@ async def test_ffmpeg_failure_retries_the_whole_pipe(
     await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
 
     assert len(streamlink_runs(streamlink_log)) == 2
-    assert len(ffmpeg_runs(ffmpeg_log)) == 2
+    assert len(ffmpeg_runs(ffmpeg_log)) == 3  # two attempts, then the join
     assert rt.resolver.stream_calls == [("twitch.tv", "alice", "best")]
     assert rt.sleep.calls == [2.0]
     assert len(files(tmp_path / "out")) == 1
@@ -609,3 +622,245 @@ async def test_cancelling_wait_for_live_releases_the_lock_and_clears_the_status(
         await task
     assert not rt.site_lock("twitch.tv").locked()
     assert rt.progress.get("live:alice").status == ""
+
+
+# --- parts, reconnects and joins ---------------------------------------------------
+
+
+def make_hook(tmp_path):
+    marker = tmp_path / "hook.txt"
+    hook = tmp_path / "hook.sh"
+    hook.write_text(f'#!/bin/sh\necho "$1" >> {marker}\n')
+    hook.chmod(0o755)
+    return str(hook), marker
+
+
+def hook_calls(marker):
+    return marker.read_text().splitlines() if marker.exists() else []
+
+
+class BlockingResolver(FakeResolver):
+    """A resolver whose lookups never return, so a test can cancel mid-window."""
+
+    def __init__(self):
+        super().__init__()
+        self.called = asyncio.Event()
+
+    async def stream(self, site, user, quality):
+        self.called.set()
+        await asyncio.Event().wait()
+
+
+async def test_a_drop_that_comes_back_is_joined_into_one_file(
+    make_runtime, ffmpeg_log, tmp_path
+):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [Offline("x"), Offline("x"), FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    runs = ffmpeg_runs(ffmpeg_log)
+    assert len(runs) == 3  # two parts, then the join
+    assert URLS.video in runs[0] and FRESH.video in runs[1] and "concat" in runs[2]
+    assert runs[1][-1].endswith("_part2.mp4")
+    [moved] = files(tmp_path / "out")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", moved.name)
+    assert moved.read_bytes() == b"fake mp4" * 2
+    assert files(tmp_path / "dl") == []
+    assert hook_calls(marker) == [str(moved)]
+    assert [n.message for n in rt.notices.pending()] == [
+        "Stream came back after 10s; recording part 2"
+    ]
+    assert rt.sleep.calls == [5] * 7  # 2 before it came back, 5 after part 2
+
+
+async def test_a_drop_that_doesnt_come_back_finishes_after_the_window(
+    make_runtime, ffmpeg_log, tmp_path
+):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [Offline("x")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 1
+    assert len(rt.resolver.stream_calls) == 6
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4"
+    assert rt.notices.pending() == []
+
+
+async def test_a_failure_retry_writes_a_new_part(
+    make_runtime, ffmpeg_log, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1,0")
+    rt = make_runtime()
+    rt.resolver.streams = [FRESH]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    runs = ffmpeg_runs(ffmpeg_log)
+    assert runs[0][-1] != runs[1][-1]
+    assert runs[1][-1].endswith("_part2.mp4")
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4" * 2
+    # Each part's log tail is that part's output alone.
+    tails = [
+        r.getMessage()
+        for r in caplog.records
+        if r.getMessage().startswith("FFmpeg log tail for alice")
+    ]
+    assert len(tails) == 2
+    assert [t.count("Input #0") for t in tails] == [1, 1]
+
+
+async def test_the_failure_count_resets_after_a_clean_part(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1,0,1,0")
+    rt = make_runtime(reconnect=WINDOW, ffmpeg=FfmpegOptions(max_retries=1))
+    rt.resolver.streams = [FRESH, FRESH, FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 5  # four parts, then the join
+    assert not [n for n in rt.notices.pending() if n.level == logging.ERROR]
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4" * 4
+
+
+async def test_a_fallback_format_warning_on_a_fresh_url_becomes_a_notice(
+    make_runtime, tmp_path
+):
+    warning = "Requested format 'best' unavailable; using default selection"
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [StreamURLs(FRESH.video, warning=warning), Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert Notice(logging.WARNING, "alice", warning) in rt.notices.pending()
+    assert len(files(tmp_path / "out")) == 1
+
+
+async def test_mismatched_parts_are_kept_and_each_gets_the_hook(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFPROBE_ODD", "_part2")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    moved = files(tmp_path / "out")
+    assert [p.name.endswith("_part2.mp4") for p in moved] == [False, True]
+    assert sorted(hook_calls(marker)) == [str(p) for p in moved]
+    assert rt.notices.pending()[-1] == Notice(
+        logging.WARNING,
+        "alice",
+        "Kept 2 separate parts: stream 0 width is 1280 in part 2, 1920 in part 1",
+    )
+    assert len(ffmpeg_runs(ffmpeg_log)) == 2  # no join was attempted
+
+
+async def test_a_failed_join_keeps_the_parts(make_runtime, monkeypatch, tmp_path):
+    monkeypatch.setenv("FAKE_FFMPEG_CONCAT_EXIT", "1")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(files(tmp_path / "out")) == 2
+    assert files(tmp_path / "dl") == []  # the half-joined file was deleted
+    assert rt.notices.pending()[-1].message == (
+        "Kept 2 separate parts: the join failed (exit status 1)"
+    )
+
+
+async def test_cancel_during_the_window_leaves_the_parts(
+    make_runtime, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver = BlockingResolver()
+    rt.active.add("alice")
+    hook, marker = make_hook(tmp_path)
+    task = asyncio.create_task(
+        record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    )
+    await asyncio.wait_for(rt.resolver.called.wait(), 5)
+    assert rt.progress.get("live:alice").status == "reconnecting"
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert [p.suffix for p in files(tmp_path / "dl")] == [".mp4"]
+    assert files(tmp_path / "out") == []
+    assert hook_calls(marker) == []
+    assert "Shutting down: left 1 part(s) for alice" in caplog.text
+    assert "alice" not in rt.active
+
+
+async def test_cancel_during_the_join_leaves_the_parts(
+    make_runtime, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
+    monkeypatch.setenv("FAKE_FFMPEG_CONCAT_BLOCK", "1")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    task = asyncio.create_task(record_live(rt, "alice", "twitch.tv", "best", URLS, ""))
+    await wait_for_glob(tmp_path / "dl", "*.joining.mp4.ready")
+    assert rt.progress.get("live:alice").status == "joining"
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    names = [p.name for p in files(tmp_path / "dl")]
+    assert not [n for n in names if n.endswith(".joining.mp4")]
+    assert len([n for n in names if n.endswith(".mp4")]) == 2
+    assert files(tmp_path / "out") == []
+    assert "Shutting down: left 2 part(s) for alice" in caplog.text
+
+
+async def test_a_clean_exit_logs_ffmpegs_last_lines_at_debug(make_runtime, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    rt = make_runtime()
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    [record] = [
+        r
+        for r in caplog.records
+        if r.getMessage().startswith("FFmpeg log tail for alice")
+    ]
+    assert record.levelno == logging.DEBUG
+    assert "speed=1.00x" in record.getMessage()
+
+
+def test_recorded_parts_drops_missing_and_empty_files(tmp_path):
+    full = tmp_path / "a.mp4"
+    full.write_bytes(b"x")
+    empty = tmp_path / "b.mp4"
+    empty.write_bytes(b"")
+    missing = tmp_path / "c.mp4"
+    assert recorder._recorded_parts([str(full), str(empty), str(missing)]) == [
+        str(full)
+    ]
+
+
+async def test_a_twitch_drop_that_comes_back_is_joined(
+    make_runtime, streamlink_log, tmp_path
+):
+    rt = make_runtime(twitch=AD_FREE, reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(streamlink_runs(streamlink_log)) == 2
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4" * 2

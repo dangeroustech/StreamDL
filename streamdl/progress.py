@@ -310,6 +310,11 @@ class FfmpegLogWriter:
     def text(self) -> str:
         return self._buf.decode("utf-8", "replace")
 
+    def clear(self) -> None:
+        """Forget the log so far, including an unfinished last line."""
+        self._buf.clear()
+        self._partial = b""
+
     def _handle_line(self, line: str) -> None:
         sample = parse_ffmpeg_progress_line(line)
         if not sample.valid:
