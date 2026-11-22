@@ -654,3 +654,77 @@ def test_third_party_loggers_are_silenced_once():
 def test_urllib3_percent_encoding_still_works():
     # urllib3>=2.8 calls _PERCENT_RE.sub; the streamlink + yt-dlp patches broke that
     assert "%20" in urllib3.util.url.parse_url("https://example.com/a b%2f").path
+
+
+CURL_DNS = (
+    "ERROR: [Chaturbate] busbuddies: Unable to download webpage: Failed to perform,"
+    " curl: (6) Could not resolve host: chaturbate.com. See"
+    " https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+    " (caused by TransportError('Failed to perform, curl: (6) Could not resolve"
+    " host: chaturbate.com. See https://curl.se/libcurl/c/libcurl-errors.html first"
+    " for more details.'))"
+)
+CURL_DNS_SHORT = (
+    "[Chaturbate] busbuddies: Unable to download webpage: Failed to perform,"
+    " curl: (6) Could not resolve host: chaturbate.com."
+)
+
+
+def test_ytdlp_offline_is_logged_at_debug(ydl, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = DownloadError(
+        "ERROR: [Chaturbate] bob: Room is currently offline"
+    )
+    with pytest.raises(Offline):
+        get_stream("chaturbate.com", "bob", "best")
+    assert "Room is currently offline" in caplog.text
+    assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+def test_streamlink_no_streams_is_logged_at_debug(session, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    session.streams.return_value = None
+    with pytest.raises(Offline):
+        get_stream("twitch.tv", "testuser", "best")
+    assert "No streams found for user testuser" in caplog.text
+    assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+def test_ytdlp_other_download_errors_are_still_errors(ydl, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = DownloadError(CURL_DNS)
+    with pytest.raises(ResolverError) as err:
+        get_stream("chaturbate.com", "busbuddies", "best")
+    assert str(err.value) == f"Download error: {CURL_DNS_SHORT}"
+    [record] = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert "caused by TransportError" in record.getMessage()
+
+
+def test_extractor_errors_are_shortened(ydl):
+    ydl.extract_info.side_effect = ExtractorError(
+        "ERROR: boom (caused by Oops('x'))", expected=True
+    )
+    with pytest.raises(ResolverError) as err:
+        get_stream("kick.com", "u", "best")
+    assert str(err.value) == "Extractor error: boom"
+
+
+def test_vod_download_errors_are_shortened(ydl):
+    ydl.extract_info.side_effect = DownloadError(CURL_DNS)
+    with pytest.raises(ResolverError) as err:
+        get_vods("twitch.tv", "busbuddies")
+    assert str(err.value) == f"Download error: {CURL_DNS_SHORT}"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("ERROR: plain", "plain"),
+        ("no prefix", "no prefix"),
+        ("a. See https://x.example/y for more details.", "a."),
+        ("a (caused by Foo('b (c)'))", "a"),
+        (CURL_DNS, CURL_DNS_SHORT),
+    ],
+)
+def test_short_error(text, expected):
+    assert resolver._short_error(text) == expected

@@ -118,6 +118,20 @@ def _text(error: BaseException) -> str:
     return sanitize_log(str(error))
 
 
+_RE_CAUSED_BY = re.compile(r" \(caused by .*\)\Z", re.DOTALL)
+_RE_SEE_DOCS = re.compile(r" See https?://\S+ (?:first )?for more details\.")
+
+
+def _short_error(text: str) -> str:
+    """A yt-dlp error without its "ERROR: " prefix, doc links or "(caused by ...)" tail.
+
+    Those repeat the message and make notices hard to read; the full text is
+    still logged.
+    """
+    text = _RE_CAUSED_BY.sub("", text.removeprefix("ERROR: "))
+    return _RE_SEE_DOCS.sub("", text).strip()
+
+
 class ResolverError(Exception):
     """A lookup failed. str(error) is the user-facing message, with secrets redacted.
 
@@ -235,7 +249,7 @@ def get_vods(site: str, user: str, limit: int = 10) -> list[VodInfo]:
             log.warning("User %s not found on %s", user, site)
             raise NotFound(_NOT_FOUND_VODS) from e
         log.error("DownloadError fetching VODs for %s: %s", user, _text(e))
-        raise ResolverError(f"Download error: {e}") from e
+        raise ResolverError(f"Download error: {_short_error(text)}") from e
     except Exception as e:
         log.error("Error fetching VODs for %s: %s", user, _text(e))
         raise ResolverError(f"Unexpected error: {e}") from e
@@ -285,7 +299,7 @@ def _get_stream_streamlink(
         raise ResolverError(f"Plugin error: {e}") from e
 
     if not streams:
-        log.warning("No streams found for user %s", user)
+        log.debug("No streams found for user %s", user)
         raise Offline(f"No live streams found for '{user}' on {site}")
     selected = quality or "best"
     log.debug("Selecting quality=%s from available keys=%s", selected, list(streams))
@@ -315,17 +329,18 @@ def _get_stream_ytdlp(site: str, user: str, quality: str) -> StreamURLs:
         raise NotFound(f"Stream unavailable: {e}") from e
     except ExtractorError as e:
         log.error("ExtractorError: %s", _text(e))
-        raise ResolverError(f"Extractor error: {e}") from e
+        raise ResolverError(f"Extractor error: {_short_error(str(e))}") from e
     except DownloadError as e:
-        log.error("DownloadError: %s", _text(e))
         text = str(e)
+        if "currently offline" in text:
+            log.debug("DownloadError: %s", _text(e))
+            raise Offline(f"Channel '{user}' is offline") from e
+        log.error("DownloadError: %s", _text(e))
         if "Requested format is not available" in text:
             return _retry_with_default_format(url, user, fmt)
         if "HTTP Error 429: Too Many Requests " in text:
             raise RateLimited() from e
-        if "currently offline" in text:
-            raise Offline(f"Channel '{user}' is offline") from e
-        raise ResolverError(f"Download error: {e}") from e
+        raise ResolverError(f"Download error: {_short_error(text)}") from e
     except Exception as e:
         log.error("Generic Error: %s", _text(e))
         raise ResolverError(f"Unexpected error: {e}") from e
