@@ -1,7 +1,11 @@
 # Throwaway image for running StreamDL's tests, so nothing is installed on the host.
 # The repo is bind-mounted at /src; the venv and uv cache live in named volumes.
 ARG PYTHON_VERSION=3.14
+FROM mwader/static-ffmpeg:9.0.2-1 AS ffmpeg
+
 FROM python:${PYTHON_VERSION}-slim-trixie
+# Real FFmpeg/ffprobe for the join tests (the same static build as the image)
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 
 RUN pip install --no-cache-dir uv==0.13.5 && \
     mkdir -p /venv /uv-cache && \

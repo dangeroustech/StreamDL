@@ -12,6 +12,11 @@ When the input is pipe:0 it then reads stdin to EOF and saves what it read to
 "<output>.stdin" (FAKE_FFMPEG_SKIP_STDIN=1 skips the read). FAKE_FFMPEG_LINGER=1
 makes it run, after that, until it is killed. With FAKE_FFMPEG_WAIT_FOR=<path>
 it then waits for <path> to exist before going on.
+
+With "concat" in its arguments it acts as a join: it concatenates the files named
+in the -i list (FFmpeg's concat syntax) into the output and exits
+$FAKE_FFMPEG_CONCAT_EXIT (default 0). With FAKE_FFMPEG_CONCAT_BLOCK=1 it writes
+"<output>.ready" and runs until killed.
 """
 
 import json
@@ -27,6 +32,24 @@ with open(os.environ["FAKE_FFMPEG_LOG"], "a+", encoding="utf-8") as log:
     log.write(json.dumps(args) + "\n")
 
 out = args[-1]
+if "concat" in args:
+    # A join: write the listed files' bytes, in order, to the output.
+    data = b""
+    with open(args[args.index("-i") + 1], encoding="utf-8") as listing:
+        for line in listing:
+            line = line.strip()
+            if line.startswith("file '") and line.endswith("'"):
+                with open(line[6:-1].replace("'\\''", "'"), "rb") as part:
+                    data += part.read()
+    with open(out, "wb") as f:
+        f.write(data)
+    if os.environ.get("FAKE_FFMPEG_CONCAT_BLOCK") == "1":
+        with open(out + ".ready", "w") as f:
+            f.write("ready")
+        while True:
+            time.sleep(0.02)
+    sys.stderr.write("concat finished\n")
+    sys.exit(int(os.environ.get("FAKE_FFMPEG_CONCAT_EXIT", "0")))
 sys.stderr.write("Input #0, hls, from 'fake':\n")
 sys.stderr.write(
     "frame=   10 fps=30 q=-1.0 size=     128kB time=00:00:01.00 bitrate=1048.6kbits/s speed=1.00x\r"

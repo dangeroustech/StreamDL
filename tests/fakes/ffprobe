@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Stand-in for ffprobe in tests.
+
+For any existing file it prints one H.264 1920x1080 video stream and one AAC
+stereo 48 kHz audio stream as JSON (the shape of `-show_entries stream=... -of
+json`). A path containing $FAKE_FFPROBE_ODD reports 1280x720 instead. A missing
+file, or a path containing $FAKE_FFPROBE_FAIL, fails the way ffprobe does.
+"""
+
+import json
+import os
+import sys
+
+path = sys.argv[-1]
+fail = os.environ.get("FAKE_FFPROBE_FAIL")
+if not os.path.exists(path) or (fail and fail in path):
+    sys.stderr.write(f"{path}: Invalid data found when processing input\n")
+    sys.exit(1)
+odd = os.environ.get("FAKE_FFPROBE_ODD")
+width, height = (1280, 720) if odd and odd in path else (1920, 1080)
+video = {
+    "codec_type": "video",
+    "codec_name": "h264",
+    "width": width,
+    "height": height,
+    "pix_fmt": "yuv420p",
+}
+audio = {
+    "codec_type": "audio",
+    "codec_name": "aac",
+    "sample_rate": "48000",
+    "channels": 2,
+}
+print(json.dumps({"streams": [video, audio]}))
