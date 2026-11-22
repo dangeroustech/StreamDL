@@ -320,3 +320,65 @@ def test_writer_caps_an_unterminated_line():
     assert len(writer._partial) <= FfmpegLogWriter.MAX_BYTES
     writer.write(b"\nframe= 1 size=  128kB time=00:00:01.00 speed=1x\n")
     assert store.get(key).size_bytes == 128 * KIB
+
+
+def test_next_part_carries_size_and_time_on():
+    store, key = _live_store()
+    store.update(
+        key, ProgressSample(size_bytes=100 * MIB, duration=600, speed=1.0, valid=True)
+    )
+    store.next_part(key)
+    p = store.get(key)
+    assert (p.parts, p.size_bytes, p.duration, p.speed) == (2, 100 * MIB, 600, 0.0)
+
+    store.update(
+        key, ProgressSample(size_bytes=10 * MIB, duration=60, speed=1.0, valid=True)
+    )
+    p = store.get(key)
+    assert (p.size_bytes, p.duration, p.speed) == (110 * MIB, 660, 1.0)
+
+
+def test_next_part_for_an_unknown_key_is_ignored():
+    ProgressStore().next_part("live:nobody")
+
+
+def test_set_status_clears_speed():
+    store, key = _live_store()
+    store.update(key, ProgressSample(size_bytes=MIB, speed=1.0, valid=True))
+    store.set_status(key, "reconnecting")
+    p = store.get(key)
+    assert (p.status, p.speed) == ("reconnecting", 0.0)
+    store.set_status(key, "")
+    assert store.get(key).status == ""
+
+
+def test_end_forgets_the_part_totals():
+    store, key = _live_store()
+    store.update(key, ProgressSample(size_bytes=MIB, valid=True))
+    store.next_part(key)
+    store.end(key)
+    store.start(key, channel="day9tv", kind=DownloadKind.LIVE)
+    store.update(key, ProgressSample(size_bytes=MIB, valid=True))
+    assert store.get(key).size_bytes == MIB
+
+
+@pytest.mark.parametrize(
+    ("parts", "speed", "status", "expected"),
+    [
+        (1, 0.0, "reconnecting", "[a] live size=1.48GiB time=1h08m22s reconnecting"),
+        (2, 1.0, "", "[a] live part=2 size=1.48GiB time=1h08m22s speed=1.00x"),
+        (3, 0.0, "joining", "[a] live part=3 size=1.48GiB time=1h08m22s joining"),
+    ],
+)
+def test_format_shows_parts_and_status(parts, speed, status, expected):
+    p = DownloadProgress(
+        key="live:a",
+        channel="a",
+        kind=DownloadKind.LIVE,
+        size_bytes=int(1.48 * 1024**3),
+        duration=68 * 60 + 22,
+        speed=speed,
+        parts=parts,
+        status=status,
+    )
+    assert format_download_progress(p) == expected

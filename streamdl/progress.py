@@ -55,6 +55,8 @@ class DownloadProgress:
     eta: float | None = None
     started_at: float = 0.0
     updated_at: float = 0.0
+    parts: int = 1  # a live recording's part count (a drop that came back adds one)
+    status: str = ""  # "reconnecting" or "joining" while a live recording isn't writing
 
 
 def progress_key_live(channel: str) -> str:
@@ -73,6 +75,9 @@ class ProgressStore:
 
     def __init__(self) -> None:
         self._items: dict[str, DownloadProgress] = {}
+        # Size and time of a live recording's finished parts, added to the
+        # current part's figures.
+        self._bases: dict[str, tuple[int, float]] = {}
 
     def start(
         self,
@@ -98,21 +103,41 @@ class ProgressStore:
 
     def end(self, key: str) -> None:
         self._items.pop(key, None)
+        self._bases.pop(key, None)
 
     def update(self, key: str, sample: ProgressSample) -> None:
         p = self._items.get(key)
         if p is None:
             return
+        base_size, base_duration = self._bases.get(key, (0, 0.0))
         if sample.size_bytes > 0:
-            p.size_bytes = sample.size_bytes
+            p.size_bytes = base_size + sample.size_bytes
         if sample.duration > 0:
-            p.duration = sample.duration
+            p.duration = base_duration + sample.duration
         if sample.speed > 0:
             p.speed = sample.speed
         if sample.bitrate_kbps > 0:
             p.bitrate_kbps = sample.bitrate_kbps
         p.updated_at = time.time()
         p.percent, p.eta = derive_percent_eta(p.duration, p.total_duration, p.speed)
+
+    def next_part(self, key: str) -> None:
+        """Start a new part of a live recording; size and time carry on from here."""
+        p = self._items.get(key)
+        if p is None:
+            return
+        self._bases[key] = (p.size_bytes, p.duration)
+        p.parts += 1
+        p.speed = 0.0
+
+    def set_status(self, key: str, status: str) -> None:
+        """Show what a live recording is doing between parts ("" when recording)."""
+        p = self._items.get(key)
+        if p is None:
+            return
+        p.status = status
+        if status:
+            p.speed = 0.0
 
     def get(self, key: str) -> DownloadProgress | None:
         p = self._items.get(key)
@@ -328,20 +353,24 @@ def format_duration_short(seconds: float) -> str:
 
 
 def format_download_progress(p: DownloadProgress) -> str:
-    parts = [f"[{p.channel}] {p.kind}"]
+    fields = [f"[{p.channel}] {p.kind}"]
+    if p.parts > 1:
+        fields.append(f"part={p.parts}")
     if p.kind == DownloadKind.VOD and (label := p.title or p.vod_id):
-        parts.append(json.dumps(label, ensure_ascii=False))
+        fields.append(json.dumps(label, ensure_ascii=False))
     if p.percent is not None:
-        parts.append(f"{p.percent:.1f}%")
+        fields.append(f"{p.percent:.1f}%")
     if p.size_bytes > 0:
-        parts.append(f"size={format_bytes(p.size_bytes)}")
+        fields.append(f"size={format_bytes(p.size_bytes)}")
     if p.duration > 0:
-        parts.append(f"time={format_duration_short(p.duration)}")
+        fields.append(f"time={format_duration_short(p.duration)}")
     if p.speed > 0:
-        parts.append(f"speed={p.speed:.2f}x")
+        fields.append(f"speed={p.speed:.2f}x")
     if p.eta is not None:
-        parts.append(f"eta={format_duration_short(p.eta)}")
-    return " ".join(parts)
+        fields.append(f"eta={format_duration_short(p.eta)}")
+    if p.status:
+        fields.append(p.status)
+    return " ".join(fields)
 
 
 def log_active_download_summary(store: ProgressStore) -> None:
