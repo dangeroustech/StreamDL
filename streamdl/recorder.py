@@ -422,16 +422,20 @@ async def _finish_session(
     """Join the parts if there are several, then move the result and run the hook.
 
     Missing and empty parts (an attempt that failed at start-up or recorded
-    nothing) are dropped, and empty part files deleted. The join can be stopped
-    by shutdown, which leaves the parts in place; the moves and hooks always
+    nothing) are dropped, and empty part files deleted; a lone later part that
+    survives takes the recording's plain name. The join can be stopped by
+    shutdown, which leaves the parts in place; the moves and hooks always
     finish, as before.
     """
     recorded = await asyncio.to_thread(_recorded_parts, parts)
     if not recorded:
         log.warning("Nothing was recorded for %s", user)
         return
+    plain = _part_path(out_dir, stem, 1)
     if len(recorded) > 1:
         recorded = await _join_session(rt, user, recorded, out_dir, stem)
+    elif recorded[0] != plain:
+        recorded = [await asyncio.to_thread(_take_plain_name, recorded[0], plain)]
     await _run_to_completion(
         _finish_files(rt, user, site, post_script, recorded, move_dir)
     )
@@ -459,10 +463,29 @@ def _has_data(path: str) -> bool:
         return False
 
 
-def _join_space_shortfall(parts: list[str], out_dir: str) -> str:
-    """Why the joined file wouldn't fit in out_dir, or "" if it would (or can't tell)."""
+def _take_plain_name(part: str, plain: str) -> str:
+    """Rename a lone surviving later part to the recording's plain name.
+
+    Returns the path to move: plain, or part if plain is taken or the rename fails.
+    """
+    if os.path.exists(plain):
+        return part
     try:
-        needed = sum(os.path.getsize(p) for p in parts)
+        os.rename(part, plain)
+    except OSError as e:
+        log.warning("Couldn't rename %s to %s: %s", part, plain, e)
+        return part
+    return plain
+
+
+def _join_space_shortfall(parts: list[str], out_dir: str) -> str:
+    """Why the joined file wouldn't fit in out_dir, or "" if it would (or can't tell).
+
+    The join needs room for a copy of every part, plus 5% to spare.
+    """
+    try:
+        total = sum(os.path.getsize(p) for p in parts)
+        needed = total + total // 20
         free = shutil.disk_usage(out_dir).free
     except OSError as e:
         log.debug("Couldn't check the free space in %s: %s", out_dir, e)

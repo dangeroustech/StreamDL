@@ -891,15 +891,21 @@ async def test_a_clean_exit_that_recorded_nothing_is_retried(
     monkeypatch.setenv("FAKE_FFMPEG_EMPTY_RUNS", "1")
     rt = make_runtime()
     rt.resolver.streams = [FRESH]
+    hook, marker = make_hook(tmp_path)
 
-    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
 
-    assert len(ffmpeg_runs(ffmpeg_log)) == 2
+    runs = ffmpeg_runs(ffmpeg_log)
+    assert len(runs) == 2
+    assert runs[1][-1].endswith("_part2.mp4")
     assert rt.sleep.calls == [2.0]
     assert "FFmpeg for alice exited without recording anything" in caplog.messages
+    # The lone surviving part gets the recording's plain name.
     [moved] = files(tmp_path / "out")
-    assert moved.name.endswith("_part2.mp4")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", moved.name)
     assert moved.read_bytes() == b"fake mp4"
+    assert hook_calls(marker) == [str(moved)]
     assert files(tmp_path / "dl") == []
     assert rt.notices.pending() == []
 
@@ -999,6 +1005,23 @@ async def test_parts_are_kept_when_there_isnt_room_to_join_them(
     assert rt.notices.pending()[-1].message == (
         "Kept 2 separate parts: not enough free space to join (needs 16B, 10B free)"
     )
+
+
+def test_the_join_needs_5_percent_headroom(monkeypatch, tmp_path):
+    parts = []
+    for name in ("a.mp4", "b.mp4"):
+        (tmp_path / name).write_bytes(b"x" * 1000)
+        parts.append(str(tmp_path / name))
+    free = [2099]
+    monkeypatch.setattr(
+        shutil, "disk_usage", lambda path: SimpleNamespace(free=free[0])
+    )
+
+    assert recorder._join_space_shortfall(parts, str(tmp_path)) == (
+        "not enough free space to join (needs 2.1KiB, 2.0KiB free)"
+    )
+    free[0] = 2100  # 2000 bytes of parts plus 5%
+    assert recorder._join_space_shortfall(parts, str(tmp_path)) == ""
 
 
 async def test_a_twitch_drop_that_comes_back_is_joined(
