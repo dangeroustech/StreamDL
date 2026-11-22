@@ -2,7 +2,9 @@ import asyncio
 import logging
 import os
 import re
+import shutil
 import signal
+from types import SimpleNamespace
 
 import pytest
 from helpers import (
@@ -851,6 +853,152 @@ def test_recorded_parts_drops_missing_and_empty_files(tmp_path):
     assert recorder._recorded_parts([str(full), str(empty), str(missing)]) == [
         str(full)
     ]
+    assert not empty.exists()
+
+
+async def test_a_part_that_fails_to_start_still_moves_the_earlier_part(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    spawn = asyncio.create_subprocess_exec
+    ffmpeg_starts = []
+
+    async def failing_spawn(*args, **kwargs):
+        if args[0] == FAKE_FFMPEG:
+            ffmpeg_starts.append(args)
+            if len(ffmpeg_starts) == 2:
+                raise OSError("no more processes")
+        return await spawn(*args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", failing_spawn)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 1  # no concat run
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4"
+    assert hook_calls(marker) == [str(moved)]
+    assert files(tmp_path / "dl") == []
+
+
+async def test_a_clean_exit_that_recorded_nothing_is_retried(
+    make_runtime, ffmpeg_log, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.WARNING, logger="streamdl")
+    monkeypatch.setenv("FAKE_FFMPEG_EMPTY_RUNS", "1")
+    rt = make_runtime()
+    rt.resolver.streams = [FRESH]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 2
+    assert rt.sleep.calls == [2.0]
+    assert "FFmpeg for alice exited without recording anything" in caplog.messages
+    [moved] = files(tmp_path / "out")
+    assert moved.name.endswith("_part2.mp4")
+    assert moved.read_bytes() == b"fake mp4"
+    assert files(tmp_path / "dl") == []
+    assert rt.notices.pending() == []
+
+
+async def test_clean_exits_that_record_nothing_stop_after_max_retries(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFMPEG_EMPTY_RUNS", "1,2,3")
+    rt = make_runtime(reconnect=WINDOW, ffmpeg=FfmpegOptions(max_retries=2))
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 3
+    assert len(rt.resolver.stream_calls) == 2
+    assert rt.sleep.calls == [2.0, 4.0]
+    assert [n.message for n in rt.notices.pending()] == [
+        "Recording failed after 2 attempts: nothing was recorded"
+    ]
+    assert files(tmp_path / "out") == []
+    assert files(tmp_path / "dl") == []
+
+
+async def test_a_part_that_cant_be_deleted_after_the_join_is_left(
+    make_runtime, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.WARNING, logger="streamdl")
+    remove = os.remove
+
+    def failing_remove(path, *args, **kwargs):
+        if str(path).endswith("_part2.mp4"):
+            raise PermissionError("not allowed")
+        remove(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "remove", failing_remove)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    statuses = []
+    move_file = recorder.move_file
+
+    def peeking_move(*args, **kwargs):
+        statuses.append(rt.progress.get("live:alice").status)
+        return move_file(*args, **kwargs)
+
+    monkeypatch.setattr(recorder, "move_file", peeking_move)
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    [moved] = files(tmp_path / "out")
+    assert moved.read_bytes() == b"fake mp4" * 2
+    assert hook_calls(marker) == [str(moved)]
+    assert [p.name.endswith("_part2.mp4") for p in files(tmp_path / "dl")] == [True]
+    assert "Couldn't delete joined part" in caplog.text
+    assert statuses == [""]  # "joining" is cleared before the move
+
+
+async def test_a_joined_file_that_cant_be_renamed_keeps_the_parts(
+    make_runtime, monkeypatch, tmp_path
+):
+    replace = os.replace
+
+    def failing_replace(src, dst, *args, **kwargs):
+        if str(src).endswith(".joining.mp4"):
+            raise OSError("rename refused")
+        replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", failing_replace)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    moved = files(tmp_path / "out")
+    assert [p.read_bytes() for p in moved] == [b"fake mp4"] * 2
+    assert sorted(hook_calls(marker)) == [str(p) for p in moved]
+    assert files(tmp_path / "dl") == []  # the joined file was deleted
+    assert rt.notices.pending()[-1].message == (
+        "Kept 2 separate parts: the joined file couldn't be renamed (rename refused)"
+    )
+
+
+async def test_parts_are_kept_when_there_isnt_room_to_join_them(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: SimpleNamespace(free=10))
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 2  # no join was attempted
+    assert len(files(tmp_path / "out")) == 2
+    assert rt.notices.pending()[-1].message == (
+        "Kept 2 separate parts: not enough free space to join (needs 16B, 10B free)"
+    )
 
 
 async def test_a_twitch_drop_that_comes_back_is_joined(

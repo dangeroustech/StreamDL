@@ -7,6 +7,7 @@ import contextlib
 import logging
 import os
 import re
+import shutil
 import signal
 import sqlite3
 from collections.abc import Coroutine
@@ -22,9 +23,15 @@ from .ffmpeg import (
     tail_lines,
 )
 from .files import create_dir_with_umask, move_file, sanitize_filename
-from .join import join_parts
+from .join import JoinResult, join_parts
 from .process import describe_exit
-from .progress import DownloadKind, FfmpegLogWriter, progress_key_live, progress_key_vod
+from .progress import (
+    DownloadKind,
+    FfmpegLogWriter,
+    format_bytes,
+    progress_key_live,
+    progress_key_vod,
+)
 from .resolver import ResolverError, StreamURLs, VodInfo, is_twitch
 from .twitch_pipe import (
     PipeResult,
@@ -228,9 +235,9 @@ async def _record_parts(
 ) -> None:
     """Record parts until the channel stays away, appending each part's path to parts.
 
-    A clean FFmpeg exit opens the reconnect window; a failure is retried after
-    the usual backoff. Every attempt writes a new part, so nothing recorded is
-    overwritten.
+    A clean FFmpeg exit opens the reconnect window; a failure, or a clean exit
+    that recorded nothing, is retried after the usual backoff. Every attempt
+    writes a new part, so nothing recorded is overwritten.
     """
     s = rt.settings
     key = progress_key_live(user)
@@ -251,7 +258,9 @@ async def _record_parts(
             log.error("Failed to start %s for %s: %s", what, user, e)
             return
 
-        if returncode == 0:
+        # A clean exit that left nothing behind is a failure too, so an FFmpeg
+        # that keeps stopping at once can't record empty parts in a tight loop.
+        if returncode == 0 and await asyncio.to_thread(_has_data, path):
             failures = 0
             _log_clean_exit(user, writer, streamlink_tail)
             stopped_at = rt.clock()
@@ -265,8 +274,12 @@ async def _record_parts(
             )
         else:
             failures += 1
-            reason = describe_exit(returncode)
-            log.warning("FFmpeg failed for %s: %s", user, reason)
+            if returncode == 0:
+                reason = "nothing was recorded"
+                log.warning("FFmpeg for %s exited without recording anything", user)
+            else:
+                reason = describe_exit(returncode)
+                log.warning("FFmpeg failed for %s: %s", user, reason)
             if tail := tail_lines(writer.text(), LOG_TAIL_LINES):
                 log.warning("FFmpeg log tail for %s:\n%s", user, sanitize_log(tail))
             if streamlink_tail:
@@ -285,7 +298,7 @@ async def _record_parts(
                 return
             delay = s.ffmpeg.retry_base_delay * 2 ** (failures - 1)
             log.warning(
-                "FFmpeg exited with error for %s (attempt %d/%d). Retrying in %gs",
+                "Recording failed for %s (attempt %d/%d). Retrying in %gs",
                 user,
                 failures,
                 s.ffmpeg.max_retries,
@@ -408,9 +421,10 @@ async def _finish_session(
 ) -> None:
     """Join the parts if there are several, then move the result and run the hook.
 
-    Missing and empty parts (an attempt that failed at start-up) are dropped. The
-    join can be stopped by shutdown, which leaves the parts in place; the moves
-    and hooks always finish, as before.
+    Missing and empty parts (an attempt that failed at start-up or recorded
+    nothing) are dropped, and empty part files deleted. The join can be stopped
+    by shutdown, which leaves the parts in place; the moves and hooks always
+    finish, as before.
     """
     recorded = await asyncio.to_thread(_recorded_parts, parts)
     if not recorded:
@@ -424,7 +438,41 @@ async def _finish_session(
 
 
 def _recorded_parts(parts: list[str]) -> list[str]:
-    return [p for p in parts if os.path.isfile(p) and os.path.getsize(p) > 0]
+    """The parts that hold data. Empty part files are deleted."""
+    recorded = []
+    for part in parts:
+        if _has_data(part):
+            recorded.append(part)
+        elif os.path.isfile(part):
+            log.debug("Deleting empty part %s", part)
+            try:
+                os.remove(part)
+            except OSError as e:
+                log.warning("Couldn't delete empty part %s: %s", part, e)
+    return recorded
+
+
+def _has_data(path: str) -> bool:
+    try:
+        return os.path.isfile(path) and os.path.getsize(path) > 0
+    except OSError:  # deleted in between
+        return False
+
+
+def _join_space_shortfall(parts: list[str], out_dir: str) -> str:
+    """Why the joined file wouldn't fit in out_dir, or "" if it would (or can't tell)."""
+    try:
+        needed = sum(os.path.getsize(p) for p in parts)
+        free = shutil.disk_usage(out_dir).free
+    except OSError as e:
+        log.debug("Couldn't check the free space in %s: %s", out_dir, e)
+        return ""
+    if free >= needed:
+        return ""
+    return (
+        f"not enough free space to join (needs {format_bytes(needed)},"
+        f" {format_bytes(free)} free)"
+    )
 
 
 async def _join_session(
@@ -444,11 +492,26 @@ async def _join_session(
     rt.progress.set_status(key, "joining")
     joined = False
     try:
-        result = await join_parts(
-            parts, joining, writer, ffmpeg=s.ffmpeg_path, ffprobe=s.ffprobe_path
-        )
-        joined = result.ok
+        if shortfall := await asyncio.to_thread(_join_space_shortfall, parts, out_dir):
+            result = JoinResult(ok=False, reason=shortfall)
+        else:
+            result = await join_parts(
+                parts, joining, writer, ffmpeg=s.ffmpeg_path, ffprobe=s.ffprobe_path
+            )
+        if result.ok:
+            # From here to the return nothing is awaited, so these file operations
+            # run on the event loop: shutdown can't land between the rename and
+            # the deletes. Part 1 (if it's there) is replaced first, so the
+            # recording always exists under one name or another.
+            try:
+                os.replace(joining, final)
+                joined = True
+            except OSError as e:
+                result = JoinResult(
+                    ok=False, reason=f"the joined file couldn't be renamed ({e})"
+                )
     finally:
+        rt.progress.set_status(key, "")
         if not joined:
             with contextlib.suppress(OSError):
                 os.remove(joining)
@@ -461,9 +524,6 @@ async def _join_session(
         rt.notices.warn(user, f"Kept {len(parts)} separate parts: {result.reason}")
         return parts
 
-    # Replace part 1 (if it's there) with the joined file first, so the recording
-    # always exists under one name or another.
-    os.replace(joining, final)
     for part in parts:
         if part != final:
             try:

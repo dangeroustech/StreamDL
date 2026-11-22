@@ -11,7 +11,9 @@ entry per run (the last entry repeats). With FAKE_FFMPEG_BLOCK=1 it writes
 When the input is pipe:0 it then reads stdin to EOF and saves what it read to
 "<output>.stdin" (FAKE_FFMPEG_SKIP_STDIN=1 skips the read). FAKE_FFMPEG_LINGER=1
 makes it run, after that, until it is killed. With FAKE_FFMPEG_WAIT_FOR=<path>
-it then waits for <path> to exist before going on.
+it then waits for <path> to exist before going on. FAKE_FFMPEG_EMPTY_RUNS, a
+comma-separated list of run numbers counted from 1, makes those runs write an
+empty output file.
 
 With "concat" in its arguments it acts as a join: it concatenates the files named
 in the -i list (FFmpeg's concat syntax) into the output and exits
@@ -58,8 +60,10 @@ sys.stderr.write(
     "frame=   20 fps=30 q=-1.0 size=     256kB time=00:00:02.00 bitrate=1048.6kbits/s speed=1.00x\r"
 )
 sys.stderr.flush()
+empty_runs = os.environ.get("FAKE_FFMPEG_EMPTY_RUNS", "").split(",")
 with open(out, "wb") as f:
-    f.write(b"fake mp4")
+    if str(run + 1) not in empty_runs:
+        f.write(b"fake mp4")
 
 if "pipe:0" in args and os.environ.get("FAKE_FFMPEG_SKIP_STDIN") != "1":
     data = sys.stdin.buffer.read()
