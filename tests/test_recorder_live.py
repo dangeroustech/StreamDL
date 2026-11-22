@@ -571,3 +571,41 @@ async def test_wait_for_live_holds_the_site_lock(make_runtime):
     rt.resolver = Peek()
     await wait(rt)
     assert locked == [True]
+
+
+async def test_wait_for_live_releases_the_site_lock_between_checks(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [Offline("x"), FRESH]
+    fake_sleep = rt.sleep
+    locked = []
+
+    async def sleep(seconds):
+        locked.append(rt.site_lock("twitch.tv").locked())
+        await fake_sleep(seconds)
+
+    rt.sleep = sleep
+    assert await wait(rt) == FRESH
+    assert locked == [False]
+
+
+async def test_cancelling_wait_for_live_releases_the_lock_and_clears_the_status(
+    make_runtime,
+):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.progress.start("live:alice", channel="alice", kind=DownloadKind.LIVE)
+    looking_up = asyncio.Event()
+
+    class Hang(FakeResolver):
+        async def stream(self, site, user, quality):
+            looking_up.set()
+            await asyncio.Event().wait()
+
+    rt.resolver = Hang()
+    task = asyncio.create_task(wait(rt))
+    await looking_up.wait()
+    assert rt.progress.get("live:alice").status == "reconnecting"
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert not rt.site_lock("twitch.tv").locked()
+    assert rt.progress.get("live:alice").status == ""
