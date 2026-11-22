@@ -7,6 +7,7 @@ import pytest
 
 from streamdl.settings import (
     FfmpegOptions,
+    ReconnectOptions,
     Settings,
     TwitchOptions,
     env_int,
@@ -210,3 +211,30 @@ def test_settings_reads_twitch_env():
 
 def test_streamlink_cmd_defaults_to_this_python():
     assert Settings().streamlink_cmd == (sys.executable, "-m", "streamlink")
+
+
+def test_reconnect_defaults():
+    assert ReconnectOptions.from_env({}) == ReconnectOptions(window=30, interval=5)
+
+
+def test_reconnect_from_env():
+    env = {"RECONNECT_WINDOW": "60", "RECONNECT_INTERVAL": "10"}
+    assert ReconnectOptions.from_env(env) == ReconnectOptions(window=60, interval=10)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"), [("0", 0), ("-5", 0), ("", 30), ("abc", 30)]
+)
+def test_reconnect_window_values(value, expected):
+    assert ReconnectOptions.from_env({"RECONNECT_WINDOW": value}).window == expected
+
+
+@pytest.mark.parametrize(("value", "expected"), [("0", 1), ("-3", 1), ("3", 3)])
+def test_reconnect_interval_is_at_least_one_second(value, expected):
+    assert ReconnectOptions.from_env({"RECONNECT_INTERVAL": value}).interval == expected
+
+
+def test_settings_read_reconnect_options():
+    s = Settings.from_args(_args(), {"RECONNECT_WINDOW": "0"})
+    assert s.reconnect == ReconnectOptions(window=0, interval=5)
+    assert s.ffprobe_path == "ffprobe"

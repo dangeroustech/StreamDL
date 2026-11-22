@@ -7,6 +7,7 @@ from pathlib import Path
 
 FAKE_FFMPEG = str(Path(__file__).parent / "fakes" / "ffmpeg")
 FAKE_STREAMLINK = str(Path(__file__).parent / "fakes" / "streamlink")
+FAKE_FFPROBE = str(Path(__file__).parent / "fakes" / "ffprobe")
 
 
 class FakeResolver:
@@ -39,14 +40,22 @@ class FakeResolver:
 
 
 class FakeSleep:
-    """Records requested sleeps and returns at once (still yielding to the loop)."""
+    """Records requested sleeps and returns at once (still yielding to the loop).
+
+    It also keeps a fake clock: each sleep moves `now` forward, and `clock` reads it.
+    """
 
     def __init__(self):
         self.calls = []
+        self.now = 0.0
 
     async def __call__(self, seconds):
         self.calls.append(seconds)
+        self.now += seconds
         await asyncio.sleep(0)
+
+    def clock(self):
+        return self.now
 
 
 class BlockingMove:

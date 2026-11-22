@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -28,6 +29,7 @@ class Runtime:
     active: set[str] = field(default_factory=set)  # live channels being recorded
     active_vods: set[str] = field(default_factory=set)  # VOD ids being downloaded
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep  # replaced in tests
+    clock: Callable[[], float] = time.monotonic  # replaced in tests
     _site_locks: dict[str, asyncio.Lock] = field(default_factory=dict)
     _post_scripts: set[asyncio.Task[None]] = field(default_factory=set)
 

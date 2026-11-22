@@ -140,6 +140,21 @@ class TwitchOptions:
 
 
 @dataclass(frozen=True)
+class ReconnectOptions:
+    """RECONNECT_* environment settings: how long to wait for a dropped stream."""
+
+    window: int = 30
+    interval: int = 5
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> ReconnectOptions:
+        return cls(
+            window=max(0, env_int(env, "RECONNECT_WINDOW", 30)),
+            interval=max(1, env_int(env, "RECONNECT_INTERVAL", 5)),
+        )
+
+
+@dataclass(frozen=True)
 class Settings:
     config_path: Path = Path("config.yml")
     out_dir: str = ""
@@ -153,7 +168,9 @@ class Settings:
     post_script_timeout: float = 1800
     ffmpeg: FfmpegOptions = field(default_factory=FfmpegOptions)
     ffmpeg_path: str = "ffmpeg"
+    ffprobe_path: str = "ffprobe"
     twitch: TwitchOptions = field(default_factory=TwitchOptions)
+    reconnect: ReconnectOptions = field(default_factory=ReconnectOptions)
     # How to run streamlink; the default is the copy installed alongside StreamDL.
     streamlink_cmd: tuple[str, ...] = (sys.executable, "-m", "streamlink")
 
@@ -172,4 +189,5 @@ class Settings:
             post_script_timeout=env_int(env, "STREAMDL_POST_SCRIPT_TIMEOUT", 1800),
             ffmpeg=FfmpegOptions.from_env(env),
             twitch=TwitchOptions.from_env(env),
+            reconnect=ReconnectOptions.from_env(env),
         )
