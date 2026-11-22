@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Stand-in for ffprobe in tests.
 
-For any existing file it prints one H.264 1920x1080 video stream and one AAC
-stereo 48 kHz audio stream as JSON (the shape of `-show_entries stream=... -of
-json`). A path containing $FAKE_FFPROBE_ODD reports 1280x720 instead. A missing
-file, or a path containing $FAKE_FFPROBE_FAIL, fails the way ffprobe does.
+For any existing file it prints one H.264 High 1920x1080 video stream and one
+AAC LC stereo 48 kHz audio stream as JSON (the shape of `-show_entries
+stream=... -of json`). A path containing $FAKE_FFPROBE_ODD reports 1280x720
+instead. A missing file, or a path containing $FAKE_FFPROBE_FAIL, fails the way
+ffprobe does.
 """
 
 import json
@@ -24,11 +25,13 @@ video = {
     "width": width,
     "height": height,
     "pix_fmt": "yuv420p",
+    "profile": "High",
 }
 audio = {
     "codec_type": "audio",
     "codec_name": "aac",
     "sample_rate": "48000",
     "channels": 2,
+    "profile": "LC",
 }
 print(json.dumps({"streams": [video, audio]}))

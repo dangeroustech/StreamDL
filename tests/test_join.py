@@ -16,8 +16,8 @@ from streamdl.join import (
 )
 from streamdl.progress import FfmpegLogWriter, ProgressStore
 
-VIDEO = StreamInfo("video", "h264", 1920, 1080, "yuv420p", None, None)
-AUDIO = StreamInfo("audio", "aac", None, None, None, "48000", 2)
+VIDEO = StreamInfo("video", "h264", 1920, 1080, "yuv420p", None, None, "High")
+AUDIO = StreamInfo("audio", "aac", None, None, None, "48000", 2, "LC")
 
 
 def writer():
@@ -44,10 +44,18 @@ def test_parts_with_a_different_stream_count():
 
 
 def test_parts_with_a_different_property():
-    smaller = StreamInfo("video", "h264", 1280, 720, "yuv420p", None, None)
+    smaller = StreamInfo("video", "h264", 1280, 720, "yuv420p", None, None, "High")
     assert (
         parts_match([[VIDEO, AUDIO], [VIDEO, AUDIO], [smaller, AUDIO]])
         == "stream 0 width is 1280 in part 3, 1920 in part 1"
+    )
+
+
+def test_parts_with_a_different_profile():
+    main = StreamInfo("video", "h264", 1920, 1080, "yuv420p", None, None, "Main")
+    assert (
+        parts_match([[VIDEO, AUDIO], [main, AUDIO]])
+        == "stream 0 profile is Main in part 2, High in part 1"
     )
 
 
@@ -174,6 +182,25 @@ async def test_join_with_missing_ffmpeg(tmp_path):
     )
     assert not result.ok
     assert result.reason.startswith("FFmpeg couldn't start: ")
+
+
+async def test_join_with_an_unwritable_temp_dir(tmp_path, ffmpeg_log, monkeypatch):
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "missing"))
+    parts = make_parts(tmp_path, 2)
+
+    result = await join_parts(
+        parts,
+        str(tmp_path / "j.mp4"),
+        writer(),
+        ffmpeg=FAKE_FFMPEG,
+        ffprobe=FAKE_FFPROBE,
+    )
+
+    assert not result.ok
+    assert result.reason.startswith(
+        "the join list couldn't be written: [Errno 2] No such file or directory"
+    )
+    assert ffmpeg_runs(ffmpeg_log) == []
 
 
 async def test_cancelling_a_join_kills_ffmpeg(tmp_path, ffmpeg_log, monkeypatch):

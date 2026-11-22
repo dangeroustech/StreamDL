@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skipif(
 def make_clip(path, size="320x240", seconds=2):
     source = f"testsrc=size={size}:rate=25:duration={seconds}"
     tone = f"sine=frequency=440:duration={seconds}"
-    subprocess.run(  # nosec B603
+    subprocess.run(  # nosec B603 - fixed argv, no shell
         [FFMPEG, "-v", "error", "-y", "-f", "lavfi", "-i", source]
         + ["-f", "lavfi", "-i", tone, "-c:v", "mpeg4", "-c:a", "aac"]
         + ["-shortest", "-f", "mp4", str(path)],
@@ -29,7 +29,7 @@ def make_clip(path, size="320x240", seconds=2):
 
 
 def duration(path):
-    out = subprocess.run(  # nosec B603
+    out = subprocess.run(  # nosec B603 - fixed argv, no shell
         [FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "json"]
         + [path],
         check=True,

@@ -34,6 +34,7 @@ class StreamInfo:
     pix_fmt: str | None = None
     sample_rate: str | None = None
     channels: int | None = None
+    profile: str | None = None
 
 
 _FIELDS = tuple(f.name for f in fields(StreamInfo))
@@ -135,10 +136,11 @@ async def join_parts(
     ffmpeg: str,
     ffprobe: str,
 ) -> JoinResult:
-    """Join parts into out_path if they match; otherwise say why not.
+    """Join parts (at least two) into out_path if they match; otherwise say why not.
 
-    The caller deletes out_path when the result isn't ok. If this is cancelled,
-    the join FFmpeg is killed and out_path may be left half written.
+    Failures come back as a JoinResult; nothing but cancellation is raised. The
+    caller deletes out_path when the result isn't ok. If this is cancelled, the
+    join FFmpeg is killed and out_path may be left half written.
     """
     infos = []
     for n, part in enumerate(parts, start=1):
@@ -148,13 +150,19 @@ async def join_parts(
             return JoinResult(ok=False, reason=f"part {n} can't be read ({e})")
     if reason := parts_match(infos):
         return JoinResult(ok=False, reason=reason)
-    with tempfile.TemporaryDirectory(prefix="streamdl-join-") as tmp:
-        args = build_concat_args(write_concat_list(parts, tmp), out_path, ffmpeg=ffmpeg)
-        log.debug("FFmpeg join args: %s", args)
-        try:
-            returncode = await _run(args, writer)
-        except OSError as e:
-            return JoinResult(ok=False, reason=f"FFmpeg couldn't start: {e}")
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix="streamdl-join-", ignore_cleanup_errors=True
+        ) as tmp:
+            list_path = write_concat_list(parts, tmp)
+            args = build_concat_args(list_path, out_path, ffmpeg=ffmpeg)
+            log.debug("FFmpeg join args: %s", args)
+            try:
+                returncode = await _run(args, writer)
+            except (OSError, ValueError) as e:
+                return JoinResult(ok=False, reason=f"FFmpeg couldn't start: {e}")
+    except (OSError, ValueError) as e:
+        return JoinResult(ok=False, reason=f"the join list couldn't be written: {e}")
     if returncode != 0:
         return JoinResult(
             ok=False,
