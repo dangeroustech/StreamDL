@@ -365,7 +365,7 @@ def _retry_with_default_format(url: str, user: str, fmt: str) -> StreamURLs:
         raise ResolverError(f"Unable to resolve stream URL for '{user}'") from e
     except ExtractorError as e:
         log.error("Fallback yt-dlp extractor error for %s: %s", user, _text(e))
-        raise ResolverError(f"Extractor error: {e}") from e
+        raise ResolverError(f"Extractor error: {_short_error(str(e))}") from e
     except Exception as e:
         log.error("Unexpected fallback yt-dlp error for %s: %s", user, _text(e))
         raise ResolverError(f"Unexpected error: {e}") from e

@@ -702,11 +702,23 @@ def test_ytdlp_other_download_errors_are_still_errors(ydl, caplog):
 
 def test_extractor_errors_are_shortened(ydl):
     ydl.extract_info.side_effect = ExtractorError(
-        "ERROR: boom (caused by Oops('x'))", expected=True
+        "boom", cause=ValueError("x"), expected=True, ie="Kick", video_id="u"
     )
     with pytest.raises(ResolverError) as err:
         get_stream("kick.com", "u", "best")
-    assert str(err.value) == "Extractor error: boom"
+    assert str(err.value) == "Extractor error: [Kick] u: boom"
+
+
+def test_fallback_extractor_errors_are_shortened(ydl):
+    ydl.extract_info.side_effect = [
+        DownloadError(FORMAT_UNAVAILABLE),
+        ExtractorError(
+            "boom", cause=ValueError("x"), expected=True, ie="Kick", video_id="u"
+        ),
+    ]
+    with pytest.raises(ResolverError) as err:
+        get_stream("kick.com", "u", "worst")
+    assert str(err.value) == "Extractor error: [Kick] u: boom"
 
 
 def test_vod_download_errors_are_shortened(ydl):
