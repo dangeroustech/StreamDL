@@ -328,6 +328,42 @@ async def _finish_live(
     rt.spawn_post_script(post_script, new_path, user, site, "live")
 
 
+async def _wait_for_live(
+    rt: Runtime, site: str, user: str, quality: str, *, at_least_once: bool = False
+) -> StreamURLs | None:
+    """Check whether user is live again, for up to RECONNECT_WINDOW seconds.
+
+    The first check runs at once and later ones RECONNECT_INTERVAL seconds after
+    the previous one started; a check that started inside the window may finish
+    after it. Lookup errors (offline, rate limited, network) only mean "check
+    again": none ends the window early or adds a notice. With at_least_once, one
+    check runs even when the window is 0, since a failure retry always looks the
+    stream up again.
+    """
+    opts = rt.settings.reconnect
+    if opts.window <= 0 and not at_least_once:
+        return None
+    key = progress_key_live(user)
+    deadline = rt.clock() + opts.window
+    rt.progress.set_status(key, "reconnecting")
+    try:
+        while True:
+            started = rt.clock()
+            try:
+                async with rt.site_lock(site):
+                    return await rt.resolver.stream(site, user, quality)
+            except ResolverError as e:
+                log.debug("Reconnect check for %s: %s", user, e)
+            next_check = max(started + opts.interval, rt.clock())
+            if next_check >= deadline:
+                log.debug("%s didn't come back within %ds", user, opts.window)
+                return None
+            if (delay := next_check - rt.clock()) > 0:
+                await rt.sleep(delay)
+    finally:
+        rt.progress.set_status(key, "")
+
+
 async def _resolve_retry_url(
     rt: Runtime, site: str, user: str, quality: str
 ) -> StreamURLs | None:

@@ -8,6 +8,7 @@ import pytest
 from helpers import (
     FAKE_FFMPEG,
     BlockingMove,
+    FakeResolver,
     ffmpeg_runs,
     streamlink_runs,
     wait_for_glob,
@@ -16,13 +17,15 @@ from helpers import (
 from streamdl import recorder
 from streamdl.ffmpeg import build_live_args, build_pipe_args
 from streamdl.notices import Notice
+from streamdl.progress import DownloadKind
 from streamdl.recorder import record_live, run_ffmpeg
-from streamdl.resolver import Offline, RateLimited, StreamURLs
-from streamdl.settings import FfmpegOptions, TwitchOptions
+from streamdl.resolver import NotFound, Offline, RateLimited, ResolverError, StreamURLs
+from streamdl.settings import FfmpegOptions, ReconnectOptions, TwitchOptions
 
 URLS = StreamURLs("https://video.example/live.m3u8")
 FRESH = StreamURLs("https://video.example/fresh.m3u8")
 AD_FREE = TwitchOptions(adfree=True)
+WINDOW = ReconnectOptions(window=30, interval=5)
 
 
 def files(directory):
@@ -465,3 +468,106 @@ async def test_missing_streamlink_is_logged_not_raised(make_runtime, caplog, tmp
 
     assert "Failed to start streamlink or FFmpeg for alice" in caplog.text
     assert "alice" not in rt.active
+
+
+# --- reconnect window -----------------------------------------------------------
+
+
+class SlowResolver(FakeResolver):
+    """A FakeResolver whose every lookup takes `seconds` on the fake clock."""
+
+    def __init__(self, sleep, seconds):
+        super().__init__()
+        self._sleep = sleep
+        self._seconds = seconds
+
+    async def stream(self, site, user, quality):
+        self._sleep.now += self._seconds
+        return await super().stream(site, user, quality)
+
+
+async def wait(rt, **kwargs):
+    return await recorder._wait_for_live(rt, "twitch.tv", "alice", "best", **kwargs)
+
+
+async def test_wait_for_live_returns_as_soon_as_the_channel_is_back(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [Offline("x"), Offline("x"), FRESH]
+    assert await wait(rt) == FRESH
+    assert len(rt.resolver.stream_calls) == 3
+    assert rt.sleep.calls == [5, 5]
+
+
+async def test_wait_for_live_checks_until_the_window_closes(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [Offline("x")]
+    assert await wait(rt) is None
+    assert len(rt.resolver.stream_calls) == 6  # at 0, 5, 10, 15, 20 and 25s
+    assert rt.sleep.calls == [5] * 5
+
+
+async def test_slow_checks_count_towards_the_window(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver = SlowResolver(rt.sleep, seconds=12)
+    rt.resolver.streams = [Offline("x")]
+    assert await wait(rt) is None
+    assert len(rt.resolver.stream_calls) == 3  # starting at 0, 12 and 24s
+    assert rt.sleep.calls == []
+
+
+async def test_lookup_errors_dont_end_the_window(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [
+        RateLimited(),
+        ResolverError("Download error: Could not resolve host: chaturbate.com."),
+        NotFound("not found"),
+        FRESH,
+    ]
+    assert await wait(rt) == FRESH
+    assert rt.notices.pending() == []
+
+
+async def test_a_zero_window_does_not_check(make_runtime):
+    rt = make_runtime()  # make_runtime's window is 0
+    rt.resolver.streams = [FRESH]
+    assert await wait(rt) is None
+    assert rt.resolver.stream_calls == []
+
+
+async def test_at_least_once_checks_with_a_zero_window(make_runtime):
+    rt = make_runtime()
+    rt.resolver.streams = [Offline("x")]
+    assert await wait(rt, at_least_once=True) is None
+    assert len(rt.resolver.stream_calls) == 1
+    rt.resolver.streams = [FRESH]
+    assert await wait(rt, at_least_once=True) == FRESH
+
+
+async def test_wait_for_live_shows_reconnecting(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.progress.start("live:alice", channel="alice", kind=DownloadKind.LIVE)
+    seen = []
+
+    class Peek(FakeResolver):
+        async def stream(self, site, user, quality):
+            seen.append(rt.progress.get("live:alice").status)
+            return FRESH
+
+    rt.resolver = Peek()
+    await wait(rt)
+    assert seen == ["reconnecting"]
+    assert rt.progress.get("live:alice").status == ""
+
+
+async def test_wait_for_live_holds_the_site_lock(make_runtime):
+    rt = make_runtime(reconnect=WINDOW)
+    locked = []
+
+    class Peek(FakeResolver):
+        async def stream(self, site, user, quality):
+            locked.append(rt.site_lock(site).locked())
+            return FRESH
+
+    rt.resolver = Peek()
+    await wait(rt)
+    assert locked == [True]
