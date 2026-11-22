@@ -304,7 +304,7 @@ These apply to live recordings (see [Twitch Ad-Free Recording](#twitch-ad-free-r
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `FFMPEG_MAX_RETRIES` | Retries after FFmpeg exits with an error | `3` |
+| `FFMPEG_MAX_RETRIES` | Retries after FFmpeg exits with an error or records nothing, counting failures in a row | `3` |
 | `FFMPEG_RETRY_BASE_DELAY_SECONDS` | Delay before the first retry; doubles on each retry | `2` |
 | `FFMPEG_RW_TIMEOUT_US` | Network read/write timeout in microseconds | `15000000` (15s) |
 | `FFMPEG_RECONNECT` | Reconnect dropped single-input streams (`0` or `false` turns it off) | on |
@@ -316,6 +316,25 @@ These apply to live recordings (see [Twitch Ad-Free Recording](#twitch-ad-free-r
 | `FFMPEG_EXTRA_OUTPUT_OPTS` | Extra FFmpeg options placed before the output file | unset |
 
 Retries fetch a fresh stream URL each time, so a recording survives expired stream tokens.
+
+### Dropped Streams
+
+Live streams sometimes stall for a few seconds, and FFmpeg can take a stall as the end of the stream. When FFmpeg stops, StreamDL keeps checking the channel for `RECONNECT_WINDOW` seconds. If the stream comes back, it records another part (`<name>_part2.mp4`, `_part3.mp4`, …) next to the first one in the download directory, and the channel gets a notice such as `[alice] Stream came back after 10s; recording part 2`. The few seconds missed while checking are a jump in the recording.
+
+When the channel stays offline for the whole window, StreamDL joins the parts into one file with the recording's usual name. The join copies the video and audio without re-encoding, so it takes about as long as copying the file. The joined copy is written next to the parts, so StreamDL first checks that the download directory has room for it (the parts' size plus 5%). Then it moves the file and runs your post-script once. If the parts don't match (the streamer changed resolution, say), there isn't enough room, or the join fails, StreamDL keeps the parts, moves each one, runs the post-script for each, and says why in a notice.
+
+When FFmpeg fails (exits with an error, or stops without recording anything) it is retried as before (`FFMPEG_MAX_RETRIES`, counting failures in a row). Each retry also writes a new part, so nothing already recorded is overwritten. Empty parts are deleted, and if only one part recorded anything, it keeps the recording's usual name.
+
+If StreamDL is stopped while recording, waiting for a stream to come back, or joining, the parts stay in the download directory as they are, and nothing is joined or moved.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `RECONNECT_WINDOW` | Seconds to keep checking a channel after FFmpeg stops. `0` finishes the recording at once, as before | `30` |
+| `RECONNECT_INTERVAL` | Seconds between those checks (at least 1) | `5` |
+
+These aren't `FFMPEG_RECONNECT` and `FFMPEG_RECONNECT_DELAY_MAX`, which let FFmpeg reconnect on its own while it's still running; the window starts only once FFmpeg has stopped.
+
+If you use `-t` in `FFMPEG_EXTRA_OUTPUT_OPTS` to split recordings into fixed-length files, set `RECONNECT_WINDOW=0`. Otherwise each split looks like a drop, and the pieces are joined back together.
 
 ### Twitch Ad-Free Recording
 
@@ -330,7 +349,7 @@ To find your token, log in to twitch.tv in a browser, open the developer tools a
 
 FFmpeg reads from streamlink rather than the network here, so `FFMPEG_RW_TIMEOUT_US`, `FFMPEG_RECONNECT`, `FFMPEG_RECONNECT_DELAY_MAX`, `FFMPEG_USER_AGENT`, `FFMPEG_PROTOCOL_WHITELIST` and `FFMPEG_EXTRA_INPUT_OPTS` don't apply to ad-free Twitch recordings. The other FFmpeg settings do.
 
-If streamlink loses the stream mid-broadcast, FFmpeg finishes the current file and the next check starts a new one, so there can be a gap of up to one `TICK_TIME` interval. Recording directly with FFmpeg retries within seconds instead.
+If streamlink loses the stream mid-broadcast, FFmpeg finishes the current part, and StreamDL waits for the stream to come back as described in [Dropped Streams](#dropped-streams).
 
 ### Understanding UMASK
 
