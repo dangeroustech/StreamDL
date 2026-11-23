@@ -433,13 +433,14 @@ async def _finish_session(
     can be stopped by shutdown, which leaves the parts in place; the moves and
     hooks always finish, as before.
     """
-    recorded = await asyncio.to_thread(_recorded_parts, parts)
-    if not recorded:
+    # parts is updated in place, so a shutdown counts the parts that are left.
+    parts[:] = await asyncio.to_thread(_recorded_parts, parts)
+    if not parts:
         log.warning("Nothing was recorded for %s", user)
         return
-    unreadable: list[str] = []
-    if len(recorded) > 1:
-        recorded, unreadable = await _join_session(rt, user, recorded, out_dir, stem)
+    recorded, unreadable = parts, []
+    if len(parts) > 1:
+        recorded, unreadable = await _join_session(rt, user, parts, out_dir, stem)
     plain = _part_path(out_dir, stem, 1)
     if len(recorded) == 1 and recorded[0] != plain:
         recorded = [await asyncio.to_thread(_take_plain_name, recorded[0], plain)]
@@ -485,6 +486,21 @@ def _take_plain_name(part: str, plain: str) -> str:
     return plain
 
 
+def _set_aside(part: str, aside: str) -> bool:
+    """Rename an unreadable part 1 to aside, freeing the recording's plain name.
+
+    False if aside is taken or the rename fails; part then keeps its name.
+    """
+    if os.path.exists(aside):
+        return False
+    try:
+        os.rename(part, aside)
+    except OSError as e:
+        log.warning("Couldn't rename %s to %s: %s", part, aside, e)
+        return False
+    return True
+
+
 def _join_space_shortfall(parts: list[str], out_dir: str) -> str:
     """Why the joined file wouldn't fit in out_dir, or "" if it would (or can't tell).
 
@@ -511,7 +527,9 @@ async def _join_session(
     """Join the parts that can be read; return the files to move with the hook
     and the unreadable parts to move without it.
 
-    Each unreadable part gets a notice. If no part can be read, they're all
+    Each unreadable part gets a notice; an unreadable part 1 is renamed
+    <stem>_part1.mp4 (in parts too) so that the joined file, or a lone readable
+    part, can take the plain name. If no part can be read, they're all
     kept as they are and moved with the hook, as are readable parts that can't
     be joined; a notice says why. A lone readable part is returned unjoined.
     """
@@ -525,8 +543,17 @@ async def _join_session(
             reason = f"none of them can be read ({unreadable[parts[0]]})"
             _keep_parts(rt, user, parts, JoinResult(ok=False, reason=reason))
             return parts, []
+        plain = _part_path(out_dir, stem, 1)
+        aside = os.path.join(out_dir, f"{stem}_part1.mp4")
+        kept: list[str] = []  # the unreadable parts, under the names they'll keep
         for path, error in unreadable.items():
-            name = os.path.basename(path)
+            # An unreadable part 1 makes way, so the recording gets the plain name.
+            if path == plain and _set_aside(plain, aside):
+                parts[parts.index(plain)] = aside  # so a shutdown still finds it
+                kept.append(aside)
+            else:
+                kept.append(path)
+            name = os.path.basename(kept[-1])
             log.warning(
                 "Leaving %s out of the join for %s: it can't be read (%s)",
                 name,
@@ -539,11 +566,11 @@ async def _join_session(
                 f" {error.removeprefix(f'{path}: ')}",
             )
         if len(readable) == 1:
-            return list(readable), list(unreadable)
-        final = _part_path(out_dir, stem, 1)
-        if final in unreadable:  # the plain name stays with the unreadable part 1
+            return list(readable), kept
+        final = plain
+        if final in kept:  # part 1 couldn't be set aside, so it keeps its name
             final = next(iter(readable))
-        return await _join(rt, user, readable, out_dir, stem, final), list(unreadable)
+        return await _join(rt, user, readable, out_dir, stem, final), kept
     finally:
         rt.progress.set_status(key, "")
 

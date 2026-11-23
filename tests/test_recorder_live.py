@@ -1137,31 +1137,68 @@ async def test_the_one_readable_part_left_takes_the_plain_name(
     assert files(tmp_path / "dl") == []
 
 
-async def test_an_unreadable_first_part_keeps_its_name(
-    make_runtime, ffmpeg_log, monkeypatch, tmp_path
-):
-    rt = make_runtime(reconnect=WINDOW)
-    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+def first_part_unreadable(monkeypatch, before=None):
+    """Make part 1 unreadable once the session finishes; before(parts) runs first."""
     probe_parts = recorder.probe_parts
 
-    async def first_part_unreadable(parts, **kwargs):
+    async def probe(parts, **kwargs):
         monkeypatch.setenv("FAKE_FFPROBE_FAIL", os.path.basename(parts[0]))
+        if before:
+            before(parts)
         return await probe_parts(parts, **kwargs)
 
-    monkeypatch.setattr(recorder, "probe_parts", first_part_unreadable)
+    monkeypatch.setattr(recorder, "probe_parts", probe)
+
+
+@pytest.mark.parametrize("drops", [1, 2])
+async def test_an_unreadable_first_part_makes_way_for_the_recording(
+    make_runtime, monkeypatch, tmp_path, drops
+):
+    first_part_unreadable(monkeypatch)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH] * drops + [Offline("gone")]
     hook, marker = make_hook(tmp_path)
 
     await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
     await rt.wait_for_post_scripts()
 
-    # The joined parts 2 and 3 can't take part 1's name, so they keep part 2's.
+    # Parts 2 and 3 are joined (or part 2 is alone) under the plain name.
+    recording, bad = files(tmp_path / "out")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", recording.name)
+    assert recording.read_bytes() == b"fake mp4" * drops
+    assert bad.name == recording.stem + "_part1.mp4"
+    assert bad.read_bytes() == b"fake mp4"
+    assert hook_calls(marker) == [str(recording)]
+    assert files(tmp_path / "dl") == []
+    assert rt.notices.pending()[-1].message.startswith(
+        f"A part couldn't be read and was kept separately as {bad.name}: "
+    )
+
+
+async def test_an_unreadable_first_part_keeps_its_name_if_part1_is_taken(
+    make_runtime, monkeypatch, tmp_path
+):
+    def take_part1(parts):
+        with open(parts[0].removesuffix(".mp4") + "_part1.mp4", "wb") as f:
+            f.write(b"someone else's")
+
+    first_part_unreadable(monkeypatch, before=take_part1)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    # Nothing is overwritten: the joined parts 2 and 3 keep part 2's name.
     bad, joined = files(tmp_path / "out")
     assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", bad.name)
     assert bad.read_bytes() == b"fake mp4"
     assert joined.name == bad.stem + "_part2.mp4"
     assert joined.read_bytes() == b"fake mp4" * 2
     assert hook_calls(marker) == [str(joined)]
-    assert files(tmp_path / "dl") == []
+    [taken] = files(tmp_path / "dl")
+    assert taken.read_bytes() == b"someone else's"
 
 
 async def test_parts_that_cant_be_read_at_all_are_kept_and_each_gets_the_hook(
@@ -1181,3 +1218,24 @@ async def test_parts_that_cant_be_read_at_all_are_kept_and_each_gets_the_hook(
     assert len(ffmpeg_runs(ffmpeg_log)) == 2  # no join was attempted
     message = rt.notices.pending()[-1].message
     assert message.startswith("Kept 2 separate parts: none of them can be read (")
+
+
+async def test_cancel_during_a_join_after_part_1_was_set_aside_counts_it(
+    make_runtime, monkeypatch, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
+    monkeypatch.setenv("FAKE_FFMPEG_CONCAT_BLOCK", "1")
+    first_part_unreadable(monkeypatch)
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    task = asyncio.create_task(record_live(rt, "alice", "twitch.tv", "best", URLS, ""))
+    await wait_for_glob(tmp_path / "dl", "*.joining.mp4.ready")
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    names = [p.name for p in files(tmp_path / "dl")]
+    assert len([n for n in names if n.endswith("_part1.mp4")]) == 1
+    assert "Shutting down: left 3 part(s) for alice" in caplog.text
+    assert files(tmp_path / "out") == []
