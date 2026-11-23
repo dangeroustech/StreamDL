@@ -15,6 +15,7 @@ moved and handed to the hook.
 import asyncio
 import json
 import os
+import shlex
 import signal
 import subprocess  # nosec B404 - manual check running ffprobe
 import sys
@@ -87,7 +88,7 @@ async def main(channel, work):
     marker = os.path.join(work, "hook.txt")
     hook = os.path.join(work, "hook.sh")
     with open(hook, "w") as f:
-        f.write(f'#!/bin/sh\necho "$1" >> {marker}\n')
+        f.write(f'#!/bin/sh\necho "$1" >> {shlex.quote(marker)}\n')
     os.chmod(hook, 0o755)  # nosec B103 - the test hook must be executable
 
     real = LibraryResolver()
