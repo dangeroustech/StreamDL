@@ -12,6 +12,7 @@ from streamdl.join import (
     join_parts,
     parts_match,
     probe,
+    probe_parts,
     write_concat_list,
 )
 from streamdl.progress import FfmpegLogWriter, ProgressStore
@@ -31,6 +32,11 @@ def make_parts(tmp_path, n):
         path.write_bytes(f"part{i}".encode())
         paths.append(str(path))
     return paths
+
+
+def streams(parts):
+    """parts mapped to matching streams, as probe_parts reports them."""
+    return {part: [VIDEO, AUDIO] for part in parts}
 
 
 def test_parts_match():
@@ -108,9 +114,7 @@ async def test_join_concatenates_matching_parts(tmp_path, ffmpeg_log, monkeypatc
     parts = make_parts(tmp_path, 3)
     out = tmp_path / "joined.mp4"
 
-    result = await join_parts(
-        parts, str(out), writer(), ffmpeg=FAKE_FFMPEG, ffprobe=FAKE_FFPROBE
-    )
+    result = await join_parts(streams(parts), str(out), writer(), ffmpeg=FAKE_FFMPEG)
 
     assert result == JoinResult(ok=True)
     assert out.read_bytes() == b"part1part2part3"
@@ -119,16 +123,15 @@ async def test_join_concatenates_matching_parts(tmp_path, ffmpeg_log, monkeypatc
     assert list(tmp.iterdir()) == []  # the list's temp directory is removed
 
 
-async def test_join_keeps_mismatched_parts(tmp_path, ffmpeg_log, monkeypatch):
-    monkeypatch.setenv("FAKE_FFPROBE_ODD", "p2")
+async def test_join_keeps_mismatched_parts(tmp_path, ffmpeg_log):
     parts = make_parts(tmp_path, 2)
+    smaller = StreamInfo("video", "h264", 1280, 720, "yuv420p", None, None, "High")
 
     result = await join_parts(
-        parts,
+        {parts[0]: [VIDEO, AUDIO], parts[1]: [smaller, AUDIO]},
         str(tmp_path / "j.mp4"),
         writer(),
         ffmpeg=FAKE_FFMPEG,
-        ffprobe=FAKE_FFPROBE,
     )
 
     assert result == JoinResult(
@@ -137,21 +140,16 @@ async def test_join_keeps_mismatched_parts(tmp_path, ffmpeg_log, monkeypatch):
     assert ffmpeg_runs(ffmpeg_log) == []
 
 
-async def test_join_keeps_unreadable_parts(tmp_path, ffmpeg_log, monkeypatch):
+async def test_probe_parts_reports_unreadable_parts_separately(tmp_path, monkeypatch):
     monkeypatch.setenv("FAKE_FFPROBE_FAIL", "p2")
-    parts = make_parts(tmp_path, 2)
+    parts = make_parts(tmp_path, 3)
 
-    result = await join_parts(
-        parts,
-        str(tmp_path / "j.mp4"),
-        writer(),
-        ffmpeg=FAKE_FFMPEG,
-        ffprobe=FAKE_FFPROBE,
-    )
+    readable, unreadable = await probe_parts(parts, ffprobe=FAKE_FFPROBE)
 
-    assert not result.ok
-    assert result.reason.startswith("part 2 can't be read (")
-    assert "Invalid data found" in result.reason
+    assert readable == {parts[0]: [VIDEO, AUDIO], parts[2]: [VIDEO, AUDIO]}
+    assert unreadable == {
+        parts[1]: f"{parts[1]}: Invalid data found when processing input"
+    }
 
 
 async def test_failed_join_reports_ffmpeg_tail(tmp_path, ffmpeg_log, monkeypatch):
@@ -159,11 +157,10 @@ async def test_failed_join_reports_ffmpeg_tail(tmp_path, ffmpeg_log, monkeypatch
     parts = make_parts(tmp_path, 2)
 
     result = await join_parts(
-        parts,
+        streams(parts),
         str(tmp_path / "j.mp4"),
         writer(),
         ffmpeg=FAKE_FFMPEG,
-        ffprobe=FAKE_FFPROBE,
     )
 
     assert not result.ok
@@ -174,11 +171,10 @@ async def test_failed_join_reports_ffmpeg_tail(tmp_path, ffmpeg_log, monkeypatch
 async def test_join_with_missing_ffmpeg(tmp_path):
     parts = make_parts(tmp_path, 2)
     result = await join_parts(
-        parts,
+        streams(parts),
         str(tmp_path / "j.mp4"),
         writer(),
         ffmpeg=str(tmp_path / "no-ffmpeg"),
-        ffprobe=FAKE_FFPROBE,
     )
     assert not result.ok
     assert result.reason.startswith("FFmpeg couldn't start: ")
@@ -189,11 +185,10 @@ async def test_join_with_an_unwritable_temp_dir(tmp_path, ffmpeg_log, monkeypatc
     parts = make_parts(tmp_path, 2)
 
     result = await join_parts(
-        parts,
+        streams(parts),
         str(tmp_path / "j.mp4"),
         writer(),
         ffmpeg=FAKE_FFMPEG,
-        ffprobe=FAKE_FFPROBE,
     )
 
     assert not result.ok
@@ -217,11 +212,10 @@ async def test_cancelling_a_join_kills_ffmpeg(tmp_path, ffmpeg_log, monkeypatch)
     parts = make_parts(tmp_path, 2)
     task = asyncio.create_task(
         join_parts(
-            parts,
+            streams(parts),
             str(tmp_path / "j.mp4"),
             writer(),
             ffmpeg=FAKE_FFMPEG,
-            ffprobe=FAKE_FFPROBE,
         )
     )
     await wait_for_glob(tmp_path, "j.mp4.ready")

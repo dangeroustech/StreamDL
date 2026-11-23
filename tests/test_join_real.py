@@ -6,7 +6,7 @@ import subprocess  # nosec B404 - test helper running FFmpeg
 
 import pytest
 
-from streamdl.join import join_parts, probe
+from streamdl.join import join_parts, probe, probe_parts
 from streamdl.progress import FfmpegLogWriter, ProgressStore
 
 FFMPEG = shutil.which("ffmpeg")
@@ -40,8 +40,10 @@ def duration(path):
 
 
 async def join(parts, out):
+    readable, unreadable = await probe_parts(parts, ffprobe=FFPROBE)
+    assert unreadable == {}
     writer = FfmpegLogWriter("join", ProgressStore())
-    return await join_parts(parts, out, writer, ffmpeg=FFMPEG, ffprobe=FFPROBE)
+    return await join_parts(readable, out, writer, ffmpeg=FFMPEG)
 
 
 async def test_matching_parts_join_into_one_file(tmp_path):
@@ -60,14 +62,19 @@ async def test_a_resolution_change_keeps_the_parts(tmp_path):
     assert result.reason == "stream 0 width is 160 in part 2, 320 in part 1"
 
 
-async def test_an_unreadable_part_keeps_the_parts(tmp_path):
-    bad = tmp_path / "bad.mp4"
-    bad.write_bytes(b"not a video")
-    result = await join(
-        [make_clip(tmp_path / "a.mp4"), str(bad)], str(tmp_path / "j.mp4")
-    )
-    assert not result.ok
-    assert result.reason.startswith("part 2 can't be read (")
+async def test_a_part_cut_off_before_its_index_is_left_out(tmp_path):
+    parts = [make_clip(tmp_path / f"p{n}.mp4") for n in (1, 2, 3)]
+    with open(parts[1], "r+b") as f:
+        f.truncate(4096)  # like FFmpeg killed before it wrote the moov atom
+    readable, unreadable = await probe_parts(parts, ffprobe=FFPROBE)
+    assert list(readable) == [parts[0], parts[2]]
+    assert unreadable[parts[1]].endswith("Invalid data found when processing input")
+
+    out = str(tmp_path / "joined.mp4")
+    writer = FfmpegLogWriter("join", ProgressStore())
+    result = await join_parts(readable, out, writer, ffmpeg=FFMPEG)
+    assert result.ok, result
+    assert duration(out) == pytest.approx(4.0, abs=0.3)
 
 
 async def test_quotes_and_spaces_in_paths(tmp_path):

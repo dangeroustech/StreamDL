@@ -1088,3 +1088,96 @@ async def test_the_part_number_counts_only_parts_that_recorded_something(
     assert shown == [(1, ""), (1, ""), (2, "")]
     assert during_sleep[0] == ("retrying", 0.0)
     assert len(files(tmp_path / "out")) == 1
+
+
+async def test_an_unreadable_part_is_left_out_of_the_join_and_kept_without_the_hook(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFPROBE_FAIL", "_part2")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    [join] = [run for run in ffmpeg_runs(ffmpeg_log) if "concat" in run]
+    joined, bad = files(tmp_path / "out")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", joined.name)
+    assert joined.read_bytes() == b"fake mp4" * 2
+    assert bad.name == joined.stem + "_part2.mp4"
+    assert bad.read_bytes() == b"fake mp4"
+    assert hook_calls(marker) == [str(joined)]
+    assert files(tmp_path / "dl") == []
+    assert rt.notices.pending()[-1] == Notice(
+        logging.WARNING,
+        "alice",
+        f"A part couldn't be read and was kept separately as {bad.name}:"
+        " Invalid data found when processing input",
+    )
+
+
+async def test_the_one_readable_part_left_takes_the_plain_name(
+    make_runtime, monkeypatch, tmp_path
+):
+    # Part 1 recorded nothing and part 2 can't be read, so part 3 is the recording.
+    monkeypatch.setenv("FAKE_FFMPEG_EMPTY_RUNS", "1")
+    monkeypatch.setenv("FAKE_FFPROBE_FAIL", "_part2")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    plain, bad = files(tmp_path / "out")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", plain.name)
+    assert bad.name == plain.stem + "_part2.mp4"
+    assert hook_calls(marker) == [str(plain)]
+    assert files(tmp_path / "dl") == []
+
+
+async def test_an_unreadable_first_part_keeps_its_name(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    probe_parts = recorder.probe_parts
+
+    async def first_part_unreadable(parts, **kwargs):
+        monkeypatch.setenv("FAKE_FFPROBE_FAIL", os.path.basename(parts[0]))
+        return await probe_parts(parts, **kwargs)
+
+    monkeypatch.setattr(recorder, "probe_parts", first_part_unreadable)
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    # The joined parts 2 and 3 can't take part 1's name, so they keep part 2's.
+    bad, joined = files(tmp_path / "out")
+    assert re.fullmatch(r"alice_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d\.mp4", bad.name)
+    assert bad.read_bytes() == b"fake mp4"
+    assert joined.name == bad.stem + "_part2.mp4"
+    assert joined.read_bytes() == b"fake mp4" * 2
+    assert hook_calls(marker) == [str(joined)]
+    assert files(tmp_path / "dl") == []
+
+
+async def test_parts_that_cant_be_read_at_all_are_kept_and_each_gets_the_hook(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFPROBE_FAIL", "alice_")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    moved = files(tmp_path / "out")
+    assert len(moved) == 2
+    assert sorted(hook_calls(marker)) == [str(p) for p in moved]
+    assert len(ffmpeg_runs(ffmpeg_log)) == 2  # no join was attempted
+    message = rt.notices.pending()[-1].message
+    assert message.startswith("Kept 2 separate parts: none of them can be read (")

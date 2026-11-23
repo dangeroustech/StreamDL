@@ -23,7 +23,7 @@ from .ffmpeg import (
     tail_lines,
 )
 from .files import create_dir_with_umask, move_file, sanitize_filename
-from .join import JoinResult, join_parts
+from .join import JoinResult, StreamInfo, join_parts, probe_parts
 from .process import describe_exit
 from .progress import (
     DownloadKind,
@@ -427,22 +427,24 @@ async def _finish_session(
     """Join the parts if there are several, then move the result and run the hook.
 
     Missing and empty parts (an attempt that failed at start-up or recorded
-    nothing) are dropped, and empty part files deleted; a lone later part that
-    survives takes the recording's plain name. The join can be stopped by
-    shutdown, which leaves the parts in place; the moves and hooks always
-    finish, as before.
+    nothing) are dropped, and empty part files deleted. Parts that can't be
+    read are left out of the join and moved without the hook. A lone later
+    part that survives takes the recording's plain name if it's free. The join
+    can be stopped by shutdown, which leaves the parts in place; the moves and
+    hooks always finish, as before.
     """
     recorded = await asyncio.to_thread(_recorded_parts, parts)
     if not recorded:
         log.warning("Nothing was recorded for %s", user)
         return
-    plain = _part_path(out_dir, stem, 1)
+    unreadable: list[str] = []
     if len(recorded) > 1:
-        recorded = await _join_session(rt, user, recorded, out_dir, stem)
-    elif recorded[0] != plain:
+        recorded, unreadable = await _join_session(rt, user, recorded, out_dir, stem)
+    plain = _part_path(out_dir, stem, 1)
+    if len(recorded) == 1 and recorded[0] != plain:
         recorded = [await asyncio.to_thread(_take_plain_name, recorded[0], plain)]
     await _run_to_completion(
-        _finish_files(rt, user, site, post_script, recorded, move_dir)
+        _finish_files(rt, user, site, post_script, recorded, unreadable, move_dir)
     )
 
 
@@ -505,31 +507,76 @@ def _join_space_shortfall(parts: list[str], out_dir: str) -> str:
 
 async def _join_session(
     rt: Runtime, user: str, parts: list[str], out_dir: str, stem: str
-) -> list[str]:
-    """Join parts into the recording's plain filename; return the files to move.
+) -> tuple[list[str], list[str]]:
+    """Join the parts that can be read; return the files to move with the hook
+    and the unreadable parts to move without it.
 
-    That is the joined file alone when the join worked. Otherwise the parts are
-    kept as they are, and a notice says why.
+    Each unreadable part gets a notice. If no part can be read, they're all
+    kept as they are and moved with the hook, as are readable parts that can't
+    be joined; a notice says why. A lone readable part is returned unjoined.
+    """
+    key = progress_key_live(user)
+    rt.progress.set_status(key, "joining")
+    try:
+        readable, unreadable = await probe_parts(
+            parts, ffprobe=rt.settings.ffprobe_path
+        )
+        if not readable:
+            reason = f"none of them can be read ({unreadable[parts[0]]})"
+            _keep_parts(rt, user, parts, JoinResult(ok=False, reason=reason))
+            return parts, []
+        for path, error in unreadable.items():
+            name = os.path.basename(path)
+            log.warning(
+                "Leaving %s out of the join for %s: it can't be read (%s)",
+                name,
+                user,
+                error,
+            )
+            rt.notices.warn(
+                user,
+                f"A part couldn't be read and was kept separately as {name}:"
+                f" {error.removeprefix(f'{path}: ')}",
+            )
+        if len(readable) == 1:
+            return list(readable), list(unreadable)
+        final = _part_path(out_dir, stem, 1)
+        if final in unreadable:  # the plain name stays with the unreadable part 1
+            final = next(iter(readable))
+        return await _join(rt, user, readable, out_dir, stem, final), list(unreadable)
+    finally:
+        rt.progress.set_status(key, "")
+
+
+async def _join(
+    rt: Runtime,
+    user: str,
+    parts: dict[str, list[StreamInfo]],
+    out_dir: str,
+    stem: str,
+    final: str,
+) -> list[str]:
+    """Join parts (each path mapped to its streams) into final; return the files
+    to move.
+
+    That is final alone when the join worked. Otherwise the parts are kept as
+    they are, and a notice says why.
     """
     s = rt.settings
-    key = progress_key_live(user)
-    final = _part_path(out_dir, stem, 1)
+    paths = list(parts)
     joining = os.path.join(out_dir, f"{stem}.joining.mp4")
     # Not a progress entry, so the join's own progress lines are ignored.
-    writer = FfmpegLogWriter(f"{key}:join", rt.progress)
-    rt.progress.set_status(key, "joining")
+    writer = FfmpegLogWriter(f"{progress_key_live(user)}:join", rt.progress)
     joined = False
     try:
-        if shortfall := await asyncio.to_thread(_join_space_shortfall, parts, out_dir):
+        if shortfall := await asyncio.to_thread(_join_space_shortfall, paths, out_dir):
             result = JoinResult(ok=False, reason=shortfall)
         else:
-            result = await join_parts(
-                parts, joining, writer, ffmpeg=s.ffmpeg_path, ffprobe=s.ffprobe_path
-            )
+            result = await join_parts(parts, joining, writer, ffmpeg=s.ffmpeg_path)
         if result.ok:
             # From here to the return nothing is awaited, so these file operations
             # run on the event loop: shutdown can't land between the rename and
-            # the deletes. Part 1 (if it's there) is replaced first, so the
+            # the deletes. final (if it's there) is replaced first, so the
             # recording always exists under one name or another.
             try:
                 os.replace(joining, final)
@@ -539,29 +586,31 @@ async def _join_session(
                     ok=False, reason=f"the joined file couldn't be renamed ({e})"
                 )
     finally:
-        rt.progress.set_status(key, "")
         if not joined:
             with contextlib.suppress(OSError):
                 os.remove(joining)
     if not joined:
-        log.warning(
-            "Keeping %d separate parts for %s: %s", len(parts), user, result.reason
-        )
-        if result.log_tail:
-            log.warning("FFmpeg join log tail for %s:\n%s", user, result.log_tail)
-        rt.notices.warn(user, f"Kept {len(parts)} separate parts: {result.reason}")
-        return parts
+        _keep_parts(rt, user, paths, result)
+        return paths
 
-    for part in parts:
+    for part in paths:
         if part != final:
             try:
                 os.remove(part)
             except OSError as e:
                 log.warning("Couldn't delete joined part %s: %s", part, e)
     log.info(
-        "Joined %d parts for %s into %s", len(parts), user, os.path.basename(final)
+        "Joined %d parts for %s into %s", len(paths), user, os.path.basename(final)
     )
     return [final]
+
+
+def _keep_parts(rt: Runtime, user: str, parts: list[str], result: JoinResult) -> None:
+    """Say why the parts weren't joined, in the log and in a notice."""
+    log.warning("Keeping %d separate parts for %s: %s", len(parts), user, result.reason)
+    if result.log_tail:
+        log.warning("FFmpeg join log tail for %s:\n%s", user, result.log_tail)
+    rt.notices.warn(user, f"Kept {len(parts)} separate parts: {result.reason}")
 
 
 async def _finish_files(
@@ -570,11 +619,16 @@ async def _finish_files(
     site: str,
     post_script: str,
     paths: list[str],
+    unreadable: list[str],
     move_dir: str,
 ) -> None:
+    """Move paths and run the hook on each; move the unreadable parts without it."""
     for path in paths:
         new_path = os.path.join(move_dir, os.path.basename(path))
         await _finish_live(rt, user, site, post_script, path, new_path)
+    for path in unreadable:
+        new_path = os.path.join(move_dir, os.path.basename(path))
+        await _finish_live(rt, user, site, "", path, new_path)  # "": no hook
 
 
 async def _wait_for_live(

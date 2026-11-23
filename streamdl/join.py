@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, fields
 
 from .ffmpeg import tail_lines
@@ -78,6 +78,21 @@ async def probe(path: str, *, ffprobe: str) -> list[StreamInfo]:
     return infos
 
 
+async def probe_parts(
+    parts: Sequence[str], *, ffprobe: str
+) -> tuple[dict[str, list[StreamInfo]], dict[str, str]]:
+    """Probe every part: the streams of those ffprobe can read, and why each of
+    the others can't be read, both keyed by path in the parts' order."""
+    readable: dict[str, list[StreamInfo]] = {}
+    unreadable: dict[str, str] = {}
+    for part in parts:
+        try:
+            readable[part] = await probe(part, ffprobe=ffprobe)
+        except ProbeError as e:
+            unreadable[part] = str(e)
+    return readable, unreadable
+
+
 def parts_match(infos: Sequence[Sequence[StreamInfo]]) -> str | None:
     """None if every part has the same streams as part 1, else the first difference."""
     first = infos[0]
@@ -129,32 +144,26 @@ def build_concat_args(list_path: str, out_path: str, *, ffmpeg: str) -> list[str
 
 
 async def join_parts(
-    parts: Sequence[str],
+    parts: Mapping[str, Sequence[StreamInfo]],
     out_path: str,
     writer: FfmpegLogWriter,
     *,
     ffmpeg: str,
-    ffprobe: str,
 ) -> JoinResult:
-    """Join parts (at least two) into out_path if they match; otherwise say why not.
+    """Join parts into out_path if they match; otherwise say why not.
 
-    Failures come back as a JoinResult; nothing but cancellation is raised. The
-    caller deletes out_path when the result isn't ok. If this is cancelled, the
-    join FFmpeg is killed and out_path may be left half written.
+    parts maps at least two paths, in order, to their streams (from
+    probe_parts). Failures come back as a JoinResult; nothing but cancellation
+    is raised. The caller deletes out_path when the result isn't ok. If this is
+    cancelled, the join FFmpeg is killed and out_path may be left half written.
     """
-    infos = []
-    for n, part in enumerate(parts, start=1):
-        try:
-            infos.append(await probe(part, ffprobe=ffprobe))
-        except ProbeError as e:
-            return JoinResult(ok=False, reason=f"part {n} can't be read ({e})")
-    if reason := parts_match(infos):
+    if reason := parts_match(list(parts.values())):
         return JoinResult(ok=False, reason=reason)
     try:
         with tempfile.TemporaryDirectory(
             prefix="streamdl-join-", ignore_cleanup_errors=True
         ) as tmp:
-            list_path = write_concat_list(parts, tmp)
+            list_path = write_concat_list(list(parts), tmp)
             args = build_concat_args(list_path, out_path, ffmpeg=ffmpeg)
             log.debug("FFmpeg join args: %s", args)
             try:
