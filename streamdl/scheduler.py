@@ -12,7 +12,7 @@ from typing import Any
 
 from .config import Channel, ConfigLoader, Site
 from .progress import log_active_download_summary
-from .recorder import RATE_LIMIT_BACKOFFS, mark_vod_failed, record_live, record_vod
+from .recorder import mark_vod_failed, record_live, record_vod
 from .resolver import RateLimited, ResolverError, StreamURLs
 from .runtime import Runtime
 from .vod_db import VodDB
@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 
 BANNER = "-" * 41
 MIN_STALE_SECONDS = 600
+RATE_LIMIT_BACKOFFS = (0, 30, 60)
 
 
 def vod_stream_user(vod_id: str) -> str:

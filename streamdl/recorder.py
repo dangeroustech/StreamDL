@@ -47,7 +47,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-RATE_LIMIT_BACKOFFS = (0, 30, 60)
 LOG_TAIL_LINES = 50
 _RE_UNSAFE_ID = re.compile(r"[^A-Za-z0-9_-]")
 
