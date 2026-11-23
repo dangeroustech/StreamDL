@@ -224,3 +224,14 @@ async def test_cancelling_a_join_kills_ffmpeg(tmp_path, ffmpeg_log, monkeypatch)
     with pytest.raises(asyncio.CancelledError):
         await task
     assert procs[-1].returncode is not None  # the join FFmpeg was reaped
+
+
+def test_a_mismatch_names_the_parts_own_numbers():
+    smaller = StreamInfo("video", "h264", 1280, 720, "yuv420p", None, None, "High")
+    assert (
+        parts_match([[VIDEO, AUDIO], [smaller, AUDIO]], [1, 3])
+        == "stream 0 width is 1280 in part 3, 1920 in part 1"
+    )
+    assert parts_match([[VIDEO, AUDIO], [VIDEO]], [2, 4]) == (
+        "part 4 has 1 streams, part 2 has 2"
+    )

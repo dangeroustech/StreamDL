@@ -93,18 +93,24 @@ async def probe_parts(
     return readable, unreadable
 
 
-def parts_match(infos: Sequence[Sequence[StreamInfo]]) -> str | None:
-    """None if every part has the same streams as part 1, else the first difference."""
-    first = infos[0]
-    for n, streams in enumerate(infos[1:], start=2):
+def parts_match(
+    infos: Sequence[Sequence[StreamInfo]], numbers: Sequence[int] | None = None
+) -> str | None:
+    """None if every part has the same streams as the first, else the first difference.
+
+    The reason names parts by numbers (each part's own number), or 1, 2, … if None.
+    """
+    numbers = numbers or range(1, len(infos) + 1)
+    first, n1 = infos[0], numbers[0]
+    for n, streams in zip(numbers[1:], infos[1:]):
         if len(streams) != len(first):
-            return f"part {n} has {len(streams)} streams, part 1 has {len(first)}"
+            return f"part {n} has {len(streams)} streams, part {n1} has {len(first)}"
         for i, (a, b) in enumerate(zip(first, streams)):
             for name in _FIELDS:
                 if getattr(a, name) != getattr(b, name):
                     return (
                         f"stream {i} {name} is {getattr(b, name)} in part {n},"
-                        f" {getattr(a, name)} in part 1"
+                        f" {getattr(a, name)} in part {n1}"
                     )
     return None
 
@@ -149,15 +155,17 @@ async def join_parts(
     writer: FfmpegLogWriter,
     *,
     ffmpeg: str,
+    numbers: Sequence[int] | None = None,
 ) -> JoinResult:
     """Join parts into out_path if they match; otherwise say why not.
 
     parts maps at least two paths, in order, to their streams (from
-    probe_parts). Failures come back as a JoinResult; nothing but cancellation
-    is raised. The caller deletes out_path when the result isn't ok. If this is
-    cancelled, the join FFmpeg is killed and out_path may be left half written.
+    probe_parts); numbers, if given, are the parts' own numbers for the reason.
+    Failures come back as a JoinResult; nothing but cancellation is raised. The
+    caller deletes out_path when the result isn't ok. If this is cancelled, the
+    join FFmpeg is killed and out_path may be left half written.
     """
-    if reason := parts_match(list(parts.values())):
+    if reason := parts_match(list(parts.values()), numbers):
         return JoinResult(ok=False, reason=reason)
     try:
         with tempfile.TemporaryDirectory(

@@ -221,6 +221,12 @@ def _part_path(out_dir: str, stem: str, n: int) -> str:
     return os.path.join(out_dir, f"{stem}.mp4" if n == 1 else f"{stem}_part{n}.mp4")
 
 
+def _part_number(path: str, stem: str) -> int:
+    """The part number in a _part_path name (part 1 for the plain name)."""
+    name = os.path.basename(path).removesuffix(".mp4")
+    return 1 if name == stem else int(name.removeprefix(f"{stem}_part"))
+
+
 async def _record_parts(
     rt: Runtime,
     user: str,
@@ -587,7 +593,10 @@ async def _join(
         if shortfall := await asyncio.to_thread(_join_space_shortfall, paths, out_dir):
             result = JoinResult(ok=False, reason=shortfall)
         else:
-            result = await join_parts(parts, joining, writer, ffmpeg=s.ffmpeg_path)
+            numbers = [_part_number(p, stem) for p in paths]
+            result = await join_parts(
+                parts, joining, writer, ffmpeg=s.ffmpeg_path, numbers=numbers
+            )
         if result.ok:
             # From here to the return nothing is awaited, so these file operations
             # run on the event loop: shutdown can't land between the rename and

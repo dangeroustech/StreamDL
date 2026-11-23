@@ -1271,3 +1271,19 @@ async def test_an_unreadable_part_with_mismatched_readable_parts(
         " Invalid data found when processing input",
         "Kept 2 separate parts: stream 0 width is 1280 in part 2, 1920 in part 1",
     ]
+
+
+async def test_a_mismatch_after_an_unreadable_part_names_the_real_part(
+    make_runtime, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFPROBE_FAIL", "_part2")
+    monkeypatch.setenv("FAKE_FFPROBE_ODD", "_part3")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(files(tmp_path / "out")) == 3
+    assert rt.notices.pending()[-1].message == (
+        "Kept 2 separate parts: stream 0 width is 1280 in part 3, 1920 in part 1"
+    )
