@@ -242,8 +242,10 @@ async def _record_parts(
     key = progress_key_live(user)
     urls = initial
     failures = 0
+    reconnects = 0
+    has_data = False  # whether the last attempt recorded anything
     while True:
-        if parts:
+        if has_data:  # the progress line counts only parts that hold data
             rt.progress.next_part(key)
         path = _part_path(out_dir, stem, len(parts) + 1)
         parts.append(path)
@@ -259,7 +261,8 @@ async def _record_parts(
 
         # A clean exit that left nothing behind is a failure too, so an FFmpeg
         # that keeps stopping at once can't record empty parts in a tight loop.
-        if returncode == 0 and await asyncio.to_thread(_has_data, path):
+        has_data = await asyncio.to_thread(_has_data, path)
+        if returncode == 0 and has_data:
             failures = 0
             _log_clean_exit(user, writer, streamlink_tail)
             stopped_at = rt.clock()
@@ -267,10 +270,15 @@ async def _record_parts(
             if fresh is None:
                 return
             gap = rt.clock() - stopped_at
-            rt.notices.info(
-                user,
-                f"Stream came back after {gap:.0f}s; recording part {len(parts) + 1}",
-            )
+            n = len(parts) + 1
+            log.info("%s came back after %.0fs; recording part %d", user, gap, n)
+            reconnects += 1
+            # Later reconnects are only logged, so a flapping stream can't
+            # flood the notices.
+            if reconnects == 1:
+                rt.notices.info(
+                    user, f"Stream came back after {gap:.0f}s; recording part {n}"
+                )
         else:
             failures += 1
             if returncode == 0:
@@ -285,14 +293,10 @@ async def _record_parts(
                 log.warning("streamlink log tail for %s:\n%s", user, streamlink_tail)
             if failures > s.ffmpeg.max_retries:
                 log.error(
-                    "FFmpeg failed for %s after %d attempts: %s",
-                    user,
-                    s.ffmpeg.max_retries,
-                    reason,
+                    "FFmpeg failed for %s after %d attempts: %s", user, failures, reason
                 )
                 rt.notices.error(
-                    user,
-                    f"Recording failed after {s.ffmpeg.max_retries} attempts: {reason}",
+                    user, f"Recording failed after {failures} attempts: {reason}"
                 )
                 return
             delay = s.ffmpeg.retry_base_delay * 2 ** (failures - 1)
@@ -303,6 +307,8 @@ async def _record_parts(
                 s.ffmpeg.max_retries,
                 delay,
             )
+            # Cleared by the lookup below, before the next attempt starts.
+            rt.progress.set_status(key, "retrying")
             await rt.sleep(delay)
             # On the ad-free path the fresh URL itself goes unused: the lookup
             # checks the channel is still live before streamlink resolves it again.

@@ -101,7 +101,7 @@ async def test_gives_up_after_max_retries(
 
     assert len(ffmpeg_runs(ffmpeg_log)) == 4  # three attempts, then the join
     assert [n.message for n in rt.notices.pending()] == [
-        "Recording failed after 2 attempts: exit status 1"
+        "Recording failed after 3 attempts: exit status 1"
     ]
     assert len(files(tmp_path / "out")) == 1  # what was recorded is kept
     assert "alice" not in rt.active
@@ -923,7 +923,7 @@ async def test_clean_exits_that_record_nothing_stop_after_max_retries(
     assert len(rt.resolver.stream_calls) == 2
     assert rt.sleep.calls == [2.0, 4.0]
     assert [n.message for n in rt.notices.pending()] == [
-        "Recording failed after 2 attempts: nothing was recorded"
+        "Recording failed after 3 attempts: nothing was recorded"
     ]
     assert files(tmp_path / "out") == []
     assert files(tmp_path / "dl") == []
@@ -1035,3 +1035,56 @@ async def test_a_twitch_drop_that_comes_back_is_joined(
     assert len(streamlink_runs(streamlink_log)) == 2
     [moved] = files(tmp_path / "out")
     assert moved.read_bytes() == b"fake mp4" * 2
+
+
+async def test_only_the_first_reconnect_posts_a_notice_but_each_is_logged(
+    make_runtime, ffmpeg_log, caplog, tmp_path
+):
+    caplog.set_level(logging.INFO, logger="streamdl")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, Offline("x"), FRESH, FRESH, Offline("gone")]
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    assert len(ffmpeg_runs(ffmpeg_log)) == 5  # four parts, then the join
+    assert [n.message for n in rt.notices.pending()] == [
+        "Stream came back after 0s; recording part 2"
+    ]
+    assert [m for m in caplog.messages if " came back after " in m] == [
+        "alice came back after 0s; recording part 2",
+        "alice came back after 5s; recording part 3",
+        "alice came back after 0s; recording part 4",
+    ]
+
+
+async def test_the_part_number_counts_only_parts_that_recorded_something(
+    make_runtime, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFMPEG_EMPTY_RUNS", "1")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    shown = []
+    record_attempt = recorder._record_attempt
+
+    async def peeking_attempt(*args, **kwargs):
+        p = rt.progress.get("live:alice")
+        shown.append((p.parts, p.status))
+        return await record_attempt(*args, **kwargs)
+
+    monkeypatch.setattr(recorder, "_record_attempt", peeking_attempt)
+    sleep = rt.sleep
+    during_sleep = []
+
+    async def peeking_sleep(seconds):
+        p = rt.progress.get("live:alice")
+        during_sleep.append((p.status, p.speed))
+        await sleep(seconds)
+
+    rt.sleep = peeking_sleep
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, "")
+
+    # The empty first attempt isn't a part; the retry's backoff shows "retrying".
+    assert shown == [(1, ""), (1, ""), (2, "")]
+    assert during_sleep[0] == ("retrying", 0.0)
+    assert len(files(tmp_path / "out")) == 1
