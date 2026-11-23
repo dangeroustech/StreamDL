@@ -304,7 +304,7 @@ async def _record_parts(
                 "Recording failed for %s (attempt %d/%d). Retrying in %gs",
                 user,
                 failures,
-                s.ffmpeg.max_retries,
+                s.ffmpeg.max_retries + 1,
                 delay,
             )
             # Cleared by the lookup below, before the next attempt starts.
@@ -443,7 +443,10 @@ async def _finish_session(
         recorded, unreadable = await _join_session(rt, user, parts, out_dir, stem)
     plain = _part_path(out_dir, stem, 1)
     if len(recorded) == 1 and recorded[0] != plain:
-        recorded = [await asyncio.to_thread(_take_plain_name, recorded[0], plain)]
+        # A lone later part takes the plain name, unless something holds it.
+        if _rename_if_free(lone := recorded[0], plain):
+            parts[parts.index(lone)] = plain  # so a shutdown still finds it
+            recorded = [plain]
     await _run_to_completion(
         _finish_files(rt, user, site, post_script, recorded, unreadable, move_dir)
     )
@@ -471,32 +474,16 @@ def _has_data(path: str) -> bool:
         return False
 
 
-def _take_plain_name(part: str, plain: str) -> str:
-    """Rename a lone surviving later part to the recording's plain name.
-
-    Returns the path to move: plain, or part if plain is taken or the rename fails.
-    """
-    if os.path.exists(plain):
-        return part
-    try:
-        os.rename(part, plain)
-    except OSError as e:
-        log.warning("Couldn't rename %s to %s: %s", part, plain, e)
-        return part
-    return plain
-
-
-def _set_aside(part: str, aside: str) -> bool:
-    """Rename an unreadable part 1 to aside, freeing the recording's plain name.
-
-    False if aside is taken or the rename fails; part then keeps its name.
-    """
-    if os.path.exists(aside):
+# On the event loop on purpose: a shutdown can't land between the rename and
+# the caller's update of parts.
+def _rename_if_free(src: str, dst: str) -> bool:
+    """Rename src to dst unless dst exists; False if it does or the rename fails."""
+    if os.path.exists(dst):
         return False
     try:
-        os.rename(part, aside)
+        os.rename(src, dst)
     except OSError as e:
-        log.warning("Couldn't rename %s to %s: %s", part, aside, e)
+        log.warning("Couldn't rename %s to %s: %s", src, dst, e)
         return False
     return True
 
@@ -540,7 +527,8 @@ async def _join_session(
             parts, ffprobe=rt.settings.ffprobe_path
         )
         if not readable:
-            reason = f"none of them can be read ({unreadable[parts[0]]})"
+            error = unreadable[parts[0]].removeprefix(f"{parts[0]}: ")
+            reason = f"none of them can be read ({error})"
             _keep_parts(rt, user, parts, JoinResult(ok=False, reason=reason))
             return parts, []
         plain = _part_path(out_dir, stem, 1)
@@ -548,14 +536,14 @@ async def _join_session(
         kept: list[str] = []  # the unreadable parts, under the names they'll keep
         for path, error in unreadable.items():
             # An unreadable part 1 makes way, so the recording gets the plain name.
-            if path == plain and _set_aside(plain, aside):
+            if path == plain and _rename_if_free(plain, aside):
                 parts[parts.index(plain)] = aside  # so a shutdown still finds it
                 kept.append(aside)
             else:
                 kept.append(path)
             name = os.path.basename(kept[-1])
             log.warning(
-                "Leaving %s out of the join for %s: it can't be read (%s)",
+                "Keeping %s separately for %s: it can't be read (%s)",
                 name,
                 user,
                 error,

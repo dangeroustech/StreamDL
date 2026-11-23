@@ -90,8 +90,9 @@ async def test_retries_with_fresh_urls_and_backoff(
 
 
 async def test_gives_up_after_max_retries(
-    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+    make_runtime, ffmpeg_log, monkeypatch, caplog, tmp_path
 ):
+    caplog.set_level(logging.WARNING, logger="streamdl")
     monkeypatch.setenv("FAKE_FFMPEG_EXITS", "1")
     rt = make_runtime(ffmpeg=FfmpegOptions(max_retries=2))
     rt.resolver.streams = [URLS]
@@ -103,6 +104,11 @@ async def test_gives_up_after_max_retries(
     assert [n.message for n in rt.notices.pending()] == [
         "Recording failed after 3 attempts: exit status 1"
     ]
+    assert [m for m in caplog.messages if m.startswith("Recording failed for")] == [
+        "Recording failed for alice (attempt 1/3). Retrying in 2s",
+        "Recording failed for alice (attempt 2/3). Retrying in 4s",
+    ]
+    assert "FFmpeg failed for alice after 3 attempts: exit status 1" in caplog.messages
     assert len(files(tmp_path / "out")) == 1  # what was recorded is kept
     assert "alice" not in rt.active
 
@@ -1216,8 +1222,10 @@ async def test_parts_that_cant_be_read_at_all_are_kept_and_each_gets_the_hook(
     assert len(moved) == 2
     assert sorted(hook_calls(marker)) == [str(p) for p in moved]
     assert len(ffmpeg_runs(ffmpeg_log)) == 2  # no join was attempted
-    message = rt.notices.pending()[-1].message
-    assert message.startswith("Kept 2 separate parts: none of them can be read (")
+    assert rt.notices.pending()[-1].message == (
+        "Kept 2 separate parts: none of them can be read"
+        " (Invalid data found when processing input)"
+    )
 
 
 async def test_cancel_during_a_join_after_part_1_was_set_aside_counts_it(
@@ -1239,3 +1247,27 @@ async def test_cancel_during_a_join_after_part_1_was_set_aside_counts_it(
     assert len([n for n in names if n.endswith("_part1.mp4")]) == 1
     assert "Shutting down: left 3 part(s) for alice" in caplog.text
     assert files(tmp_path / "out") == []
+
+
+async def test_an_unreadable_part_with_mismatched_readable_parts(
+    make_runtime, ffmpeg_log, monkeypatch, tmp_path
+):
+    monkeypatch.setenv("FAKE_FFPROBE_ODD", "_part2")
+    monkeypatch.setenv("FAKE_FFPROBE_FAIL", "_part3")
+    rt = make_runtime(reconnect=WINDOW)
+    rt.resolver.streams = [FRESH, FRESH, Offline("gone")]
+    hook, marker = make_hook(tmp_path)
+
+    await record_live(rt, "alice", "twitch.tv", "best", URLS, hook)
+    await rt.wait_for_post_scripts()
+
+    first, second, bad = files(tmp_path / "out")
+    assert second.name == first.stem + "_part2.mp4"
+    assert bad.name == first.stem + "_part3.mp4"
+    assert sorted(hook_calls(marker)) == [str(first), str(second)]
+    assert len(ffmpeg_runs(ffmpeg_log)) == 3  # no join was attempted
+    assert [n.message for n in rt.notices.pending()][-2:] == [
+        f"A part couldn't be read and was kept separately as {bad.name}:"
+        " Invalid data found when processing input",
+        "Kept 2 separate parts: stream 0 width is 1280 in part 2, 1920 in part 1",
+    ]
