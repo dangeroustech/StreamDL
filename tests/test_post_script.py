@@ -1,9 +1,11 @@
 import asyncio
 import os
+import signal
 import time
 
 import pytest
 
+from streamdl import runtime
 from streamdl.post_script import PostScriptError, run_post_script
 
 
@@ -105,3 +107,40 @@ async def test_cancel_kills_the_whole_process_group(tmp_path):
         await task
     assert await _gone(child)
     assert await _gone(leader)
+
+
+async def _instant_hook(*args, **kwargs):
+    pass
+
+
+def _spawn_a_finished_hook(make_runtime, monkeypatch):
+    """Spawn a hook that finishes in its first step. After the sleep(0) it is done,
+    but its clean-up callback is still queued behind the caller."""
+    monkeypatch.setattr(runtime, "run_post_script", _instant_hook)
+    rt = make_runtime()
+    rt.spawn_post_script("/hook.sh", "/data/f.mp4", "bob", "twitch.tv", "vod")
+    return rt
+
+
+async def test_waiting_just_after_a_hook_finishes_returns(make_runtime, monkeypatch):
+    rt = _spawn_a_finished_hook(make_runtime, monkeypatch)
+    await asyncio.sleep(0)
+
+    # A spin that never yields can't be stopped by wait_for, so SIGALRM ends it.
+    def spun(signum, frame):
+        raise AssertionError("wait_for_post_scripts spun without yielding")
+
+    old_handler = signal.signal(signal.SIGALRM, spun)
+    signal.setitimer(signal.ITIMER_REAL, 5)
+    try:
+        await asyncio.wait_for(rt.wait_for_post_scripts(), 5)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old_handler)
+
+
+async def test_a_finished_hook_is_not_counted_as_running(make_runtime, monkeypatch):
+    rt = _spawn_a_finished_hook(make_runtime, monkeypatch)
+    assert rt.running_post_scripts == 1
+    await asyncio.sleep(0)
+    assert rt.running_post_scripts == 0

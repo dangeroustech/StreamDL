@@ -61,12 +61,20 @@ class Runtime:
 
     @property
     def running_post_scripts(self) -> int:
-        return len(self._post_scripts)
+        return len(self._unfinished_post_scripts())
 
     async def wait_for_post_scripts(self) -> None:
-        """Wait for every running hook, including any spawned while waiting."""
-        while self._post_scripts:
-            await asyncio.gather(*list(self._post_scripts), return_exceptions=True)
+        """Wait for every running hook, including any spawned while waiting.
+
+        Finished hooks are skipped: one can still be in the set until its discard
+        callback runs, and gather() over finished tasks returns without yielding,
+        so waiting on it would spin and never let that callback run.
+        """
+        while pending := self._unfinished_post_scripts():
+            await asyncio.gather(*pending, return_exceptions=True)
+
+    def _unfinished_post_scripts(self) -> list[asyncio.Task[None]]:
+        return [task for task in self._post_scripts if not task.done()]
 
     async def _run_post_script(
         self,
