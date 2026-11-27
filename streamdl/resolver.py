@@ -327,10 +327,14 @@ def _lookup_error(
     marks network failures expected too, so those are picked out first: WARNING.
     Anything else is an ERROR. message is the ResolverError's text.
     """
-    # extract_info wraps the extractor's error, or, when that was raised while
-    # handling a network error, the network error itself.
+    # extract_info raises the DownloadError while handling the extractor's error, so
+    # that's its __context__. exc_info names it too, except when it was raised while
+    # handling another error (a network error, say): then exc_info names that one,
+    # hiding a UserNotLive raised after a failed request.
     if isinstance(error, DownloadError):
-        inner = error.exc_info[1] if error.exc_info else None
+        inner = error.__context__
+        if not isinstance(inner, ExtractorError):
+            inner = error.exc_info[1] if error.exc_info else None
     else:
         inner = error
     network = isinstance(inner, network_exceptions) or (

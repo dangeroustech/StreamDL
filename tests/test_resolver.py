@@ -1,3 +1,4 @@
+import io
 import logging
 import sys
 import threading
@@ -6,10 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import urllib3.util.url
+import yt_dlp
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
-from yt_dlp.networking.exceptions import TransportError
+from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.networking import Response
+from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
@@ -45,15 +49,19 @@ def wrapped(error, message=None):
     """A DownloadError carrying `error` the way YoutubeDL.extract_info raises it.
 
     yt-dlp passes on the error's own exc_info when it was raised while handling
-    another exception (a network error, say), so exc_info[1] is that exception.
+    another exception (a network error, say), so exc_info[1] is that exception. It
+    raises the DownloadError while handling `error`, which becomes its __context__.
     """
     try:
-        raise error
-    except Exception:
-        exc_info = sys.exc_info()
-    if getattr(error, "exc_info", None) and error.exc_info[0]:
-        exc_info = error.exc_info
-    return DownloadError(message or f"ERROR: {error}", exc_info)
+        try:
+            raise error
+        except Exception:
+            exc_info = sys.exc_info()
+            if getattr(error, "exc_info", None) and error.exc_info[0]:
+                exc_info = error.exc_info
+            raise DownloadError(message or f"ERROR: {error}", exc_info)
+    except DownloadError as e:
+        return e
 
 
 def not_live(message):
@@ -736,6 +744,104 @@ def test_ytdlp_user_not_live_is_offline(ydl, caplog, error):
     with pytest.raises(Offline, match="^Not live: "):
         get_stream("kick.com", "u", "best")
     assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+def test_ytdlp_user_not_live_after_a_network_error_is_offline(ydl, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    try:
+        raise network_error()
+    except ExtractorError:
+        # Some extractors turn a failed request (HTTP 400/404) into UserNotLive.
+        error = wrapped(UserNotLive(video_id="u"))
+    assert isinstance(error.exc_info[1], TransportError)
+    ydl.extract_info.side_effect = error
+    with pytest.raises(Offline, match="^Not live: "):
+        get_stream("kick.com", "u", "best")
+    assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+def test_ytdlp_download_error_without_context_uses_exc_info(ydl):
+    inner = not_live("Room is currently offline")
+    ydl.extract_info.side_effect = DownloadError(
+        "ERROR: offline", (type(inner), inner, None)
+    )
+    with pytest.raises(Offline, match="^Not live: Room is currently offline$"):
+        get_stream("chaturbate.com", "bob", "best")
+
+
+def failed_request(status):
+    """Raise the way InfoExtractor._request_webpage does when a request fails."""
+    response = Response(io.BytesIO(b""), "https://fake.test/api", {}, status=status)
+    try:
+        raise HTTPError(response)
+    except HTTPError as e:
+        raise ExtractorError("Unable to download JSON", cause=e)
+
+
+def private_show():
+    raise not_live("Room is currently in a private show")
+
+
+def gone_after_404():
+    try:
+        failed_request(404)
+    except ExtractorError:
+        raise UserNotLive(video_id="gone")
+
+
+FAKE_SCENARIOS = {
+    "private": private_show,
+    "gone": gone_after_404,
+    "down": lambda: failed_request(503),
+}
+
+
+class FakeIE(InfoExtractor):
+    _VALID_URL = r"(?:https?://)?fake\.test/(?P<id>\w+)"
+
+    def _real_extract(self, url):
+        FAKE_SCENARIOS[self._match_id(url)]()
+
+
+class FakeYoutubeDL(yt_dlp.YoutubeDL):
+    """A real YoutubeDL that only knows FakeIE, so extract_info wraps its errors."""
+
+    def __init__(self, params):
+        super().__init__(params, auto_init=False)
+        self.add_info_extractor(FakeIE())
+
+
+@pytest.mark.parametrize(
+    ("user", "kind", "level", "expected"),
+    [
+        (
+            "private",
+            Offline,
+            logging.DEBUG,
+            "Not live: Room is currently in a private show",
+        ),
+        ("gone", Offline, logging.DEBUG, "Not live: The channel is not currently live"),
+        (
+            "down",
+            ResolverError,
+            logging.WARNING,
+            "Download error: [Fake] down: Unable to download JSON",
+        ),
+    ],
+)
+def test_ytdlp_errors_are_sorted_through_extract_info(
+    session, caplog, user, kind, level, expected
+):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    session.streams.side_effect = NoPluginError("no plugin")
+    with (
+        patch("streamdl.resolver.yt_dlp.YoutubeDL", FakeYoutubeDL),
+        pytest.raises(kind) as err,
+    ):
+        get_stream("fake.test", user, "best")
+    assert type(err.value) is kind
+    assert str(err.value) == expected
+    assert max(r.levelno for r in caplog.records) == level
 
 
 def test_ytdlp_raw_extractor_error_is_offline(ydl):
