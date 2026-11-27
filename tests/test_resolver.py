@@ -19,6 +19,7 @@ from yt_dlp.utils import (
     ExtractorError,
     GeoRestrictedError,
     UnavailableVideoError,
+    UnsupportedError,
     UserNotLive,
 )
 
@@ -888,6 +889,7 @@ def test_ytdlp_network_errors_are_warnings(ydl, caplog, error, expected):
     [
         wrapped(ExtractorError("Unable to extract room data", ie="Kick")),
         wrapped(GeoRestrictedError("Not available from your location")),
+        wrapped(UnsupportedError("https://kick.example/u")),
         wrapped(ValueError("bad json")),
     ],
 )
@@ -940,7 +942,11 @@ def test_ytdlp_fallback_errors_are_sorted(ydl, caplog, error, kind, level):
     with pytest.raises(kind) as err:
         get_stream("chaturbate.com", "bob", "worst")
     assert isinstance(err.value, Offline) == (kind is Offline)
-    fallback = [r for r in caplog.records if "allback yt-dlp" in r.getMessage()]
+    prefixes = (
+        "Fallback yt-dlp extraction failed for bob: ",
+        "Fallback yt-dlp extractor error for bob: ",
+    )
+    fallback = [r for r in caplog.records if r.getMessage().startswith(prefixes)]
     assert [r.levelno for r in fallback] == [level]
 
 

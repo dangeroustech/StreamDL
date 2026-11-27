@@ -26,6 +26,7 @@ from yt_dlp.utils import (
     ExtractorError,
     GeoRestrictedError,
     UnavailableVideoError,
+    UnsupportedError,
     UserNotLive,
 )
 
@@ -316,6 +317,17 @@ def _get_stream_streamlink(
         raise QualityUnavailable(message) from None
 
 
+def _is_network(error: BaseException | None) -> bool:
+    """Whether a yt-dlp error is, or was raised because of, a network failure."""
+    if isinstance(error, network_exceptions):
+        return True
+    exc_info = getattr(error, "exc_info", None) or (None, None)
+    causes = (getattr(error, "cause", None), exc_info[1])
+    return isinstance(error, ExtractorError) and any(
+        isinstance(e, network_exceptions) for e in causes
+    )
+
+
 def _lookup_error(
     error: DownloadError | ExtractorError, message: str, context: str
 ) -> ResolverError:
@@ -325,29 +337,24 @@ def _lookup_error(
     or any other ExtractorError marked expected (a site saying the room is offline
     or in a private show), means the channel isn't live: DEBUG and Offline. yt-dlp
     marks network failures expected too, so those are picked out first: WARNING.
-    Anything else is an ERROR. message is the ResolverError's text.
+    Geo-blocks and unsupported URLs are expected as well but stay ERRORs, like
+    anything else. A site that wants a login raises a plain expected error with no
+    class to sort by, so it reads as not live. message is the ResolverError's text.
     """
     # extract_info raises the DownloadError while handling the extractor's error, so
-    # that's its __context__. exc_info names it too, except when it was raised while
-    # handling another error (a network error, say): then exc_info names that one,
-    # hiding a UserNotLive raised after a failed request.
+    # prefer __context__; exc_info can point past it to an earlier network error.
     if isinstance(error, DownloadError):
         inner = error.__context__
         if not isinstance(inner, ExtractorError):
             inner = error.exc_info[1] if error.exc_info else None
     else:
         inner = error
-    network = isinstance(inner, network_exceptions) or (
-        isinstance(inner, ExtractorError)
-        and any(
-            isinstance(e, network_exceptions) for e in (inner.cause, inner.exc_info[1])
-        )
-    )
+    network = _is_network(inner)
     if isinstance(inner, UserNotLive) or (
         isinstance(inner, ExtractorError)
         and inner.expected
         and not network
-        and not isinstance(inner, GeoRestrictedError)
+        and not isinstance(inner, (GeoRestrictedError, UnsupportedError))
     ):
         log.debug("%s: %s", context, _text(error))
         return Offline(f"Not live: {_short_error(inner.orig_msg)}")
