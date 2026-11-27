@@ -1,4 +1,5 @@
 import logging
+import sys
 import threading
 import time
 from unittest.mock import MagicMock, patch
@@ -8,11 +9,13 @@ import urllib3.util.url
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
+from yt_dlp.networking.exceptions import TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     GeoRestrictedError,
     UnavailableVideoError,
+    UserNotLive,
 )
 
 from streamdl import resolver
@@ -36,6 +39,35 @@ from streamdl.resolver import (
 )
 
 FORMAT_UNAVAILABLE = "ERROR: Requested format is not available"
+
+
+def wrapped(error, message=None):
+    """A DownloadError carrying `error` the way YoutubeDL.extract_info raises it.
+
+    yt-dlp passes on the error's own exc_info when it was raised while handling
+    another exception (a network error, say), so exc_info[1] is that exception.
+    """
+    try:
+        raise error
+    except Exception:
+        exc_info = sys.exc_info()
+    if getattr(error, "exc_info", None) and error.exc_info[0]:
+        exc_info = error.exc_info
+    return DownloadError(message or f"ERROR: {error}", exc_info)
+
+
+def not_live(message):
+    return ExtractorError(message, expected=True, ie="Chaturbate", video_id="bob")
+
+
+def network_error():
+    """An ExtractorError raised while handling a network error, as extractors do."""
+    try:
+        raise TransportError("Could not resolve host: chaturbate.com")
+    except TransportError as e:
+        return ExtractorError(
+            "Unable to download webpage", cause=e, ie="Chaturbate", video_id="bob"
+        )
 
 
 # --- extract_urls ---------------------------------------------------------------
@@ -367,14 +399,25 @@ def test_ytdlp_split_formats(ydl):
     assert get_stream("kick.com", "u", "best") == StreamURLs("http://v", "http://a")
 
 
-def test_ytdlp_offline(ydl):
+@pytest.mark.parametrize(
+    "message", ["Room is currently offline", "Room is resting, back soon"]
+)
+def test_ytdlp_expected_errors_are_offline(ydl, message):
+    ydl.extract_info.side_effect = wrapped(not_live(message))
+    with pytest.raises(Offline) as err:
+        get_stream("chaturbate.com", "bob", "best")
+    assert str(err.value) == f"Not live: {message}"
+
+
+def test_ytdlp_offline_text_alone_is_not_offline(ydl, caplog):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
     ydl.extract_info.side_effect = DownloadError(
         "ERROR: The channel is currently offline"
     )
-    with pytest.raises(Offline) as err:
+    with pytest.raises(ResolverError, match="Download error") as err:
         get_stream("kick.com", "offlineuser", "best")
-    assert "offlineuser" in str(err.value)
-    assert "offline" in str(err.value).lower()
+    assert not isinstance(err.value, Offline)
+    assert any(r.levelno == logging.ERROR for r in caplog.records)
 
 
 def test_ytdlp_rate_limited(ydl):
@@ -670,15 +713,129 @@ CURL_DNS_SHORT = (
 )
 
 
-def test_ytdlp_offline_is_logged_at_debug(ydl, caplog):
+@pytest.mark.parametrize(
+    "message", ["Room is currently offline", "Room is currently in a private show"]
+)
+def test_ytdlp_not_live_is_logged_at_debug(ydl, caplog, message):
     caplog.set_level(logging.DEBUG, logger="streamdl")
-    ydl.extract_info.side_effect = DownloadError(
-        "ERROR: [Chaturbate] bob: Room is currently offline"
-    )
-    with pytest.raises(Offline):
+    ydl.extract_info.side_effect = wrapped(not_live(message))
+    with pytest.raises(Offline) as err:
         get_stream("chaturbate.com", "bob", "best")
-    assert "Room is currently offline" in caplog.text
+    assert str(err.value) == f"Not live: {message}"
+    assert f"[Chaturbate] bob: {message}" in caplog.text
     assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [UserNotLive(), wrapped(UserNotLive()), wrapped(UserNotLive("Gone fishing"))],
+)
+def test_ytdlp_user_not_live_is_offline(ydl, caplog, error):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = error
+    with pytest.raises(Offline, match="^Not live: "):
+        get_stream("kick.com", "u", "best")
+    assert all(r.levelno < logging.WARNING for r in caplog.records)
+
+
+def test_ytdlp_raw_extractor_error_is_offline(ydl):
+    ydl.extract_info.side_effect = not_live("Room is currently in a private show")
+    with pytest.raises(Offline) as err:
+        get_stream("chaturbate.com", "bob", "best")
+    assert str(err.value) == "Not live: Room is currently in a private show"
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            wrapped(network_error()),
+            "Download error: [Chaturbate] bob: Unable to download webpage",
+        ),
+        (
+            network_error(),
+            "Extractor error: [Chaturbate] bob: Unable to download webpage",
+        ),
+        (
+            ExtractorError(
+                "Unable to download webpage",
+                cause=TransportError("timed out"),
+                expected=True,
+            ),
+            "Extractor error: Unable to download webpage",
+        ),
+    ],
+)
+def test_ytdlp_network_errors_are_warnings(ydl, caplog, error, expected):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = error
+    with pytest.raises(ResolverError) as err:
+        get_stream("chaturbate.com", "bob", "best")
+    assert not isinstance(err.value, Offline)
+    assert str(err.value) == expected
+    [record] = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert record.levelno == logging.WARNING
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        wrapped(ExtractorError("Unable to extract room data", ie="Kick")),
+        wrapped(GeoRestrictedError("Not available from your location")),
+        wrapped(ValueError("bad json")),
+    ],
+)
+def test_ytdlp_unexpected_errors_are_errors(ydl, caplog, error):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = error
+    with pytest.raises(ResolverError, match="^Download error: ") as err:
+        get_stream("kick.com", "u", "best")
+    assert not isinstance(err.value, Offline)
+    [record] = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert record.levelno == logging.ERROR
+
+
+def test_ytdlp_format_check_comes_before_expected(ydl):
+    ydl.extract_info.side_effect = [
+        wrapped(ExtractorError("Requested format is not available", expected=True)),
+        {"url": "http://example/video"},
+    ]
+    urls = get_stream("kick.com", "u", "worst")
+    assert urls.video == "http://example/video"
+    assert "default selection" in urls.warning
+
+
+def test_ytdlp_429_check_comes_before_expected_and_network(ydl):
+    try:
+        raise TransportError("HTTP Error 429: Too Many Requests")
+    except TransportError as e:
+        inner = ExtractorError(
+            "HTTP Error 429: Too Many Requests", cause=e, ie="x", video_id="u"
+        )
+    assert inner.expected
+    ydl.extract_info.side_effect = wrapped(inner)
+    with pytest.raises(RateLimited):
+        get_stream("kick.com", "u", "best")
+
+
+@pytest.mark.parametrize(
+    ("error", "kind", "level"),
+    [
+        (wrapped(not_live("Room is currently offline")), Offline, logging.DEBUG),
+        (not_live("Room is currently offline"), Offline, logging.DEBUG),
+        (wrapped(network_error()), ResolverError, logging.WARNING),
+        (network_error(), ResolverError, logging.WARNING),
+        (DownloadError("ERROR: fallback failed"), ResolverError, logging.ERROR),
+    ],
+)
+def test_ytdlp_fallback_errors_are_sorted(ydl, caplog, error, kind, level):
+    caplog.set_level(logging.DEBUG, logger="streamdl")
+    ydl.extract_info.side_effect = [DownloadError(FORMAT_UNAVAILABLE), error]
+    with pytest.raises(kind) as err:
+        get_stream("chaturbate.com", "bob", "worst")
+    assert isinstance(err.value, Offline) == (kind is Offline)
+    fallback = [r for r in caplog.records if "allback yt-dlp" in r.getMessage()]
+    assert [r.levelno for r in fallback] == [level]
 
 
 def test_streamlink_no_streams_is_logged_at_debug(session, caplog):
@@ -702,7 +859,7 @@ def test_ytdlp_other_download_errors_are_still_errors(ydl, caplog):
 
 def test_extractor_errors_are_shortened(ydl):
     ydl.extract_info.side_effect = ExtractorError(
-        "boom", cause=ValueError("x"), expected=True, ie="Kick", video_id="u"
+        "boom", cause=ValueError("x"), ie="Kick", video_id="u"
     )
     with pytest.raises(ResolverError) as err:
         get_stream("kick.com", "u", "best")
@@ -712,9 +869,7 @@ def test_extractor_errors_are_shortened(ydl):
 def test_fallback_extractor_errors_are_shortened(ydl):
     ydl.extract_info.side_effect = [
         DownloadError(FORMAT_UNAVAILABLE),
-        ExtractorError(
-            "boom", cause=ValueError("x"), expected=True, ie="Kick", video_id="u"
-        ),
+        ExtractorError("boom", cause=ValueError("x"), ie="Kick", video_id="u"),
     ]
     with pytest.raises(ResolverError) as err:
         get_stream("kick.com", "u", "worst")

@@ -20,11 +20,13 @@ import yt_dlp
 from streamlink.exceptions import NoPluginError, PluginError
 from streamlink.options import Options
 from streamlink.session import Streamlink
+from yt_dlp.networking.exceptions import network_exceptions
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     GeoRestrictedError,
     UnavailableVideoError,
+    UserNotLive,
 )
 
 from .ffmpeg import sanitize_log
@@ -314,6 +316,42 @@ def _get_stream_streamlink(
         raise QualityUnavailable(message) from None
 
 
+def _lookup_error(
+    error: DownloadError | ExtractorError, message: str, context: str
+) -> ResolverError:
+    """Log a failed yt-dlp lookup at a level that fits it; return the error to raise.
+
+    Sorted by the error's class and flags, never by a site's text. A UserNotLive,
+    or any other ExtractorError marked expected (a site saying the room is offline
+    or in a private show), means the channel isn't live: DEBUG and Offline. yt-dlp
+    marks network failures expected too, so those are picked out first: WARNING.
+    Anything else is an ERROR. message is the ResolverError's text.
+    """
+    # extract_info wraps the extractor's error, or, when that was raised while
+    # handling a network error, the network error itself.
+    if isinstance(error, DownloadError):
+        inner = error.exc_info[1] if error.exc_info else None
+    else:
+        inner = error
+    network = isinstance(inner, network_exceptions) or (
+        isinstance(inner, ExtractorError)
+        and any(
+            isinstance(e, network_exceptions) for e in (inner.cause, inner.exc_info[1])
+        )
+    )
+    if isinstance(inner, UserNotLive) or (
+        isinstance(inner, ExtractorError)
+        and inner.expected
+        and not network
+        and not isinstance(inner, GeoRestrictedError)
+    ):
+        log.debug("%s: %s", context, _text(error))
+        return Offline(f"Not live: {_short_error(inner.orig_msg)}")
+    level = logging.WARNING if network else logging.ERROR
+    log.log(level, "%s: %s", context, _text(error))
+    return ResolverError(message)
+
+
 def _get_stream_ytdlp(site: str, user: str, quality: str) -> StreamURLs:
     fmt = ytdlp_format(quality)
     url = f"{site}/{user}"
@@ -328,19 +366,19 @@ def _get_stream_ytdlp(site: str, user: str, quality: str) -> StreamURLs:
         log.error("UnavailableVideoError: %s", _text(e))
         raise NotFound(f"Stream unavailable: {e}") from e
     except ExtractorError as e:
-        log.error("ExtractorError: %s", _text(e))
-        raise ResolverError(f"Extractor error: {_short_error(str(e))}") from e
+        message = f"Extractor error: {_short_error(str(e))}"
+        raise _lookup_error(e, message, "ExtractorError") from e
     except DownloadError as e:
         text = str(e)
-        if "currently offline" in text:
-            log.debug("DownloadError: %s", _text(e))
-            raise Offline(f"Channel '{user}' is offline") from e
-        log.error("DownloadError: %s", _text(e))
+        # yt-dlp's own messages, checked first: both can wrap an expected error.
         if "Requested format is not available" in text:
+            log.error("DownloadError: %s", _text(e))
             return _retry_with_default_format(url, user, fmt)
         if "HTTP Error 429: Too Many Requests " in text:
+            log.error("DownloadError: %s", _text(e))
             raise RateLimited() from e
-        raise ResolverError(f"Download error: {_short_error(text)}") from e
+        message = f"Download error: {_short_error(text)}"
+        raise _lookup_error(e, message, "DownloadError") from e
     except Exception as e:
         log.error("Generic Error: %s", _text(e))
         raise ResolverError(f"Unexpected error: {e}") from e
@@ -361,11 +399,13 @@ def _retry_with_default_format(url: str, user: str, fmt: str) -> StreamURLs:
             log.debug("yt_dlp.extract_info (fallback) url=%s", url)
             info = ydl.extract_info(url, download=False)
     except DownloadError as e:
-        log.error("Fallback yt-dlp extraction failed for %s: %s", user, _text(e))
-        raise ResolverError(f"Unable to resolve stream URL for '{user}'") from e
+        message = f"Unable to resolve stream URL for '{user}'"
+        context = f"Fallback yt-dlp extraction failed for {user}"
+        raise _lookup_error(e, message, context) from e
     except ExtractorError as e:
-        log.error("Fallback yt-dlp extractor error for %s: %s", user, _text(e))
-        raise ResolverError(f"Extractor error: {_short_error(str(e))}") from e
+        message = f"Extractor error: {_short_error(str(e))}"
+        context = f"Fallback yt-dlp extractor error for {user}"
+        raise _lookup_error(e, message, context) from e
     except Exception as e:
         log.error("Unexpected fallback yt-dlp error for %s: %s", user, _text(e))
         raise ResolverError(f"Unexpected error: {e}") from e
